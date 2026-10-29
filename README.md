@@ -75,10 +75,11 @@ Where a condition has false ALLOWs, the report suggests the lowest confidence fl
 - **When.** Pressing Inspect on the Plumbing tab records about 3 s of audio first, then takes the frames.
   - With a webcam, the default microphone records while the joint is pushed home. `SITEWORK_AUDIO_SOURCE=mic:<n>` picks a device.
   - A replayed clip uses its own audio track.
-- **By ear.** Two independent judgements of the seating click:
-  - The audio model on Token Factory (`NEBIUS_AUDIO_MODEL`, sent as `input_audio`) answers `seated` with a confidence, under a strict schema with one retry.
-  - A deterministic DSP check looks for the strongest onset and its spectral centroid (librosa).
-- **Only when both agree** is a `seat_audio` measurement recorded. A disagreement, a missing recording or a model failure becomes an error, which the policy escalates to a person.
+- **By ear.** A deterministic DSP check (librosa) measures the strongest onset and its spectral centroid.
+  - A seat click is a sharp, high-frequency transient. The reading is the `seat_audio` measurement.
+  - Its confidence is how far the deciding feature is past its threshold: 0 at the threshold, 1 at 50% past it. A borderline reading therefore falls under the policy's confidence floor and escalates.
+  - Token Factory rejects audio input (`input_audio`, HTTP 422) for every model it lists, so no audio model is used by default.
+  - `AUDIO_MODE=model+dsp` switches to an audio model that must agree with the DSP, for a self-hosted model. A disagreement, a missing recording or a model failure is then an error, which escalates.
 - The DSP thresholds (`AUDIO_ONSET_RATIO`=8, `AUDIO_CENTROID_HZ`=1500) are starting values to calibrate on bench recordings of seated and unseated joints. In synthetic tests they hear a 4 kHz click and reject faint noise and an 80 Hz thud.
 - **By eye.** Nemotron VL returns the pipe's and the fitting's centre lines; code measures the angle between them on the marker plane.
 - **Both required.** A plumbing requirement must set a threshold for `seat_audio` (e.g. `{"min": 1}`) and for `angle_deg`, or the inspection records a grounding error and escalates. The approved requirement decides what "seated" and "aligned" mean.
@@ -142,6 +143,7 @@ physical capture has been completed by this setup work.
 | `SITEWORK_SOURCE` | Webcam index (default `0`) or a video file to replay |
 | `SITEWORK_SAMPLES`, `SITEWORK_JURISDICTION`, `FIDUCIAL_MM` | Frames per inspection (3), pack to read (`US`), marker side in mm (40) |
 | `SITEWORK_AUDIO_SOURCE`, `SITEWORK_AUDIO_SECONDS` | Plumbing audio: `mic`, `mic:<n>` or a file (default: the replayed clip's track, else the default mic); seconds recorded (3) |
+| `AUDIO_MODE` | `dsp` (default): the DSP decides. `model+dsp`: an audio model must agree with it |
 | `AUDIO_ONSET_RATIO`, `AUDIO_CENTROID_HZ` | DSP seat-click thresholds (8, 1500 Hz); calibrate on bench recordings |
 
 ## Layout
@@ -166,8 +168,7 @@ flowchart LR
   end
   subgraph Perceive["Perceive (Nebius Token Factory)"]
     vlm[Nemotron VL: points as strict JSON]
-    ear[Audio model: seated?]
-    dsp[DSP: onset + spectral centroid]
+    dsp[DSP: onset + spectral centroid = seated?]
   end
   subgraph Measure["Measure (code)"]
     fid[ArUco 40 mm: mm and homography]
@@ -179,10 +180,8 @@ flowchart LR
   end
   frames --> fid --> geo
   frames --> vlm --> geo
-  audio --> ear
   audio --> dsp
   geo --> ev[Evidence bundle + facts]
-  ear --> ev
   dsp --> ev
   pack --> ev
   ev --> intent[Agent-Safe Intent v1 + hash]
@@ -206,7 +205,7 @@ The planned Nemotron VL and Omni models are absent from that public endpoint; th
 | Role | Model | Runs on | Exact ID |
 |---|---|---|---|
 | Vision: points for boards, trench walls, pipe and fitting axes | NVIDIA Nemotron 3.5 Super VL (thinking off, schema-constrained JSON) | Nebius Token Factory, global endpoint | `nvidia/Nemotron-3.5-Super-VL` |
-| Audio: joint seating | ⟦decision pending⟧: Token Factory rejects `input_audio` for every model it lists (HTTP 422, 29 Oct 2026) | ⟦self-hosted⟧ | ⟦—⟧ |
+| Audio: joint seating | No model: a deterministic DSP check (librosa onset strength and spectral centroid). Token Factory rejects `input_audio` for every model it lists (HTTP 422, 29 Oct 2026) | SiteWork process | — |
 | Weather and light variants for the stress test | NVIDIA Cosmos-Transfer2.5-2B (edge control) | ⟦Nebius AI Cloud GPU or AWS fallback⟧ | commit `2ff49d0` of `nvidia-cosmos/cosmos-transfer2.5` |
 
 Not built, so not claimed: Cosmos Reason 2 and a Nemotron 3 Super grounding agent. Requirement thresholds are approved by a named person instead.

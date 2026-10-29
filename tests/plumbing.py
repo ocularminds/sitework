@@ -82,9 +82,9 @@ def pack_store(tmp_path, threshold) -> PackStore:
     return store
 
 
-def flow(tmp_path, clip, ear, threshold=None):
+def flow(tmp_path, clip, ear, threshold=None, mode="model+dsp"):
     cfg = Settings(_env_file=None, data_dir=tmp_path, decionis_org_id="00000000-0000-4000-8000-000000000002",
-                   nebius_api_key=None)
+                   nebius_api_key=None, audio_mode=mode)
     threshold = threshold if threshold is not None else {"seat_audio": {"min": 1}, "angle_deg": {"max": 2.0}}
     return PlumbingInspection(cfg, MockGate(cfg, "ALLOW"), DossierStore(tmp_path / "dossiers"),
                               pack_store(tmp_path, threshold), vision=FakeVision(plumbing_view(1.0)),
@@ -130,3 +130,20 @@ def test_file_audio_reads_a_clip_track_with_ffmpeg(tmp_path):
     assert got.rate == 16000 and abs(got.seconds - 3.0) < 0.01
     with pytest.raises(ValueError, match="no audio track"):
         FileAudio(tmp_path / "missing.mp4").record(3.0)
+
+
+@pytest.mark.parametrize("kind,seated", [("click", True), ("thud", False), ("noise", False)])
+def test_dsp_alone_is_the_seat_measurement_by_default(tmp_path, kind, seated):
+    r = flow(tmp_path, joint_audio(kind), None, mode="dsp").run(StillSource(scene_with_marker()), "clean", "US")
+    seat = [m for m in r.measurements if m.kind == "seat_audio"]
+    assert len(seat) == 1 and seat[0].value is seated and "DSP alone" in seat[0].method
+    assert not any(e.startswith("audio model") for e in r.errors)
+    record = flow(tmp_path, joint_audio(kind), None, mode="dsp").store.get(r.record_id)
+    assert record.evidence.models["audio"].startswith("dsp:")
+
+
+def test_dsp_confidence_is_the_margin_past_the_threshold():
+    clear = SeatDsp().analyse(joint_audio("click"))
+    borderline = SeatDsp(min_ratio=12.0).analyse(joint_audio("click"))  # click ratio is ~13
+    assert clear.confidence == 1.0 and borderline.seated and borderline.confidence < 0.3
+    assert SeatDsp().analyse(joint_audio("noise")).confidence == 1.0  # far below the onset threshold

@@ -70,6 +70,7 @@ class Settings(BaseSettings):
     sitework_samples: int = 3  # frames measured per inspection
     sitework_audio_source: str = ""  # "mic", "mic:<n>", a file; empty: the replayed clip's own track or mic
     sitework_audio_seconds: float = 3.0  # recorded around the join when using a microphone
+    audio_mode: Literal["dsp", "model+dsp"] = "dsp"  # Token Factory accepts no audio, so DSP decides
     audio_onset_ratio: float = 8.0  # DSP seat click: starting values, to calibrate on bench recordings
     audio_centroid_hz: float = 1500.0
     sitework_jurisdiction: str = "US"

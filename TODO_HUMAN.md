@@ -64,9 +64,9 @@ Sources: [Tavily pricing](https://tavily.com/pricing), [Builders Program](https:
 - [ ] **Plumbing requirements, for P4.** Both packs now have plumbing sources and candidates. Run `uv run python scripts/pack.py --jurisdiction US build plumbing --qualitative --cached` (and the same with `SE`) to list them.
   - A plumbing requirement must bound both `seat_audio` and `angle_deg`, e.g. `{"seat_audio": {"min": 1}, "angle_deg": {"max": 2}}`. The angle limit is your call: SharkBite asks for a square cut and full insertion, and Säker Vatten for "fixerade vinkelrätt", but neither gives a number.
   - Without both thresholds the inspection escalates.
-- [ ] **Plumbing audio.**
-  - The key is verified, but Nemotron Omni has no public endpoint in the current catalog, so audio input has not been tested. After a callable endpoint is available, verify `input_audio` before setting `NEBIUS_AUDIO_MODEL`. The fallback in `IMPLEMENT.md` is self-hosted Audio Flamingo 3 (non-commercial weights).
-  - Calibrate the DSP thresholds (`AUDIO_ONSET_RATIO`, `AUDIO_CENTROID_HZ`) on a few bench recordings of a seated and an unseated joint.
+- [x] **Plumbing audio, decided 29 Oct:** the DSP check decides alone (`AUDIO_MODE=dsp`), because Token Factory rejects `input_audio` for every model.
+- [ ] **Calibrate the DSP** (`AUDIO_ONSET_RATIO`, `AUDIO_CENTROID_HZ`) on a few bench recordings of a seated and an unseated joint.
+- [ ] **Vision precision.** Live single calls on synthetic renders gave coarse points at 0.90–0.95 self-reported confidence; thinking mode was 5–25× slower and no better. Decide whether to add deterministic edge snapping before eval (see NOTES_FEEDBACK.md).
 - [ ] **Label the clips and run eval (P5).**
   - For every bench, Cosmos and outdoor clip, add a row to `eval/labels.csv` with the truth you set and the verdict you expect (see README, Evaluation).
   - Then run `uv run python scripts/eval.py --run-label "run 1"`.
