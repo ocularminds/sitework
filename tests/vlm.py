@@ -68,3 +68,19 @@ def test_two_bad_replies_raise():
 def test_missing_model_id_is_an_error():
     with pytest.raises(VisionError, match="nebius_vlm_model"):
         VisionModel(FakeClient([]), "")
+
+
+def test_constrained_decoding_and_thinking_off_are_sent_to_the_server():
+    client = FakeClient([json.dumps(GOOD)])
+    VisionModel(client, "acme/vl").locate(frame(), DeckingView)
+    call = client.calls[0]
+    assert call["response_format"]["type"] == "json_schema"
+    assert call["response_format"]["json_schema"]["name"] == "deckingview"
+    assert call["response_format"]["json_schema"]["schema"]["additionalProperties"] is False
+    assert call["extra_body"] == {"chat_template_kwargs": {"enable_thinking": False}}
+
+
+def test_thinking_on_and_unconstrained_send_neither_option():
+    client = FakeClient([json.dumps(GOOD)])
+    VisionModel(client, "acme/vl", thinking=True, constrained=False).locate(frame(), DeckingView)
+    assert "response_format" not in client.calls[0] and "extra_body" not in client.calls[0]

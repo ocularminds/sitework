@@ -29,10 +29,15 @@ class Settings(BaseSettings):
     nebius_api_key: SecretStr | None = None
     nebius_base_url: str = "https://api.tokenfactory.nebius.com/v1/"
 
-    # Exact IDs from Token Factory `GET /models`. `make check` lists the
-    # candidates; record the chosen IDs here. Empty means "not yet verified".
-    nebius_vlm_model: str = ""
-    nebius_agent_model: str = ""
+    # Exact IDs from Token Factory `GET /models`, verified 2026-10-29 in us-central1.
+    # Super is served publicly; Nemotron VL and Omni need dedicated endpoints.
+    # Empty means no callable model has been verified for that role.
+    # Listed on the global endpoint (not on us-central1) and verified to accept images, 29 Oct 2026.
+    nebius_vlm_model: str = "nvidia/Nemotron-3.5-Super-VL"
+    nebius_vlm_thinking: bool = False  # with thinking on it reasons past any practical token budget
+    nebius_vlm_constrained: bool = True  # response_format json_schema; without it the reply is prose
+    nebius_agent_model: str = "nvidia/nemotron-3-super-120b-a12b"
+    # Empty on purpose: Token Factory rejects `input_audio` (HTTP 422) for every model it lists.
     nebius_audio_model: str = ""
 
     # Tavily.
@@ -65,14 +70,13 @@ class Settings(BaseSettings):
     sitework_samples: int = 3  # frames measured per inspection
     sitework_audio_source: str = ""  # "mic", "mic:<n>", a file; empty: the replayed clip's own track or mic
     sitework_audio_seconds: float = 3.0  # recorded around the join when using a microphone
+    audio_mode: Literal["dsp", "model+dsp"] = "dsp"  # Token Factory accepts no audio, so DSP decides
     audio_onset_ratio: float = 8.0  # DSP seat click: starting values, to calibrate on bench recordings
     audio_centroid_hz: float = 1500.0
     sitework_jurisdiction: str = "US"
     fiducial_mm: float = 40.0  # printed ArUco DICT_4X4_50 side length
     data_dir: Path = ROOT / "data"
 
-    # Optional Cosmos Reason 2 served by vLLM on the Nebius AI Cloud GPU VM.
-    cosmos_reason_url: str = ""
 
     request_timeout: float = 20.0
 

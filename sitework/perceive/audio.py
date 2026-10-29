@@ -1,7 +1,9 @@
-"""Joint seating by ear: an audio model's judgement, cross-checked by deterministic DSP.
+"""Joint seating by ear: a deterministic DSP check, optionally cross-checked by an audio model.
 
-Neither alone is trusted. The inspection records a seating measurement only when both agree;
-a disagreement becomes an error, which the policy escalates to a person.
+Default (`AUDIO_MODE=dsp`): the DSP reading is the measurement, with a margin-based confidence.
+With `AUDIO_MODE=model+dsp` an audio model must agree with the DSP; a disagreement becomes an
+error, which the policy escalates to a person. Token Factory does not accept audio input, so the
+model path needs a self-hosted audio model.
 """
 
 import base64
@@ -55,6 +57,7 @@ class DspReport(BaseModel):
     onset_ratio: float  # strongest onset strength / median onset strength
     centroid_hz: float  # spectral centroid at that onset
     seated: bool
+    confidence: float  # how clearly past its threshold the deciding feature is: 0 at it, 1 at 50 % past
 
 
 class SeatDsp:
@@ -63,6 +66,10 @@ class SeatDsp:
     seated = strongest onset is `min_ratio` times the median onset strength AND its spectral
     centroid is at least `min_centroid_hz`. Both thresholds are starting values to calibrate on
     bench recordings of seated and unseated joints; they are not measured facts.
+
+    Confidence comes from the margin: for "seated" the weaker of the two features decides, for
+    "not seated" the feature that fell furthest short. A reading near a threshold has low
+    confidence, so the policy's per-condition floor escalates it to a person.
     """
 
     def __init__(self, min_ratio: float = 8.0, min_centroid_hz: float = 1500.0):
@@ -80,6 +87,11 @@ class SeatDsp:
         ratio = float(envelope[peak] / (np.median(envelope) + 1e-9))
         centroid = librosa.feature.spectral_centroid(y=y, sr=clip.rate)[0]
         hz = float(centroid[min(peak, len(centroid) - 1)])
+        seated = ratio >= self.min_ratio and hz >= self.min_centroid_hz
+        if seated:
+            margin = min(ratio / self.min_ratio, hz / self.min_centroid_hz)
+        else:
+            margin = max(self.min_ratio / max(ratio, 1e-9), self.min_centroid_hz / max(hz, 1e-9))
         return DspReport(onset_s=round(float(librosa.frames_to_time(peak, sr=clip.rate)), 3),
-                         onset_ratio=round(ratio, 2), centroid_hz=round(hz, 1),
-                         seated=ratio >= self.min_ratio and hz >= self.min_centroid_hz)
+                         onset_ratio=round(ratio, 2), centroid_hz=round(hz, 1), seated=seated,
+                         confidence=round(min(max((margin - 1.0) / 0.5, 0.0), 1.0), 3))

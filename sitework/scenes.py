@@ -20,7 +20,7 @@ from sitework.measure.deck import DeckMeasurer
 from sitework.measure.fiducial import Fiducial, Scale
 from sitework.measure.trench import TrenchMeasurer
 from sitework.nebius import TokenFactory
-from sitework.perceive.audio import AudioError, AudioModel, SeatDsp
+from sitework.perceive.audio import AudioError, AudioModel, DspReport, SeatDsp
 from sitework.perceive.views import DeckingView, PlumbingView, TrenchView, View
 from sitework.perceive.vlm import VisionError, VisionModel
 from sitework.schema import Action, Citation, Condition, EvidenceBundle, Measurement, Verdict
@@ -175,7 +175,9 @@ class Inspection:
         if self.vision is not None:
             return self.vision
         try:
-            return VisionModel(TokenFactory(self.settings).client, self.settings.nebius_vlm_model)
+            s = self.settings
+            return VisionModel(TokenFactory(s).client, s.nebius_vlm_model, thinking=s.nebius_vlm_thinking,
+                               constrained=s.nebius_vlm_constrained)
         except (MissingCredential, VisionError) as exc:
             ev.error("vision", exc)
             return None
@@ -221,7 +223,7 @@ class TrenchInspection(Inspection):
 
 
 class PlumbingInspection(Inspection):
-    """Push-fit joint before close-in: seated by ear (model and DSP must agree) and aligned by eye."""
+    """Push-fit joint before close-in: seated by ear (DSP, or model and DSP agreeing) and aligned by eye."""
 
     scene = "plumbing"
     view = PlumbingView
@@ -255,6 +257,8 @@ class PlumbingInspection(Inspection):
         except ValueError as exc:
             ev.error("audio dsp", exc)
             dsp = None
+        if self.settings.audio_mode == "dsp":
+            return self._dsp_only(dsp, ev)
         model = self._audio_model(ev)
         reply = None
         if model is not None:
@@ -275,11 +279,21 @@ class PlumbingInspection(Inspection):
         return [Measurement(kind="seat_audio", value=reply.seated, confidence=reply.confidence,
                             method=f"{model.model} and {evidence}; both say {said}")]
 
+    def _dsp_only(self, dsp: DspReport | None, ev: EvidenceBuilder) -> list[Measurement]:
+        if dsp is None:
+            return []
+        ev.models["audio"] = "dsp:librosa-onset-strength+spectral-centroid"
+        said = "seated" if dsp.seated else "not seated"
+        return [Measurement(kind="seat_audio", value=dsp.seated, confidence=dsp.confidence, method=(
+            f"DSP onset ratio {dsp.onset_ratio} (min {self.dsp.min_ratio}), centroid {dsp.centroid_hz} Hz "
+            f"(min {self.dsp.min_centroid_hz}) at {dsp.onset_s} s; DSP alone says {said}"))]
+
     def _audio_model(self, ev: EvidenceBuilder) -> AudioModel | None:
         if self.audio_model is not None:
             return self.audio_model
         try:
             return AudioModel(TokenFactory(self.settings).client, self.settings.nebius_audio_model)
         except (MissingCredential, AudioError) as exc:
-            ev.error("audio model", exc)
+            ev.error("audio model", f"{exc}; Token Factory rejects input_audio, so a self-hosted audio model "
+                                    "is needed (see TODO_HUMAN.md)")
             return None

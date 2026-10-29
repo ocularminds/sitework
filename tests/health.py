@@ -47,7 +47,8 @@ def test_missing_keys_become_blockers_not_crashes():
 
 
 def test_unrecorded_model_ids_block_until_written_to_config():
-    result = TokenFactoryCheck(offline(), FakeFactory([VLM, AGENT])).run()
+    settings = offline(nebius_vlm_model="", nebius_agent_model="", nebius_audio_model="")
+    result = TokenFactoryCheck(settings, FakeFactory([VLM, AGENT])).run()
     assert not result.ok
     assert any("nebius_vlm_model" in b for b in result.blockers)
     assert any("nebius_agent_model" in b for b in result.blockers)

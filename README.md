@@ -6,7 +6,7 @@ Physical AI that inspects construction work at the hold point, before it disappe
 
 > Models observe → code measures → policy decides → humans sign when the AI isn't sure → everything is provable.
 
-Status: **P5, evaluation harness.** All three hold points are built, and `scripts/eval.py` scores labelled clips per condition. `eval/results.md` is produced only by running it on real clips (see `IMPLEMENT.md`).
+Status: **built; awaiting live data.** Decking, trench entry and plumbing close-in are gated by Decionis. Packs, offline proof, the amendment watch and the eval harness are in place. Model IDs and `eval/results.md` come from live runs on recorded clips (see `TODO_HUMAN.md`).
 
 ## Setup
 
@@ -75,10 +75,11 @@ Where a condition has false ALLOWs, the report suggests the lowest confidence fl
 - **When.** Pressing Inspect on the Plumbing tab records about 3 s of audio first, then takes the frames.
   - With a webcam, the default microphone records while the joint is pushed home. `SITEWORK_AUDIO_SOURCE=mic:<n>` picks a device.
   - A replayed clip uses its own audio track.
-- **By ear.** Two independent judgements of the seating click:
-  - The audio model on Token Factory (`NEBIUS_AUDIO_MODEL`, sent as `input_audio`) answers `seated` with a confidence, under a strict schema with one retry.
-  - A deterministic DSP check looks for the strongest onset and its spectral centroid (librosa).
-- **Only when both agree** is a `seat_audio` measurement recorded. A disagreement, a missing recording or a model failure becomes an error, which the policy escalates to a person.
+- **By ear.** A deterministic DSP check (librosa) measures the strongest onset and its spectral centroid.
+  - A seat click is a sharp, high-frequency transient. The reading is the `seat_audio` measurement.
+  - Its confidence is how far the deciding feature is past its threshold: 0 at the threshold, 1 at 50% past it. A borderline reading therefore falls under the policy's confidence floor and escalates.
+  - Token Factory rejects audio input (`input_audio`, HTTP 422) for every model it lists, so no audio model is used by default.
+  - `AUDIO_MODE=model+dsp` switches to an audio model that must agree with the DSP, for a self-hosted model. A disagreement, a missing recording or a model failure is then an error, which escalates.
 - The DSP thresholds (`AUDIO_ONSET_RATIO`=8, `AUDIO_CENTROID_HZ`=1500) are starting values to calibrate on bench recordings of seated and unseated joints. In synthetic tests they hear a 4 kHz click and reject faint noise and an 80 Hz thud.
 - **By eye.** Nemotron VL returns the pipe's and the fitting's centre lines; code measures the angle between them on the marker plane.
 - **Both required.** A plumbing requirement must set a threshold for `seat_audio` (e.g. `{"min": 1}`) and for `angle_deg`, or the inspection records a grounding error and escalates. The approved requirement decides what "seated" and "aligned" mean.
@@ -129,6 +130,7 @@ physical capture has been completed by this setup work.
 |---|---|
 | `NEBIUS_API_KEY`, `NEBIUS_BASE_URL` | Nebius Token Factory (OpenAI-compatible) |
 | `NEBIUS_VLM_MODEL`, `NEBIUS_AGENT_MODEL`, `NEBIUS_AUDIO_MODEL` | Optional overrides of the model IDs recorded in `sitework/config.py` |
+| `NEBIUS_VLM_THINKING`, `NEBIUS_VLM_CONSTRAINED` | Vision request options (default off / on): without constrained decoding Nemotron VL answers in prose |
 | `TAVILY_API_KEY` | Tavily search / extract / map / crawl / research |
 | `DECIONIS_API_KEY`, `DECIONIS_ORG_ID` | Decionis read/SHADOW credential and workspace; also used for dossier retrieval |
 | `DECIONIS_ENFORCE_API_KEY` | Separate `decision:enforce` key for ENFORCEMENT/PARALLEL evaluations and grant claims |
@@ -141,8 +143,8 @@ physical capture has been completed by this setup work.
 | `SITEWORK_SOURCE` | Webcam index (default `0`) or a video file to replay |
 | `SITEWORK_SAMPLES`, `SITEWORK_JURISDICTION`, `FIDUCIAL_MM` | Frames per inspection (3), pack to read (`US`), marker side in mm (40) |
 | `SITEWORK_AUDIO_SOURCE`, `SITEWORK_AUDIO_SECONDS` | Plumbing audio: `mic`, `mic:<n>` or a file (default: the replayed clip's track, else the default mic); seconds recorded (3) |
+| `AUDIO_MODE` | `dsp` (default): the DSP decides. `model+dsp`: an audio model must agree with it |
 | `AUDIO_ONSET_RATIO`, `AUDIO_CENTROID_HZ` | DSP seat-click thresholds (8, 1500 Hz); calibrate on bench recordings |
-| `COSMOS_REASON_URL` | Optional Cosmos Reason 2 endpoint (vLLM on Nebius AI Cloud) |
 
 ## Layout
 
@@ -150,12 +152,69 @@ physical capture has been completed by this setup work.
 sitework/   config, clients, perception, measurement, grounding, gate
 scripts/    check.py, pack.py (jurisdiction packs), proof.py (dossier verify), watch.py (amendments), policy.py, cosmos/
 static/     dashboard (single page, no build step)
-policies/   SiteWork policy draft for Decionis
+policies/   SiteWork rules loaded into Decionis (sitework.json) and their rationale
 eval/       labelled clips and results
 data/       clips, jurisdiction packs, dossiers (large media git-ignored)
 tests/      pytest suite
 ```
 
-## License
+## Architecture
 
-Apache-2.0. See `LICENSE`.
+```mermaid
+flowchart LR
+  subgraph Capture
+    cam[Webcam or replayed clip] --> frames[3 hashed frames]
+    mic[Microphone or clip track] --> audio[~3 s hashed WAV]
+  end
+  subgraph Perceive["Perceive (Nebius Token Factory)"]
+    vlm[Nemotron VL: points as strict JSON]
+    dsp[DSP: onset + spectral centroid = seated?]
+  end
+  subgraph Measure["Measure (code)"]
+    fid[ArUco 40 mm: mm and homography]
+    geo[gap, angle, slope, depth, alignment]
+  end
+  subgraph Ground["Ground (Tavily, at job setup)"]
+    pack[(Jurisdiction pack: allowlisted sources,<br/>hashes, named-approver thresholds)]
+    watch[Research: amendments and recalls]
+  end
+  frames --> fid --> geo
+  frames --> vlm --> geo
+  audio --> dsp
+  geo --> ev[Evidence bundle + facts]
+  dsp --> ev
+  pack --> ev
+  ev --> intent[Agent-Safe Intent v1 + hash]
+  watch --> upd[policy.update intent]
+  intent --> gate{Decionis via dci:<br/>enforce-and-bind}
+  upd --> gate
+  gate -->|ALLOW + grant claimed| green[Light green]
+  gate -->|ESCALATE| person[Named person: release = blue, keep = red]
+  gate -->|BLOCK / ERROR / no decision| red[Light red]
+  gate --> dossier[(Ed25519 dossier, verified offline)]
+```
+
+Tavily is never in the decision's hot path. Packs are built and approved beforehand, and a decision reads the pack.
+
+## Models
+
+Exact IDs come from Token Factory `GET /models` via `make check` and are recorded in `sitework/config.py`. On 29 October 2026, the configured `us-central1` endpoint authenticated successfully, listed 18 models, and served a test completion on `nvidia/nemotron-3-super-120b-a12b`.
+
+The planned Nemotron VL and Omni models are absent from that public endpoint; their Nebius detail pages offer dedicated endpoints only. Vision and audio IDs remain unset until callable endpoints are verified. Every inspection records a missing model as an error, which escalates. Credential setup is complete; model availability remains open in `TODO_HUMAN.md`.
+
+| Role | Model | Runs on | Exact ID |
+|---|---|---|---|
+| Vision: points for boards, trench walls, pipe and fitting axes | NVIDIA Nemotron 3.5 Super VL (thinking off, schema-constrained JSON) | Nebius Token Factory, global endpoint | `nvidia/Nemotron-3.5-Super-VL` |
+| Audio: joint seating | No model: a deterministic DSP check (librosa onset strength and spectral centroid). Token Factory rejects `input_audio` for every model it lists (HTTP 422, 29 Oct 2026) | SiteWork process | — |
+| Weather and light variants for the stress test | NVIDIA Cosmos-Transfer2.5-2B (edge control) | ⟦Nebius AI Cloud GPU or AWS fallback⟧ | commit `2ff49d0` of `nvidia-cosmos/cosmos-transfer2.5` |
+
+Not built, so not claimed: Cosmos Reason 2 and a Nemotron 3 Super grounding agent. Requirement thresholds are approved by a named person instead.
+
+## Licences
+
+- **SiteWork:** Apache-2.0 (`LICENSE`).
+- **Decionis:** used only through its published HTTP API and packages. `@decionis/verify` (Apache-2.0) runs via `npx`. The Agent-Safe Intent v1 conformance vectors in `tests/vectors/` are copied unchanged from `decionis/agent-safe-pipeline` (Apache-2.0). No Decionis proprietary code is in this repository.
+- **NVIDIA Cosmos:** the Cosmos code is Apache-2.0, and the model weights are under the NVIDIA Open Model License, which must be accepted on Hugging Face (see `scripts/cosmos/README.md`).
+- **Audio fallback:** if Audio Flamingo 3 is self-hosted because Token Factory does not accept audio, its weights are non-commercial. That is acceptable for this hackathon, not for production.
+- **Python dependencies:** OpenCV, NumPy, librosa, FastAPI, httpx, openai, tavily-python and sounddevice keep their own licences, pinned in `uv.lock`.
+- **Requirement sources** (OSHA, eCFR, Arbetsmiljöverket, Svenskt Trä, Säker Vatten, Trex, TimberTech, SharkBite) are cited by URL and content hash. Their page text is cached locally (`data/packs/pages/`, git-ignored) and is not redistributed; only short approved excerpts appear in the packs.

@@ -19,7 +19,8 @@ Updated 29 October 2026, Europe/Stockholm.
 - An existing AI Builder Program Compute Grants application is also awaiting review. Nebius acknowledged receipt; this is not an approved AI Cloud grant.
 - AI Cloud billing is not activated. Its setup form requires a card and says submission will charge $25 to top up the balance. No billing details were submitted or GPU instance created.
 - The hackathon publishes $25 in Token Factory credit through the direct form and another $25 through the Builders Program. Its FAQ does not publish a separate AI Cloud credit grant. The compute-grant application is a separate reviewed program.
-- `NEBIUS_API_KEY` is not configured. Verify Token Factory's `/models` after its credential is available. Exact model IDs remain unverified. Tavily's live search and Decionis's connection and workspace-identity checks now pass.
+- **`NEBIUS_API_KEY` configured and verified (29 October).** Created the approved `SiteWork` key in `Decionis, Inc.-g65 / default-project` and saved it in ignored `.env`, mode 0600. The configured `us-central1` endpoint returned HTTP 200 and 18 models; the same catalog request without a key returned 401. A live OpenAI SDK completion on `nvidia/nemotron-3-super-120b-a12b` returned HTTP 200 and `OK`. That exact ID is now recorded in `sitework/config.py`.
+- **Vision and audio availability remain open.** Nemotron VL and Omni are absent from this endpoint's `/models`. Nebius's detail pages for `nvidia/Nemotron-Nano-V2-12b` and `nvidia/Nemotron-3-Nano-Omni` say **Public endpoint: Not available; Dedicated endpoint: Available**. No dedicated endpoint was deployed, and the vision/audio settings remain empty until callable models are verified. `make check` now passes Tavily and Decionis ENFORCEMENT but reports the missing VLM configuration.
 
 Sources: [hackathon resources](https://nebiusglobalaihackathon.devpost.com/resources), [hackathon FAQ](https://nebiusglobalaihackathon.devpost.com/details/faqs), [Builders Program](https://dev.nebius.com/builders).
 
@@ -33,7 +34,8 @@ Sources: [Tavily pricing](https://tavily.com/pricing), [Builders Program](https:
 
 ## Still needed from you
 
-- [ ] `NEBIUS_API_KEY` (Token Factory) in `.env`, then run `make check`. It lists the Nemotron candidates from `GET /models` and probes whether the Omni model accepts `input_audio`. The exact IDs then go into `sitework/config.py`. Tavily and Decionis credentials are already configured and verified.
+- [x] **`NEBIUS_API_KEY` saved and tested.** Catalog authentication and a Nemotron Super completion succeeded. Tavily and Decionis ENFORCEMENT checks also pass.
+- [ ] **Callable vision/audio models.** The account's public endpoint does not serve the planned Nemotron VL or Omni models. Obtain the required dedicated endpoints or select an approved fallback, then verify the exact IDs and image/audio input before setting `NEBIUS_VLM_MODEL` and `NEBIUS_AUDIO_MODEL`.
 - [x] **Decionis gate route** (your call, 29 Oct): dci gateway with verdicts ALLOW / BLOCK / ESCALATE / ERROR.
   - The SDK's `/v1/authority/evaluate` and `/enforce` return 404 on the live API.
   - SiteWork therefore sends an Agent-Safe Intent v1 to `/v1/authority/enforce-and-bind`, with `tenant_id` = the org UUID, then claims the grant at `/v1/execution/consume-token`.
@@ -62,14 +64,14 @@ Sources: [Tavily pricing](https://tavily.com/pricing), [Builders Program](https:
 - [ ] **Plumbing requirements, for P4.** Both packs now have plumbing sources and candidates. Run `uv run python scripts/pack.py --jurisdiction US build plumbing --qualitative --cached` (and the same with `SE`) to list them.
   - A plumbing requirement must bound both `seat_audio` and `angle_deg`, e.g. `{"seat_audio": {"min": 1}, "angle_deg": {"max": 2}}`. The angle limit is your call: SharkBite asks for a square cut and full insertion, and Säker Vatten for "fixerade vinkelrätt", but neither gives a number.
   - Without both thresholds the inspection escalates.
-- [ ] **Plumbing audio.**
-  - Once `NEBIUS_API_KEY` is set, `make check` probes whether the Nemotron Omni model accepts `input_audio`, and its ID goes in `NEBIUS_AUDIO_MODEL`. If Token Factory does not accept audio, the fallback in `IMPLEMENT.md` is self-hosted Audio Flamingo 3 (non-commercial weights).
-  - Calibrate the DSP thresholds (`AUDIO_ONSET_RATIO`, `AUDIO_CENTROID_HZ`) on a few bench recordings of a seated and an unseated joint.
+- [x] **Plumbing audio, decided 29 Oct:** the DSP check decides alone (`AUDIO_MODE=dsp`), because Token Factory rejects `input_audio` for every model.
+- [ ] **Calibrate the DSP** (`AUDIO_ONSET_RATIO`, `AUDIO_CENTROID_HZ`) on a few bench recordings of a seated and an unseated joint.
+- [ ] **Vision precision.** Live single calls on synthetic renders gave coarse points at 0.90–0.95 self-reported confidence; thinking mode was 5–25× slower and no better. Decide whether to add deterministic edge snapping before eval (see NOTES_FEEDBACK.md).
 - [ ] **Label the clips and run eval (P5).**
   - For every bench, Cosmos and outdoor clip, add a row to `eval/labels.csv` with the truth you set and the verdict you expect (see README, Evaluation).
   - Then run `uv run python scripts/eval.py --run-label "run 1"`.
   - If any condition shows false ALLOWs, decide whether to raise its floor in `policies/sitework.json`, submit it, and run again as "run 2". Both runs go into `eval/results.md` and then into the brief's Results table.
-  - Needs: recorded clips, `NEBIUS_API_KEY`, approved requirements in the packs, and the Cosmos variants.
+  - Needs: recorded clips, callable vision/audio models, approved requirements in the packs, and the Cosmos variants.
 - [ ] **Cosmos Transfer run (you run it on a GPU).** The scripts and full instructions are in `scripts/cosmos/README.md`. Steps:
   1. Record 3–5 clean clips, 6–10 s each, into `data/clips/clean/`. Use a fixed camera, keep the ArUco marker in frame, and set the work up beforehand: decking at known angles, trench at known slopes.
   2. Activate Nebius AI Cloud billing (see above). Create a preemptible `gpu-h100-sxm` VM (`eu-north1`) or a `gpu-h200-sxm` VM, preset `1gpu-16vcpu-200gb`, using image family `ubuntu24.04-cuda12` and a 200 GiB `network_ssd` boot disk.
