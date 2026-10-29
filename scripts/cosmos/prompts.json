@@ -1,0 +1,8 @@
+{
+  "scene": "A fixed camera looks down at a small-scale construction mock-up on a workbench, with a printed black-and-white square fiducial marker lying flat beside the work.",
+  "conditions": {
+    "rain": "Heavy rain is falling on the scene: visible raindrops and streaks, water running over every surface, puddles collecting in low spots, wet glossy reflections and grey overcast daylight. The camera, the fiducial marker and every object keep exactly the same position, size and shape.",
+    "mud": "Wet brown mud and soil are splattered and smeared across the scene: mud caked on surfaces and edges, dirty standing water, muddy smears around the work and dull diffuse light. The camera, the fiducial marker and every object keep exactly the same position, size and shape.",
+    "dusk_glare": "Late dusk with a low, harsh sun shining toward the camera: strong lens flare, blown-out highlights, long dark shadows, warm orange light and deep contrast. The camera, the fiducial marker and every object keep exactly the same position, size and shape."
+  }
+}
