@@ -60,6 +60,8 @@ Leave inapplicable or unknown truth blank. Review each Cosmos variant before inh
 
 The [approved requirements](docs/requirements.md) name Festus B. Jejelowo. US decking uses the TimberTech Advanced PVC/Cortex spacing profile (3.175–6.35 mm); US trench uses OSHA Option 1's stated 34° limit. SE decking, SE trench and both plumbing profiles are qualitative and currently escalate. Ten raw field recordings are available. The current labels use three pipe/drainage clips for six paired US/SE input-refusal checks, with no dimensional or seating truth. Read [the evaluation scope](eval/README.md) before interpreting any Results numbers; calibrated bench accuracy remains unmeasured.
 
+The first [recorded run](eval/results.md) returned ESCALATE for all six cases, with zero false ALLOWs and six dossiers verified offline. Gate p95 was 778.3 ms. No vision inference ran because the sampled frames lacked a marker; the run establishes refusal behavior, with measurement and seating accuracy unavailable.
+
 ```bash
 uv run python scripts/eval.py --run-label "run 1"
 ```

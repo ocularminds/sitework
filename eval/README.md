@@ -53,3 +53,16 @@ uncalibrated input demonstrates that the hold remains closed. It does not measur
 Nemotron's physical accuracy or demonstrate a clean ALLOW/BLOCK inspection.
 Calibrated bench captures and independently measured truth are still needed for
 those claims. See [the capture plan](../docs/bench-rig.md).
+
+## Completed run
+
+`scripts/eval.py` completed the run above against the live dci gateway in SHADOW
+mode, using commit `9933047` and policy `decionis-starter-v2+sitework-1`.
+The generated report records **6/6 ESCALATE**, **0/6 false ALLOW**, no gate
+failures, **6/6 dossiers verified offline**, and **778.3 ms gate p95 latency**
+(nearest rank, six requests).
+
+Measurement errors and seating accuracy are unavailable because their ground
+truth fields are blank. The DSP processed audio; no Nemotron vision inference
+ran because no sampled frame had a calibration marker. These rates apply only
+to the six paired refusal cases and do not estimate accuracy on valid inspections.

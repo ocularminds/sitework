@@ -1,0 +1,176 @@
+{
+ "runs": [
+  {
+   "label": "outdoor input refusal 2026-10-29 - 3 clips paired US-SE",
+   "started_at": "2026-10-29T13:42:31.889722Z",
+   "commit": "9933047",
+   "gate_mode": "SHADOW",
+   "decionis_mode": "live",
+   "policy_versions": [
+    "decionis-starter-v2+sitework-1"
+   ],
+   "models": {
+    "audio": [
+     "dsp:librosa-onset-strength+spectral-centroid"
+    ]
+   },
+   "floors": {
+    "clean": 0.7,
+    "outdoor": 0.75,
+    "rain": 0.85,
+    "mud": 0.85,
+    "dusk_glare": 0.85
+   },
+   "rows": [
+    {
+     "clip": "data/clips/outdoor/sw-rig04.mp4",
+     "scene": "plumbing",
+     "condition": "outdoor",
+     "jurisdiction": "US",
+     "expected": "ESCALATE",
+     "decision": "ESCALATE",
+     "correct": true,
+     "false_allow": false,
+     "escalated": true,
+     "abs_error": {},
+     "seat_correct": null,
+     "min_confidence": 0.205,
+     "latency_ms": 778.3,
+     "record_id": "24df42a3-980b-4a77-81d0-3f191544c23a",
+     "dossier_id": "24df42a3-980b-4a77-81d0-3f191544c23a",
+     "verified": true,
+     "errors": [
+      "fiducial[0]: ArUco DICT_4X4_50 marker not found",
+      "fiducial[285]: ArUco DICT_4X4_50 marker not found",
+      "grounding: no approved US requirement sets a threshold for seat_audio",
+      "grounding: no approved US requirement sets a threshold for angle_deg"
+     ]
+    },
+    {
+     "clip": "data/clips/outdoor/sw-rig04.mp4",
+     "scene": "plumbing",
+     "condition": "outdoor",
+     "jurisdiction": "SE",
+     "expected": "ESCALATE",
+     "decision": "ESCALATE",
+     "correct": true,
+     "false_allow": false,
+     "escalated": true,
+     "abs_error": {},
+     "seat_correct": null,
+     "min_confidence": 0.205,
+     "latency_ms": 277.6,
+     "record_id": "bdc7ffdb-13d7-456e-b3eb-a11ca10db949",
+     "dossier_id": "bdc7ffdb-13d7-456e-b3eb-a11ca10db949",
+     "verified": true,
+     "errors": [
+      "fiducial[0]: ArUco DICT_4X4_50 marker not found",
+      "fiducial[285]: ArUco DICT_4X4_50 marker not found",
+      "grounding: no approved SE requirement sets a threshold for seat_audio",
+      "grounding: no approved SE requirement sets a threshold for angle_deg"
+     ]
+    },
+    {
+     "clip": "data/clips/outdoor/sw-rig05.mp4",
+     "scene": "plumbing",
+     "condition": "outdoor",
+     "jurisdiction": "US",
+     "expected": "ESCALATE",
+     "decision": "ESCALATE",
+     "correct": true,
+     "false_allow": false,
+     "escalated": true,
+     "abs_error": {},
+     "seat_correct": null,
+     "min_confidence": 1.0,
+     "latency_ms": 391.4,
+     "record_id": "2144d1cb-34bc-47f9-85a0-465904be921f",
+     "dossier_id": "2144d1cb-34bc-47f9-85a0-465904be921f",
+     "verified": true,
+     "errors": [
+      "fiducial[0]: ArUco DICT_4X4_50 marker not found",
+      "fiducial[340]: ArUco DICT_4X4_50 marker not found",
+      "fiducial[680]: ArUco DICT_4X4_50 marker not found",
+      "grounding: no approved US requirement sets a threshold for seat_audio",
+      "grounding: no approved US requirement sets a threshold for angle_deg"
+     ]
+    },
+    {
+     "clip": "data/clips/outdoor/sw-rig05.mp4",
+     "scene": "plumbing",
+     "condition": "outdoor",
+     "jurisdiction": "SE",
+     "expected": "ESCALATE",
+     "decision": "ESCALATE",
+     "correct": true,
+     "false_allow": false,
+     "escalated": true,
+     "abs_error": {},
+     "seat_correct": null,
+     "min_confidence": 1.0,
+     "latency_ms": 444.1,
+     "record_id": "2bbcdb37-5382-45dd-b363-9e715db9eabd",
+     "dossier_id": "2bbcdb37-5382-45dd-b363-9e715db9eabd",
+     "verified": true,
+     "errors": [
+      "fiducial[0]: ArUco DICT_4X4_50 marker not found",
+      "fiducial[340]: ArUco DICT_4X4_50 marker not found",
+      "fiducial[680]: ArUco DICT_4X4_50 marker not found",
+      "grounding: no approved SE requirement sets a threshold for seat_audio",
+      "grounding: no approved SE requirement sets a threshold for angle_deg"
+     ]
+    },
+    {
+     "clip": "data/clips/outdoor/sw-rig08.mp4",
+     "scene": "plumbing",
+     "condition": "outdoor",
+     "jurisdiction": "US",
+     "expected": "ESCALATE",
+     "decision": "ESCALATE",
+     "correct": true,
+     "false_allow": false,
+     "escalated": true,
+     "abs_error": {},
+     "seat_correct": null,
+     "min_confidence": 1.0,
+     "latency_ms": 286.9,
+     "record_id": "a0e0c96d-f153-45e2-9d8d-d661a92b7a53",
+     "dossier_id": "a0e0c96d-f153-45e2-9d8d-d661a92b7a53",
+     "verified": true,
+     "errors": [
+      "fiducial[0]: ArUco DICT_4X4_50 marker not found",
+      "fiducial[674]: ArUco DICT_4X4_50 marker not found",
+      "fiducial[1349]: ArUco DICT_4X4_50 marker not found",
+      "grounding: no approved US requirement sets a threshold for seat_audio",
+      "grounding: no approved US requirement sets a threshold for angle_deg"
+     ]
+    },
+    {
+     "clip": "data/clips/outdoor/sw-rig08.mp4",
+     "scene": "plumbing",
+     "condition": "outdoor",
+     "jurisdiction": "SE",
+     "expected": "ESCALATE",
+     "decision": "ESCALATE",
+     "correct": true,
+     "false_allow": false,
+     "escalated": true,
+     "abs_error": {},
+     "seat_correct": null,
+     "min_confidence": 1.0,
+     "latency_ms": 273.0,
+     "record_id": "9d7c7c26-c3bb-4f17-b000-cf844e324a08",
+     "dossier_id": "9d7c7c26-c3bb-4f17-b000-cf844e324a08",
+     "verified": true,
+     "errors": [
+      "fiducial[0]: ArUco DICT_4X4_50 marker not found",
+      "fiducial[674]: ArUco DICT_4X4_50 marker not found",
+      "fiducial[1349]: ArUco DICT_4X4_50 marker not found",
+      "grounding: no approved SE requirement sets a threshold for seat_audio",
+      "grounding: no approved SE requirement sets a threshold for angle_deg"
+     ]
+    }
+   ]
+  }
+ ]
+}
