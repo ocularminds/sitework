@@ -111,6 +111,7 @@ the run record before launch.
 |---|---|---|---|
 | `p5.4xlarge` | 1× H100 80 GB | 16 | Running On-Demand P instances `L-417A185B` (Spot: All P Spot Instance Requests `L-7212CCBC`) ≥ 16 |
 | `g7e.2xlarge` | 1× RTX PRO 6000 Blackwell SE 96 GB | 8 | Running On-Demand G and VT instances `L-DB2E81BA` (Spot: All G and VT Spot Instance Requests `L-3819A6DF`) ≥ 8 |
+| `g7e.4xlarge` | 1× RTX PRO 6000 Blackwell SE 96 GB, 128 GiB host RAM | 16 | Same G and VT quotas ≥ 16 (requested in `us-east-1`; see the [handoff](../cosmos_transfer/README.md)) |
 
 - Both quotas default to 0 on new accounts ([EC2 instance type quotas](https://docs.aws.amazon.com/ec2/latest/instancetypes/ec2-instance-quotas.html)). Request the increase in **Service Quotas → Amazon EC2** in the region you will use. Check that region's availability first: AWS lists `p5.4xlarge` through EC2 Capacity Blocks in some regions.
 - `g7e.2xlarge` has 64 GiB of host RAM. If model loading runs out of memory, move up a `g7e` size.
@@ -139,7 +140,8 @@ python3 scripts/cosmos/run.py --cloud nebius --instance "us-central1 gpu-rtx6000
 python3 scripts/cosmos/run.py --cloud nebius --instance "us-central1 gpu-rtx6000 1gpu-24vcpu-218gb" --distilled
 ```
 
-- On AWS, use `--cloud aws --instance p5.4xlarge`.
+- On AWS, use `--cloud aws` and the instance actually launched, e.g. `--instance "us-east-1 g7e.4xlarge"`.
+- **Blackwell GPUs** (`g7e`, Nebius `gpu-rtx6000`): the pinned revision benchmarks the RTX PRO 6000 Blackwell SE, but its Docker setup builds Blackwell from a separate nightly image, while `setup.sh` installs the default `cu128` environment. That pairing is untested here. Run one condition first (`--conditions rain`) and read its log. If the CUDA extensions fail to load, rerun `setup.sh` with `COSMOS_CUDA_EXTRA=cu130`, which needs a driver ≥ 580.65.06.
 - `--dry-run` prepares the clips and specs and prints the Cosmos command without starting it.
 - The real run loads the model once for every pending variant.
 - Exit code 0 means every variant is done.
