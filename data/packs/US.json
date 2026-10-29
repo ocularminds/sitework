@@ -452,5 +452,71 @@
       "via": "map+extract"
     }
   ],
-  "requirements": []
+  "requirements": [
+    {
+      "scene": "decking",
+      "requirement": "Bench profile for TimberTech Advanced PVC with Cortex screws: side-to-side board gaps must be 3.175 to 6.35 mm (1/8 to 1/4 inch). Check both narrowest and widest gaps. This product-specific spacing rule sets no board-angle limit.",
+      "threshold": {
+        "gap_mm": {
+          "min": 3.175,
+          "max": 6.35
+        }
+      },
+      "clause": {
+        "excerpt": "\u2713 1/8\u201d minimum gap to 1/4\u201d deck board spacing",
+        "url": "https://www.timbertech.com/ideas/installing-composite-decking",
+        "source_domain": "www.timbertech.com",
+        "content_sha256": "0f8ee518f2299db28225aa2bca1353958af320da9c119a33e84d8a6cc03ede64",
+        "retrieved_at": "2026-10-29T03:18:52.617282Z",
+        "mm_values": [
+          3.17,
+          6.35
+        ],
+        "angles_deg": [],
+        "ratios": []
+      },
+      "approved_by": "Festus B. Jejelowo",
+      "approved_at": "2026-10-29T12:55:29.711399Z"
+    },
+    {
+      "scene": "trench",
+      "requirement": "Bench sloping profile: OSHA 29 CFR 1926.652(b)(1)(i), Option 1, limits wall slope to 34 degrees from horizontal (the rule states 1.5 horizontal to 1 vertical). Apply to the steepest visible wall. Field entry also requires the applicable excavation configuration, soil, depth and protective-system assessment.",
+      "threshold": {
+        "slope_deg": {
+          "max": 34.0
+        }
+      },
+      "clause": {
+        "excerpt": "(i) Excavations shall be sloped at an angle not steeper than one and one-half horizontal to one vertical (34 degrees measured from the horizontal), unless the employer uses one of the other options listed below.",
+        "url": "https://www.ecfr.gov/current/title-29/section-1926.652",
+        "source_domain": "www.ecfr.gov",
+        "content_sha256": "24553634eaf0a493cede9712a18d4f1a269be9ebdd661143e4f08efa8885e058",
+        "retrieved_at": "2026-10-29T03:55:11.451203Z",
+        "mm_values": [],
+        "angles_deg": [
+          34.0
+        ],
+        "ratios": []
+      },
+      "approved_by": "Festus B. Jejelowo",
+      "approved_at": "2026-10-29T12:55:29.717200Z"
+    },
+    {
+      "scene": "plumbing",
+      "requirement": "SharkBite push-to-connect joint: push the pipe to the tube stop, verified by the insertion mark for the selected fitting and pipe. Qualitative review only: the source does not define an acoustic seating test or a numeric pipe-to-fitting alignment tolerance. A click alone cannot approve full insertion.",
+      "threshold": {},
+      "clause": {
+        "excerpt": "For the joint to be assembled correctly, the pipe needs to be pushed into the fitting until it meets the tube stop, which is indicated by the measurement mark.",
+        "url": "https://www.sharkbite.com/us/en/resources/blog/service-and-repair/fitting-tips-guides/the-dos-and-donts-of-installing-sharkbite-fittings",
+        "source_domain": "www.sharkbite.com",
+        "content_sha256": "46a7423e76513981c74be88f277d049da25a3da3845d077a3e79aee69deb43cb",
+        "retrieved_at": "2026-10-29T04:01:04.312852Z",
+        "mm_values": [],
+        "angles_deg": [],
+        "ratios": []
+      },
+      "approved_by": "Festus B. Jejelowo",
+      "approved_at": "2026-10-29T12:55:29.722832Z"
+    }
+  ]
 }

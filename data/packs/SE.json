@@ -160,5 +160,57 @@
       "via": "extract"
     }
   ],
-  "requirements": []
+  "requirements": [
+    {
+      "scene": "decking",
+      "requirement": "Svenskt Tra, Montering av trall 2:2021, page 4: select Table 3 edge-to-edge spacing for the board type and width; never install without a gap. Qualitative review until the timber profile is known. Table 3 spacing and the 3 mm vertical step limit are not clear-gap limits; no numeric gap or board-angle threshold is approved.",
+      "threshold": {},
+      "clause": {
+        "excerpt": "Efter val av trallbr\u00e4da, f\u00f6lj anvisningarna i tabell 3. Det \u00e4r viktigt att ha r\u00e4tt kant-till-kant-avst\u00e5nd, se figur 2, mellan trallbr\u00e4dorna. Observera att trallbr\u00e4dor f\u00e5r aldrig monteras utan springa!",
+        "url": "https://www.svenskttra.se/siteassets/5-publikationer/pdfer/montering-av-trall-2021-publikation.pdf",
+        "source_domain": "www.svenskttra.se",
+        "content_sha256": "2858a6554e9a3d383e8173cd1f70c10016e1a31678e73881be65232c3dce395f",
+        "retrieved_at": "2026-10-29T03:17:51.108426Z",
+        "mm_values": [],
+        "angles_deg": [],
+        "ratios": []
+      },
+      "approved_by": "Festus B. Jejelowo",
+      "approved_at": "2026-10-29T12:55:29.711969Z"
+    },
+    {
+      "scene": "trench",
+      "requirement": "Arbetsmiljoverket excavation guidance: slope must be adapted to soil, groundwater, nearby loads, weather and depth. No fixed maximum angle is prescribed. Site-specific competent assessment is required; this qualitative requirement leaves automatic trench entry closed.",
+      "threshold": {},
+      "clause": {
+        "excerpt": "Det finns inga arbetsmilj\u00f6regler som anger exakta gradtal p\u00e5 sl\u00e4ntlutningen. Lutningen m\u00e5ste anpassas efter f\u00f6rh\u00e5llandena p\u00e5 platsen, till exempel jordart, grundvattenf\u00f6rh\u00e5llanden, belastningar n\u00e4ra schaktet, v\u00e4derf\u00f6rh\u00e5llanden och schaktdjup.",
+        "url": "https://www.av.se/produktion-industri-och-logistik/bygg/arbetsmiljorisker-vid-byggnads--och-anlaggningsarbete/markarbete-och-schaktning",
+        "source_domain": "www.av.se",
+        "content_sha256": "250cb1bfca539d150b9aab23e5e97268adcc0705563921e18fddcb06a536903f",
+        "retrieved_at": "2026-10-29T03:17:49.935212Z",
+        "mm_values": [],
+        "angles_deg": [],
+        "ratios": []
+      },
+      "approved_by": "Festus B. Jejelowo",
+      "approved_at": "2026-10-29T12:55:29.720597Z"
+    },
+    {
+      "scene": "plumbing",
+      "requirement": "Saker Vatteninstallation 2026:1, section 7.3, page 62: install plumbing products and systems according to the supplier instructions. Select the actual fitting system and its current dated Swedish instructions before approving joint checks. No acoustic seating criterion or pipe-to-fitting angle limit is supplied by this clause; qualitative review only.",
+      "threshold": {},
+      "clause": {
+        "excerpt": "Montering av VVS-produkter och VVS-system ska utf\u00f6ras enligt leverant\u00f6rens monteringsanvisningar.",
+        "url": "https://sakervatten.se/wp-content/uploads/2025/10/branschregler-saker-vatteninstallation-2026-web-v2-lagupplost.pdf",
+        "source_domain": "sakervatten.se",
+        "content_sha256": "e9adcc11845d8a96f4949965b2d7f31aeb6fda003ec7fa0618aa78297b960e30",
+        "retrieved_at": "2026-10-29T04:01:05.479151Z",
+        "mm_values": [],
+        "angles_deg": [],
+        "ratios": []
+      },
+      "approved_by": "Festus B. Jejelowo",
+      "approved_at": "2026-10-29T12:55:29.724248Z"
+    }
+  ]
 }

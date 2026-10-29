@@ -42,7 +42,7 @@ Nothing is faked: errors (no marker, model failure, missing key, no approved req
 
 ## Evaluation
 
-Label every recorded clip (clean bench, Cosmos variants, outdoor) in `eval/labels.csv`, one row per clip:
+Label every recorded clip (clean bench, Cosmos variants, outdoor) in `eval/labels.csv`, one row per `(clip, jurisdiction)` pair. The [capture plan](docs/bench-rig.md) separates fixture targets, independent measurements and calibration takes. Reusing a file under US and SE is a paired evaluation; the report counts rows, not independent videos.
 
 | Column | Meaning |
 |---|---|
@@ -56,7 +56,9 @@ Label every recorded clip (clean bench, Cosmos variants, outdoor) in `eval/label
 | `expected` | The correct verdict under the approved requirement: `ALLOW`, `BLOCK` or `ESCALATE` |
 | `notes` | Free text |
 
-Leave truth that does not apply blank. A Cosmos variant keeps its clean clip's truth, because edge control keeps the geometry.
+Leave inapplicable or unknown truth blank. Review each Cosmos variant before inheriting its clean clip's truth: edge control does not guarantee unchanged geometry, visibility or seating evidence.
+
+The [approved requirements](docs/requirements.md) name Festus B. Jejelowo. US decking uses the TimberTech Advanced PVC/Cortex spacing profile (3.175–6.35 mm); US trench uses OSHA Option 1's stated 34° limit. SE decking, SE trench and both plumbing profiles are qualitative and currently escalate. No physical clips or measured labels are available yet, so there are no Results numbers.
 
 ```bash
 uv run python scripts/eval.py --run-label "run 1"
@@ -83,8 +85,8 @@ Where a condition has false ALLOWs, the report suggests the lowest confidence fl
   - `AUDIO_MODE=model+dsp` switches to an audio model that must agree with the DSP, for a self-hosted model. A disagreement, a missing recording or a model failure is then an error, which escalates.
 - The DSP thresholds (`AUDIO_ONSET_RATIO`=8, `AUDIO_CENTROID_HZ`=1500) are starting values to calibrate on bench recordings of seated and unseated joints. In synthetic tests they hear a 4 kHz click and reject faint noise and an 80 Hz thud.
 - **By eye.** Nemotron VL returns the pipe's and the fitting's centre lines. Code snaps each to the same-side border of that body and measures the angle between them on the marker plane.
-- **Both required.** A plumbing requirement must set a threshold for `seat_audio` (e.g. `{"min": 1}`) and for `angle_deg`, or the inspection records a grounding error and escalates. The approved requirement decides what "seated" and "aligned" mean.
-- **Sources.** US: SharkBite push-to-connect guides ("the pipe pushes the green indicator ring into the viewing windows, confirming that the pipe is fully inserted"). SE: Branschregler Säker Vatteninstallation 2026 ("fixerade vinkelrätt").
+- **Both required.** A plumbing requirement must bound `seat_audio` and `angle_deg`, or the inspection records a grounding error and escalates. Both current approvals remain qualitative: a source's insertion requirement does not establish an acoustic acceptance test or a numeric alignment tolerance.
+- **Sources.** US: SharkBite requires insertion to the tube stop, verified by the product-specific insertion mark. SE: Säker Vatteninstallation 2026:1 §7.3 requires installation according to the supplier instructions. Its perpendicular-penetration rule concerns a different geometry from pipe-to-fitting alignment. See [the approval review](docs/requirements.md).
 
 ## Trench, jurisdiction switch and human release
 
