@@ -57,9 +57,10 @@ class Verdict(BaseModel):
     decision_id: str = ""
     dossier_url: str = ""
     grant_claimed: bool = False  # the single-use execution grant was consumed for this intent
+    grant_finalized: bool = False  # the release was reported COMMITTED inside the claim's lease
     grant_error: str = ""
 
     @property
     def green(self) -> bool:
-        """The only state that releases a hold: ALLOW, execute, and the grant claimed."""
-        return self.decision == "ALLOW" and self.should_execute and self.grant_claimed
+        """The only state that releases a hold: ALLOW, execute, the grant claimed and the release finalized."""
+        return self.decision == "ALLOW" and self.should_execute and self.grant_claimed and self.grant_finalized
