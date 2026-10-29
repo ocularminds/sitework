@@ -21,3 +21,19 @@ Updated 29 October 2026, Europe/Stockholm.
 - `NEBIUS_API_KEY` and `TAVILY_API_KEY` are not configured. Verify Token Factory's `/models` and the Tavily search after credentials are available. Exact model IDs remain unverified. Decionis's connection and workspace-identity checks now pass.
 
 Sources: [hackathon resources](https://nebiusglobalaihackathon.devpost.com/resources), [hackathon FAQ](https://nebiusglobalaihackathon.devpost.com/details/faqs), [Builders Program](https://dev.nebius.com/builders).
+
+## Still needed from you
+
+- [ ] `NEBIUS_API_KEY` (Token Factory) and `TAVILY_API_KEY` in `.env`, then run `make check`. It lists the Nemotron candidates from `GET /models` and probes whether the Omni model accepts `input_audio`. The exact IDs then go into `sitework/config.py`.
+- [ ] **Decionis gate call for P1.** Which route should SiteWork call through dci?
+  - `@decionis/sdk-node` exposes `POST /v1/authority/evaluate`, which returns `status: ALLOW | BLOCK | ESCALATE | REVIEW_REQUIRED | ERROR` plus `dossier_id` and `dossier_url`.
+  - It also exposes `POST /v1/protocol/evaluate-decision`, which returns `outcome: APPROVE | ESCALATE | REJECT | REVIEW`.
+  - SiteWork's `Verdict` uses ALLOW/ESCALATE/BLOCK verbatim and never shows green for anything except ALLOW. Confirm how `REVIEW_REQUIRED` and `ERROR` should appear, and which `tenant_id`/`org_id` to send.
+- [ ] **SiteWork policy in Decionis.** The workspace key has `policy:read` but no write scope. Create the SiteWork policy (§4 rules: citation required, per-condition confidence floors, thresholds, errors → ESCALATE, named human resolution) in the console, or issue a key that can write it. The policy file format for `policies/` is also still unknown.
+- [ ] **Cosmos Transfer GPU.** Nebius AI Cloud billing is not active (see above). File the AWS GPU quota request now as the fallback; new accounts often start at zero GPU quota.
+- [ ] **Bench rig.**
+  - Print an ArUco `DICT_4X4_50` marker at exactly 40 mm.
+  - Set decking boards at known angles with a protractor.
+  - Cut trench walls at known slopes.
+  - Leave one push-fit joint unseated.
+  - Record outdoor phone clips.

@@ -15,7 +15,7 @@ Status on 29 October 2026: **using the existing dci gateway at the user's reques
 
 The client now sends the ingress key only to its selected gateway. `POST /v1/auth/credential-context` independently verifies that an API key belongs to the configured workspace; missing keys, a different workspace, redirects and error responses do not pass. No automatic fallback sends a tenant key to another hostname.
 
-Run `uv run --frozen python scripts/check_env.py --decionis-only` to repeat the connection checks. All Decionis checks pass. The full `make check` still needs Nebius and Tavily credentials.
+Run `uv run --frozen python scripts/check.py --decionis-only` to repeat the connection checks. All Decionis checks pass. The full `make check` still needs Nebius and Tavily credentials.
 
 ## Temporary credential access
 

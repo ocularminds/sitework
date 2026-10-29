@@ -47,8 +47,12 @@ class TokenFactoryCheck(Check):
 
     name = "Nebius Token Factory"
 
+    def __init__(self, settings: Settings, factory: TokenFactory | None = None):
+        super().__init__(settings)
+        self.factory = factory
+
     def probe(self) -> CheckResult:
-        factory = TokenFactory(self.settings)
+        factory = self.factory or TokenFactory(self.settings)
         catalog = factory.catalog()
         result = CheckResult(name=self.name, detail=[f"{len(catalog)} models listed"])
         for role in ROLES:
@@ -88,8 +92,13 @@ class TavilyCheck(Check):
     query = "OSHA 1926.652 excavation protective systems sloping requirements"
     domains = ["osha.gov", "ecfr.gov"]
 
+    def __init__(self, settings: Settings, web: WebClient | None = None):
+        super().__init__(settings)
+        self.web = web
+
     def probe(self) -> CheckResult:
-        results = WebClient(self.settings).search(self.query, self.domains, max_results=3)
+        web = self.web or WebClient(self.settings)
+        results = web.search(self.query, self.domains, max_results=3)
         detail = [f"search returned {len(results)} allowlisted results"]
         detail += [f"{r.domain}: {r.url}" for r in results]
         blockers = [] if results else ["search returned no allowlisted results"]

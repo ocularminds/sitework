@@ -4,7 +4,7 @@ setup:
 	uv sync --frozen
 
 check:
-	uv run --frozen python scripts/check_env.py
+	uv run --frozen python scripts/check.py
 
 test:
 	uv run --frozen pytest

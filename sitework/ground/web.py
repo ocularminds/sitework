@@ -22,8 +22,8 @@ class WebResult(BaseModel):
 class WebClient:
     """Allowlisted Tavily access. Every call names the domains it may read."""
 
-    def __init__(self, settings: Settings):
-        self._client = TavilyClient(api_key=settings.secret("tavily_api_key"))
+    def __init__(self, settings: Settings, client: TavilyClient | None = None):
+        self._client = client or TavilyClient(api_key=settings.secret("tavily_api_key"))
 
     def search(self, query: str, domains: list[str], max_results: int = 5) -> list[WebResult]:
         raw = self._client.search(
