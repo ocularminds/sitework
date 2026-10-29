@@ -65,6 +65,11 @@ Sources: [Tavily pricing](https://tavily.com/pricing), [Builders Program](https:
 - [ ] **Plumbing audio.**
   - Once `NEBIUS_API_KEY` is set, `make check` probes whether the Nemotron Omni model accepts `input_audio`, and its ID goes in `NEBIUS_AUDIO_MODEL`. If Token Factory does not accept audio, the fallback in `IMPLEMENT.md` is self-hosted Audio Flamingo 3 (non-commercial weights).
   - Calibrate the DSP thresholds (`AUDIO_ONSET_RATIO`, `AUDIO_CENTROID_HZ`) on a few bench recordings of a seated and an unseated joint.
+- [ ] **Label the clips and run eval (P5).**
+  - For every bench, Cosmos and outdoor clip, add a row to `eval/labels.csv` with the truth you set and the verdict you expect (see README, Evaluation).
+  - Then run `uv run python scripts/eval.py --run-label "run 1"`.
+  - If any condition shows false ALLOWs, decide whether to raise its floor in `policies/sitework.json`, submit it, and run again as "run 2". Both runs go into `eval/results.md` and then into the brief's Results table.
+  - Needs: recorded clips, `NEBIUS_API_KEY`, approved requirements in the packs, and the Cosmos variants.
 - [ ] **Cosmos Transfer run (you run it on a GPU).** The scripts and full instructions are in `scripts/cosmos/README.md`. Steps:
   1. Record 3–5 clean clips, 6–10 s each, into `data/clips/clean/`. Use a fixed camera, keep the ArUco marker in frame, and set the work up beforehand: decking at known angles, trench at known slopes.
   2. Activate Nebius AI Cloud billing (see above). Create a preemptible `gpu-h100-sxm` VM (`eu-north1`) or a `gpu-h200-sxm` VM, preset `1gpu-16vcpu-200gb`, using image family `ubuntu24.04-cuda12` and a 200 GiB `network_ssd` boot disk.
