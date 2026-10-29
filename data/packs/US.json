@@ -1,6 +1,6 @@
 {
   "jurisdiction": "US",
-  "authority": "OSHA 29 CFR 1926 Subpart P (trench); manufacturer installation guides (decking)",
+  "authority": "OSHA 29 CFR 1926 Subpart P (trench); manufacturer installation guides (decking, push-fit plumbing)",
   "allowlist": {
     "decking": [
       "trex.com",
@@ -10,6 +10,10 @@
     "trench": [
       "osha.gov",
       "ecfr.gov"
+    ],
+    "plumbing": [
+      "sharkbite.com",
+      "johnguest.com"
     ]
   },
   "seeds": {
@@ -20,92 +24,19 @@
     "trench": [
       "https://www.osha.gov/laws-regs/regulations/standardnumber/1926/1926SubpartPAppB",
       "https://www.ecfr.gov/current/title-29/subtitle-B/chapter-XVII/part-1926/subpart-P"
+    ],
+    "plumbing": [
+      "https://www.sharkbite.com/sites/default/files/files/SB-PTC-Installer-Pocket-Guide-2024.pdf",
+      "https://www.sharkbite.com/us/en/resources/blog/service-and-repair/fitting-tips-guides/the-dos-and-donts-of-installing-sharkbite-fittings"
     ]
   },
   "sources": [
-    {
-      "scene": "trench",
-      "url": "https://www.osha.gov/laws-regs/regulations/standardnumber/1926/1926.651",
-      "content_sha256": "e8627cf1d6dfc7b02fbb127872bb2b34bdfe9b54c9e1cc186c31a6ffe45a4c02",
-      "retrieved_at": "2026-10-29T03:16:01.760876Z",
-      "via": "map+extract"
-    },
-    {
-      "scene": "trench",
-      "url": "https://www.osha.gov/laws-regs/regulations/standardnumber/1926/1926SubpartPAppB",
-      "content_sha256": "c35d6320e152ea238b4dd3ec03004a5c132f206b065670e2ffce4733ef206add",
-      "retrieved_at": "2026-10-29T03:16:01.760876Z",
-      "via": "map+extract"
-    },
     {
       "scene": "trench",
       "url": "https://www.osha.gov/laws-regs/regulations/standardnumber/1926/1926SubpartPAppF",
       "content_sha256": "235a54676d90315edfd385e3b888117c54a70da04d2c1f5395ce962a84078789",
       "retrieved_at": "2026-10-29T03:16:01.760876Z",
       "via": "map+extract"
-    },
-    {
-      "scene": "trench",
-      "url": "https://www.osha.gov/laws-regs/regulations/standardnumber/1926/1926SubpartPAppA",
-      "content_sha256": "f8ef0edfd215d30dbe7e48d850635c0ec9999af3f534ac505f92b308eb71fc9a",
-      "retrieved_at": "2026-10-29T03:16:01.760876Z",
-      "via": "map+extract"
-    },
-    {
-      "scene": "trench",
-      "url": "https://www.osha.gov/enforcement/directives/cpl-02-00-165",
-      "content_sha256": "94b37ee3d808a07710e4e99dc20f620b58174e25d65c5d741bacc4d317014ec7",
-      "retrieved_at": "2026-10-29T03:16:01.760876Z",
-      "via": "map+extract"
-    },
-    {
-      "scene": "trench",
-      "url": "https://www.ecfr.gov/current/title-29/subtitle-B/chapter-XVII/part-1926/subpart-P/appendix-Appendix%20C%20to%20Subpart%20P%20of%20Part%201926",
-      "content_sha256": "ac2ef2201c3e7a103a01118895cbf7d76e71b9a82057aaf552ec4f3e3e0a6db8",
-      "retrieved_at": "2026-10-29T03:16:29.848233Z",
-      "via": "crawl"
-    },
-    {
-      "scene": "trench",
-      "url": "https://www.ecfr.gov/current/title-29/subtitle-B/chapter-XVII/part-1926/subpart-P/appendix-Appendix%20F%20to%20Subpart%20P%20of%20Part%201926",
-      "content_sha256": "0cdc66d59d6d6d0f6a1e9b49e33713c89e6ccb9a6d15b3da30762df40648aa8d",
-      "retrieved_at": "2026-10-29T03:16:29.848233Z",
-      "via": "crawl"
-    },
-    {
-      "scene": "trench",
-      "url": "https://www.ecfr.gov/current/title-29/subtitle-B/chapter-XVII/part-1926/subpart-P/section-1926.651",
-      "content_sha256": "21edc2365506e7502ab4e0976221daa42ee3b019fac5315d5ebdf73e874ccdaf",
-      "retrieved_at": "2026-10-29T03:16:29.848233Z",
-      "via": "crawl"
-    },
-    {
-      "scene": "trench",
-      "url": "https://www.ecfr.gov/current/title-29/subtitle-B/chapter-XVII/part-1926/subpart-P/appendix-Appendix%20E%20to%20Subpart%20P%20of%20Part%201926",
-      "content_sha256": "f244adc230d4615b0fef1096b57f5b776b821b6c29a194651952603017446efa",
-      "retrieved_at": "2026-10-29T03:16:29.848233Z",
-      "via": "crawl"
-    },
-    {
-      "scene": "trench",
-      "url": "https://www.ecfr.gov/current/title-29/subtitle-B/chapter-XVII/part-1926/subpart-P/appendix-Appendix%20B%20to%20Subpart%20P%20of%20Part%201926",
-      "content_sha256": "da61ee5c7067dc8bf46634021d30d4c5d0b30d3e97dd2bc47e562472138e7185",
-      "retrieved_at": "2026-10-29T03:16:29.848233Z",
-      "via": "crawl"
-    },
-    {
-      "scene": "trench",
-      "url": "https://www.ecfr.gov/current/title-29/subtitle-B/chapter-XVII/part-1926/subpart-P/section-1926.652",
-      "content_sha256": "24553634eaf0a493cede9712a18d4f1a269be9ebdd661143e4f08efa8885e058",
-      "retrieved_at": "2026-10-29T03:16:29.848233Z",
-      "via": "crawl"
-    },
-    {
-      "scene": "trench",
-      "url": "https://www.ecfr.gov/current/title-29/subtitle-B/chapter-XVII/part-1926/subpart-P/appendix-Appendix%20D%20to%20Subpart%20P%20of%20Part%201926",
-      "content_sha256": "bbe79c4546d238172524485a29fbb6254ae75a76453c4774335a7f0130872569",
-      "retrieved_at": "2026-10-29T03:16:29.848233Z",
-      "via": "crawl"
     },
     {
       "scene": "decking",
@@ -273,6 +204,251 @@
       "url": "https://trex.com/academy/how-to-guides",
       "content_sha256": "837698eefe90ce9c64d349f01f06462551acfd558db4bb26478ca8774952db07",
       "retrieved_at": "2026-10-29T03:19:38.721392Z",
+      "via": "map+extract"
+    },
+    {
+      "scene": "trench",
+      "url": "https://www.osha.gov/enforcement/directives/cpl-02-00-165",
+      "content_sha256": "94b37ee3d808a07710e4e99dc20f620b58174e25d65c5d741bacc4d317014ec7",
+      "retrieved_at": "2026-10-29T03:54:42.249730Z",
+      "via": "crawl"
+    },
+    {
+      "scene": "trench",
+      "url": "https://www.osha.gov/laws-regs/regulations/standardnumber/1926/1926.651",
+      "content_sha256": "ed9631fa85210efb712371a42f09fff47384332447bbca1108c050589f5eb6d8",
+      "retrieved_at": "2026-10-29T03:54:42.249730Z",
+      "via": "crawl"
+    },
+    {
+      "scene": "trench",
+      "url": "https://www.osha.gov/laws-regs/regulations/standardnumber/1926/1926SubpartPAppB",
+      "content_sha256": "980e066faeb136af95b3522fbeee1805ab82d3a3060875ab5c5d258e4381f820",
+      "retrieved_at": "2026-10-29T03:54:42.249730Z",
+      "via": "crawl"
+    },
+    {
+      "scene": "trench",
+      "url": "https://www.osha.gov/sites/default/files/TrenchingSafetyResources.pdf",
+      "content_sha256": "c20c87e21cc9957f3ecda36d7a96a4a933f060400b0eb81d411f7a68510e43f2",
+      "retrieved_at": "2026-10-29T03:54:42.249730Z",
+      "via": "crawl"
+    },
+    {
+      "scene": "trench",
+      "url": "https://www.osha.gov/enforcement/directives/cpl-02-00-161",
+      "content_sha256": "2adf2bfd567a97fa65bb30ef9e83238522604e760fecd6fc0b98af665c5189df",
+      "retrieved_at": "2026-10-29T03:54:42.249730Z",
+      "via": "crawl"
+    },
+    {
+      "scene": "trench",
+      "url": "https://www.osha.gov/index.php/trenching-excavation",
+      "content_sha256": "64597d4935bb380a6eb6b5fba87540a1edbbcac46ba7981e634d5d0384694347",
+      "retrieved_at": "2026-10-29T03:54:42.249730Z",
+      "via": "crawl"
+    },
+    {
+      "scene": "trench",
+      "url": "https://www.osha.gov/laws-regs/regulations/standardnumber/1926/1926.650",
+      "content_sha256": "86e8404199e8a9d5cadb681433fb525c3fd0015cf2b2d9459c305568130f7040",
+      "retrieved_at": "2026-10-29T03:54:42.249730Z",
+      "via": "crawl"
+    },
+    {
+      "scene": "trench",
+      "url": "https://www.osha.gov/laws-regs/regulations/standardnumber/1926/1926.652",
+      "content_sha256": "d44815495a9f9d1ca833137580644d78fc508924198209ff38eae044e9df0a36",
+      "retrieved_at": "2026-10-29T03:54:42.249730Z",
+      "via": "crawl"
+    },
+    {
+      "scene": "trench",
+      "url": "https://www.osha.gov/laws-regs/regulations/standardnumber/1926",
+      "content_sha256": "8aead76f180c059946ed3b3cf483bbeab3b2c2b2adb89c0a69bb125ccc440bee",
+      "retrieved_at": "2026-10-29T03:54:43.603575Z",
+      "via": "map+extract"
+    },
+    {
+      "scene": "trench",
+      "url": "https://www.osha.gov/laws-regs/regulations/standardnumber/1926/1926SubpartPAppA",
+      "content_sha256": "f8ef0edfd215d30dbe7e48d850635c0ec9999af3f534ac505f92b308eb71fc9a",
+      "retrieved_at": "2026-10-29T03:54:43.603575Z",
+      "via": "map+extract"
+    },
+    {
+      "scene": "trench",
+      "url": "https://www.osha.gov/laws-regs/regulations/standardnumber/1926/1926SubpartP",
+      "content_sha256": "487f6c6007b9c1a9f94de9a1a1fc273f61d8b0d67542171be6c911d7a9606457",
+      "retrieved_at": "2026-10-29T03:54:43.603575Z",
+      "via": "map+extract"
+    },
+    {
+      "scene": "trench",
+      "url": "https://www.osha.gov/laws-regs/regulations/standardnumber/1926/1926SubpartPAppD",
+      "content_sha256": "ff9f670f2d17b8c8f363b18a8c492c26f35dff19e185c9a77580419773c5e446",
+      "retrieved_at": "2026-10-29T03:54:43.603575Z",
+      "via": "map+extract"
+    },
+    {
+      "scene": "trench",
+      "url": "https://www.osha.gov/laws-regs/regulations/standardnumber/1926/1926SubpartPAppC",
+      "content_sha256": "c5639fb4300e81cc1de1a7e7c86f189e999973409a5c7b99799e90125368561a",
+      "retrieved_at": "2026-10-29T03:54:43.603575Z",
+      "via": "map+extract"
+    },
+    {
+      "scene": "trench",
+      "url": "https://www.ecfr.gov/current/title-29/part-1926/subpart-P",
+      "content_sha256": "9ebf9587f3d5bb6749c64dfe7d1875a00425cc1558083beb1b3bfbe8e03cfd8e",
+      "retrieved_at": "2026-10-29T03:55:11.451203Z",
+      "via": "crawl"
+    },
+    {
+      "scene": "trench",
+      "url": "https://www.ecfr.gov/current/title-29/section-1926.651",
+      "content_sha256": "21edc2365506e7502ab4e0976221daa42ee3b019fac5315d5ebdf73e874ccdaf",
+      "retrieved_at": "2026-10-29T03:55:11.451203Z",
+      "via": "crawl"
+    },
+    {
+      "scene": "trench",
+      "url": "https://www.ecfr.gov/current/title-29/section-1926.652",
+      "content_sha256": "24553634eaf0a493cede9712a18d4f1a269be9ebdd661143e4f08efa8885e058",
+      "retrieved_at": "2026-10-29T03:55:11.451203Z",
+      "via": "crawl"
+    },
+    {
+      "scene": "trench",
+      "url": "https://www.ecfr.gov/current/title-29/subtitle-B/chapter-XVII/part-1926/subpart-P/appendix-Appendix%20B%20to%20Subpart%20P%20of%20Part%201926",
+      "content_sha256": "da61ee5c7067dc8bf46634021d30d4c5d0b30d3e97dd2bc47e562472138e7185",
+      "retrieved_at": "2026-10-29T03:55:11.451203Z",
+      "via": "crawl"
+    },
+    {
+      "scene": "trench",
+      "url": "https://www.ecfr.gov/current/title-29/subtitle-B/chapter-XVII/part-1926/subpart-P/appendix-Appendix%20C%20to%20Subpart%20P%20of%20Part%201926",
+      "content_sha256": "ac2ef2201c3e7a103a01118895cbf7d76e71b9a82057aaf552ec4f3e3e0a6db8",
+      "retrieved_at": "2026-10-29T03:55:11.451203Z",
+      "via": "crawl"
+    },
+    {
+      "scene": "trench",
+      "url": "https://www.ecfr.gov/current/title-29/subtitle-B/chapter-XVII/part-1926/subpart-P/appendix-Appendix%20D%20to%20Subpart%20P%20of%20Part%201926",
+      "content_sha256": "bbe79c4546d238172524485a29fbb6254ae75a76453c4774335a7f0130872569",
+      "retrieved_at": "2026-10-29T03:55:11.451203Z",
+      "via": "crawl"
+    },
+    {
+      "scene": "trench",
+      "url": "https://www.ecfr.gov/current/title-29/subtitle-B/chapter-XVII/part-1926/subpart-P/appendix-Appendix%20E%20to%20Subpart%20P%20of%20Part%201926",
+      "content_sha256": "f244adc230d4615b0fef1096b57f5b776b821b6c29a194651952603017446efa",
+      "retrieved_at": "2026-10-29T03:55:11.451203Z",
+      "via": "crawl"
+    },
+    {
+      "scene": "trench",
+      "url": "https://www.ecfr.gov/current/title-29/subtitle-B/chapter-XVII/part-1926/subpart-P/appendix-Appendix%20F%20to%20Subpart%20P%20of%20Part%201926",
+      "content_sha256": "0cdc66d59d6d6d0f6a1e9b49e33713c89e6ccb9a6d15b3da30762df40648aa8d",
+      "retrieved_at": "2026-10-29T03:55:11.451203Z",
+      "via": "crawl"
+    },
+    {
+      "scene": "trench",
+      "url": "https://www.ecfr.gov/current/title-29/subtitle-B/chapter-XVII/part-1926/subpart-P/section-1926.650",
+      "content_sha256": "4144a14fed300a595a079e7c2c5a940e1b529d0f6d47fc17d16ff8c6e165d1dc",
+      "retrieved_at": "2026-10-29T03:55:11.451203Z",
+      "via": "crawl"
+    },
+    {
+      "scene": "trench",
+      "url": "https://www.ecfr.gov/current/title-29/subtitle-B/chapter-XVII/part-1926/subpart-P/appendix-Appendix%20A%20to%20Subpart%20P%20of%20Part%201926",
+      "content_sha256": "9a86cf2b50c210132ecd762687e72f14ba3119f02da6d772dfe9c12409e94972",
+      "retrieved_at": "2026-10-29T03:55:11.451203Z",
+      "via": "crawl"
+    },
+    {
+      "scene": "trench",
+      "url": "https://www.ecfr.gov/current/title-29/subtitle-B/chapter-XVII/part-1926/subpart-P",
+      "content_sha256": "2d506d5eed3808fee6c30dcbed6b78a6d6bf4e8174010d189c4053026fb5da61",
+      "retrieved_at": "2026-10-29T03:55:11.702124Z",
+      "via": "map+extract"
+    },
+    {
+      "scene": "trench",
+      "url": "https://www.ecfr.gov/current/title-29/subtitle-B/chapter-XVII/part-1926/subpart-P/section-1926.651",
+      "content_sha256": "2590267728a5d768c6b86489e10c6da5ea8aaea83e9c4e480b47a1b319e7d0c2",
+      "retrieved_at": "2026-10-29T03:55:11.702124Z",
+      "via": "map+extract"
+    },
+    {
+      "scene": "trench",
+      "url": "https://www.ecfr.gov/current/title-29/subtitle-B/chapter-XVII/part-1926/subpart-P/section-1926.652",
+      "content_sha256": "7c1fcf6d229423e358d027de27e63067bc599bad0341adc65594a741b43df546",
+      "retrieved_at": "2026-10-29T03:55:11.702124Z",
+      "via": "map+extract"
+    },
+    {
+      "scene": "plumbing",
+      "url": "https://www.sharkbite.com/sites/default/files/files/SB-PTC-Installer-Pocket-Guide-2024.pdf",
+      "content_sha256": "03679c419ca340778d3d8e279b82657a81b4c7101d8218c4cd7b8ccbecd8f3ef",
+      "retrieved_at": "2026-10-29T04:00:24.825711Z",
+      "via": "extract"
+    },
+    {
+      "scene": "plumbing",
+      "url": "https://www.sharkbite.com/sites/default/files/files/RWC-Piping-Systems-Install-Guide-2024.pdf",
+      "content_sha256": "ed9206c48d048998b562375b6afb4ec0df6d2f1ba6d5fb72cff28b0d043b105c",
+      "retrieved_at": "2026-10-29T04:00:57.922910Z",
+      "via": "crawl"
+    },
+    {
+      "scene": "plumbing",
+      "url": "https://www.sharkbite.com/sites/default/files/files/sharkbite-max-install-instructions-2024-07.pdf",
+      "content_sha256": "498f27db498e874fcf393a778bcfedffc5d35cd8cacff56456399426148a58b9",
+      "retrieved_at": "2026-10-29T04:00:57.922910Z",
+      "via": "crawl"
+    },
+    {
+      "scene": "plumbing",
+      "url": "https://www.sharkbite.com/sites/default/files/resources/RWC-Piping-Systems-Installation-Guide-PSIG.pdf",
+      "content_sha256": "b634fc1639273d12697970d3151864803b3dab17d97cd899fe76dc3179f5c55c",
+      "retrieved_at": "2026-10-29T04:00:57.922910Z",
+      "via": "crawl"
+    },
+    {
+      "scene": "plumbing",
+      "url": "https://www.sharkbite.com/us/en/push-to-connect/push-to-connect-tools/pvc-disconnect-clip-depth-gauge",
+      "content_sha256": "39241e7594e34a9de7f1602273a71346a4d79f3223273f6e616750e31ab2faf0",
+      "retrieved_at": "2026-10-29T04:00:57.922910Z",
+      "via": "crawl"
+    },
+    {
+      "scene": "plumbing",
+      "url": "https://www.sharkbite.com/resources/pipe-insertion-depth-chart",
+      "content_sha256": "a78378e4a0ef40c9baf862583210c1faf8b2c7a247d5c81cf953a56af23acc49",
+      "retrieved_at": "2026-10-29T04:00:57.922910Z",
+      "via": "crawl"
+    },
+    {
+      "scene": "plumbing",
+      "url": "https://www.sharkbite.com/us/en/pex-pipe-connectors/pex-cutters-accessories",
+      "content_sha256": "770403844fa66e615a3c1540ced97633e44db8c39c4fd513815467caf8a9ea78",
+      "retrieved_at": "2026-10-29T04:00:57.922910Z",
+      "via": "crawl"
+    },
+    {
+      "scene": "plumbing",
+      "url": "https://www.sharkbite.com/sites/default/files/files/sharkbite-pex-install-guide-2021-02.pdf",
+      "content_sha256": "08c5570ea101db1421fbe2a89489aa4393b73320f0bef80cc942f11ca4224f9e",
+      "retrieved_at": "2026-10-29T04:01:04.312852Z",
+      "via": "map+extract"
+    },
+    {
+      "scene": "plumbing",
+      "url": "https://www.sharkbite.com/us/en/resources/blog/service-and-repair/fitting-tips-guides/the-dos-and-donts-of-installing-sharkbite-fittings",
+      "content_sha256": "46a7423e76513981c74be88f277d049da25a3da3845d077a3e79aee69deb43cb",
+      "retrieved_at": "2026-10-29T04:01:04.312852Z",
       "via": "map+extract"
     }
   ],

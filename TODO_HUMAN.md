@@ -59,6 +59,12 @@ Sources: [Tavily pricing](https://tavily.com/pricing), [Builders Program](https:
   `uv run python scripts/pack.py approve decking <index> --requirement "..." --threshold '{"gap_mm": {"min": 3.17, "max": 6.35}}' --approver "Your Name"`
   No source found so far states an angle limit, so `angle_deg` stays unchecked unless you approve one.
 - [ ] **One accidental decision to know about.** While probing routes on 29 Oct, an empty-body `POST /v1/protocol/evaluate-decision` returned 200 `verdict: ALLOW` (`authority_classification: OBSERVATIONAL`) instead of a validation error. It may have recorded one decision, with idempotency key `probe-empty-body`. It was not repeated.
+- [ ] **Plumbing requirements, for P4.** Both packs now have plumbing sources and candidates. Run `uv run python scripts/pack.py --jurisdiction US build plumbing --qualitative --cached` (and the same with `SE`) to list them.
+  - A plumbing requirement must bound both `seat_audio` and `angle_deg`, e.g. `{"seat_audio": {"min": 1}, "angle_deg": {"max": 2}}`. The angle limit is your call: SharkBite asks for a square cut and full insertion, and Säker Vatten for "fixerade vinkelrätt", but neither gives a number.
+  - Without both thresholds the inspection escalates.
+- [ ] **Plumbing audio.**
+  - Once `NEBIUS_API_KEY` is set, `make check` probes whether the Nemotron Omni model accepts `input_audio`, and its ID goes in `NEBIUS_AUDIO_MODEL`. If Token Factory does not accept audio, the fallback in `IMPLEMENT.md` is self-hosted Audio Flamingo 3 (non-commercial weights).
+  - Calibrate the DSP thresholds (`AUDIO_ONSET_RATIO`, `AUDIO_CENTROID_HZ`) on a few bench recordings of a seated and an unseated joint.
 - [ ] **Cosmos Transfer run (you run it on a GPU).** The scripts and full instructions are in `scripts/cosmos/README.md`. Steps:
   1. Record 3–5 clean clips, 6–10 s each, into `data/clips/clean/`. Use a fixed camera, keep the ArUco marker in frame, and set the work up beforehand: decking at known angles, trench at known slopes.
   2. Activate Nebius AI Cloud billing (see above). Create a preemptible `gpu-h100-sxm` VM (`eu-north1`) or a `gpu-h200-sxm` VM, preset `1gpu-16vcpu-200gb`, using image family `ubuntu24.04-cuda12` and a 200 GiB `network_ssd` boot disk.

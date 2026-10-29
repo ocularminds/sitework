@@ -43,10 +43,11 @@ class Facts:
         for c in self.bundle.citations:
             for kind, bounds in c.threshold.items():
                 for m in self.bundle.measurements:
-                    if m.kind != kind or isinstance(m.value, bool):
+                    if m.kind != kind:
                         continue
+                    value = float(m.value)  # a boolean (seat_audio) checks as 1.0 / 0.0, e.g. {"min": 1}
                     lo, hi = bounds.get("min"), bounds.get("max")
-                    within = (lo is None or m.value >= lo) and (hi is None or m.value <= hi)
+                    within = (lo is None or value >= lo) and (hi is None or value <= hi)
                     out.append({"kind": kind, "value": m.value, "min": lo, "max": hi,
                                 "within": within, "confidence": m.confidence, "source": c.url})
         return out

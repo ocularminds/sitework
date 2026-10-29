@@ -6,7 +6,7 @@ Physical AI that inspects construction work at the hold point, before it disappe
 
 > Models observe → code measures → policy decides → humans sign when the AI isn't sure → everything is provable.
 
-Status: **P3, trench.** Decking and trench entry are gated live. A jurisdiction switch re-decides the same evidence under the other pack, and an escalated hold is resolved by a named person. Plumbing audio and eval arrive in later phases (see `IMPLEMENT.md`).
+Status: **P4, plumbing with audio.** All three hold points are built: decking, trench entry and plumbing close-in. Eval arrives in P5 (see `IMPLEMENT.md`).
 
 ## Setup
 
@@ -38,6 +38,20 @@ SiteWork uses the `https://dci.decionisedge.com` gateway, explicitly selected on
 8. **Record.** Evidence, request, response and verdict are written to `data/dossiers/<dossier_id>.json`, with the execution token redacted.
 
 Nothing is faked: errors (no marker, model failure, missing key, no approved requirement) are sent to Decionis as facts. `DECIONIS_MODE=mock` exists for tests only and puts a red MOCK GATE banner on every page.
+
+## Plumbing: seated by ear, aligned by eye
+
+- **When.** Pressing Inspect on the Plumbing tab records about 3 s of audio first, then takes the frames.
+  - With a webcam, the default microphone records while the joint is pushed home. `SITEWORK_AUDIO_SOURCE=mic:<n>` picks a device.
+  - A replayed clip uses its own audio track.
+- **By ear.** Two independent judgements of the seating click:
+  - The audio model on Token Factory (`NEBIUS_AUDIO_MODEL`, sent as `input_audio`) answers `seated` with a confidence, under a strict schema with one retry.
+  - A deterministic DSP check looks for the strongest onset and its spectral centroid (librosa).
+- **Only when both agree** is a `seat_audio` measurement recorded. A disagreement, a missing recording or a model failure becomes an error, which the policy escalates to a person.
+- The DSP thresholds (`AUDIO_ONSET_RATIO`=8, `AUDIO_CENTROID_HZ`=1500) are starting values to calibrate on bench recordings of seated and unseated joints. In synthetic tests they hear a 4 kHz click and reject faint noise and an 80 Hz thud.
+- **By eye.** Nemotron VL returns the pipe's and the fitting's centre lines; code measures the angle between them on the marker plane.
+- **Both required.** A plumbing requirement must set a threshold for `seat_audio` (e.g. `{"min": 1}`) and for `angle_deg`, or the inspection records a grounding error and escalates. The approved requirement decides what "seated" and "aligned" mean.
+- **Sources.** US: SharkBite push-to-connect guides ("the pipe pushes the green indicator ring into the viewing windows, confirming that the pipe is fully inserted"). SE: Branschregler Säker Vatteninstallation 2026 ("fixerade vinkelrätt").
 
 ## Trench, jurisdiction switch and human release
 
@@ -95,6 +109,8 @@ physical capture has been completed by this setup work.
 | `DECIONIS_DECISION_TYPE` | Optional: sets the intent's `policy_projection.decision_type` |
 | `SITEWORK_SOURCE` | Webcam index (default `0`) or a video file to replay |
 | `SITEWORK_SAMPLES`, `SITEWORK_JURISDICTION`, `FIDUCIAL_MM` | Frames per inspection (3), pack to read (`US`), marker side in mm (40) |
+| `SITEWORK_AUDIO_SOURCE`, `SITEWORK_AUDIO_SECONDS` | Plumbing audio: `mic`, `mic:<n>` or a file (default: the replayed clip's track, else the default mic); seconds recorded (3) |
+| `AUDIO_ONSET_RATIO`, `AUDIO_CENTROID_HZ` | DSP seat-click thresholds (8, 1500 Hz); calibrate on bench recordings |
 | `COSMOS_REASON_URL` | Optional Cosmos Reason 2 endpoint (vLLM on Nebius AI Cloud) |
 
 ## Layout

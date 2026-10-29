@@ -1,8 +1,11 @@
-"""Frame sources: a webcam or a replayed clip. Both hand out hashed frames."""
+"""Capture: frames from a webcam or replayed clip, and audio from a microphone or a clip's track."""
 
 import hashlib
+import io
+import subprocess
 import threading
 import time
+import wave
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from functools import cached_property
@@ -127,3 +130,92 @@ def open_source(spec: str) -> Source:
     """`"0"` or `"camera:0"` opens a webcam; anything else is a video file path."""
     device = spec.removeprefix("camera:")
     return CameraSource(int(device)) if device.isdigit() else FileSource(Path(spec))
+
+
+@dataclass
+class AudioClip:
+    """Mono audio around the join. Its hash covers the exact WAV bytes the audio model hears."""
+
+    samples: np.ndarray  # float32, -1..1
+    rate: int
+    label: str
+
+    @property
+    def seconds(self) -> float:
+        return len(self.samples) / self.rate
+
+    @cached_property
+    def wav(self) -> bytes:
+        pcm = (np.clip(self.samples, -1.0, 1.0) * 32767).astype("<i2").tobytes()
+        buf = io.BytesIO()
+        with wave.open(buf, "wb") as w:
+            w.setnchannels(1)
+            w.setsampwidth(2)
+            w.setframerate(self.rate)
+            w.writeframes(pcm)
+        return buf.getvalue()
+
+    @cached_property
+    def sha256(self) -> str:
+        return hashlib.sha256(self.wav).hexdigest()
+
+
+class AudioSource(ABC):
+    label: str
+
+    @abstractmethod
+    def record(self, seconds: float) -> AudioClip: ...
+
+
+class FileAudio(AudioSource):
+    """The audio track of a recorded clip (phone video or WAV), mono 16 kHz via ffmpeg, capped at 10 s."""
+
+    RATE = 16000
+    MAX_SECONDS = 10.0
+
+    def __init__(self, path: Path):
+        self.path = Path(path)
+        self.label = f"file:{self.path.name}"
+
+    def record(self, seconds: float) -> AudioClip:
+        out = subprocess.run(
+            ["ffmpeg", "-loglevel", "error", "-i", str(self.path), "-vn", "-ac", "1", "-ar", str(self.RATE),
+             "-t", str(self.MAX_SECONDS), "-f", "s16le", "-"], capture_output=True)
+        if not out.stdout:  # missing file, no audio stream, or an unreadable container
+            raise ValueError(f"no audio track in {self.path.name}")
+        samples = np.frombuffer(out.stdout, dtype="<i2").astype(np.float32) / 32768.0
+        return AudioClip(samples, self.RATE, self.label)
+
+
+class MicAudio(AudioSource):
+    """A live microphone; records while the joint is pushed home."""
+
+    RATE = 16000
+
+    def __init__(self, device: int | None = None):
+        self.device = device
+        self.label = f"mic:{device if device is not None else 'default'}"
+
+    def record(self, seconds: float) -> AudioClip:
+        try:
+            import sounddevice as sd
+        except OSError as exc:  # PortAudio missing
+            raise ValueError(f"microphone unavailable: {exc}") from exc
+        try:
+            data = sd.rec(int(seconds * self.RATE), samplerate=self.RATE, channels=1, dtype="float32",
+                          device=self.device)
+            sd.wait()
+        except Exception as exc:  # PortAudioError and device errors
+            raise ValueError(f"{self.label}: {exc}") from exc
+        return AudioClip(data[:, 0].copy(), self.RATE, self.label)
+
+
+def open_audio(spec: str, video_spec: str = "") -> AudioSource:
+    """`"mic"` / `"mic:1"` records live; a path reads a file; empty follows a replayed video's own track."""
+    spec = spec or ("" if video_spec.removeprefix("camera:").isdigit() else video_spec)
+    if not spec:
+        return MicAudio()
+    if spec == "mic" or spec.startswith("mic:"):
+        device = spec.removeprefix("mic").lstrip(":")
+        return MicAudio(int(device) if device.isdigit() else None)
+    return FileAudio(Path(spec))

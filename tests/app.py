@@ -42,7 +42,7 @@ def test_inspect_returns_a_result_pushes_it_and_stores_the_record(client):
 
 
 def test_unbuilt_scene_and_unknown_record_are_404(client):
-    assert client.post("/api/inspect", json={"scene": "plumbing"}).status_code == 404
+    assert client.post("/api/inspect", json={"scene": "welding"}).status_code == 404
     assert client.get("/api/dossiers/nope").status_code == 404
 
 

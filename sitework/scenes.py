@@ -7,19 +7,21 @@ from typing import ClassVar
 
 from pydantic import BaseModel
 
-from sitework.capture import Frame, Source
+from sitework.capture import AudioSource, Frame, Source
 from sitework.config import MissingCredential, Settings
 from sitework.dossier import DossierRecord, DossierStore, Resolution
 from sitework.gate.authority import Gate, GateFailure, MockGate
 from sitework.gate.evidence import EvidenceBuilder, Facts
 from sitework.ground.packs import PackStore
 from sitework.light import LightState
+from sitework.measure.align import AlignmentMeasurer
 from sitework.measure.base import Measurer
 from sitework.measure.deck import DeckMeasurer
 from sitework.measure.fiducial import Fiducial, Scale
 from sitework.measure.trench import TrenchMeasurer
 from sitework.nebius import TokenFactory
-from sitework.perceive.views import DeckingView, TrenchView, View
+from sitework.perceive.audio import AudioError, AudioModel, SeatDsp
+from sitework.perceive.views import DeckingView, PlumbingView, TrenchView, View
 from sitework.perceive.vlm import VisionError, VisionModel
 from sitework.schema import Action, Citation, Condition, EvidenceBundle, Measurement, Verdict
 
@@ -68,6 +70,7 @@ class Inspection:
     view: ClassVar[type[View]]
     action: ClassVar[Action]
     method: ClassVar[str]
+    required: ClassVar[tuple[str, ...]] = ()  # measurement kinds an approved requirement must bound
 
     def __init__(self, settings: Settings, gate: Gate | MockGate, store: DossierStore,
                  packs: PackStore, vision: VisionModel | None = None, fiducial: Fiducial | None = None):
@@ -85,6 +88,7 @@ class Inspection:
     def run(self, source: Source | None, condition: Condition, jurisdiction: str,
             action: Action | None = None) -> InspectionResult:
         ev = EvidenceBuilder(self.scene, action or self.action, condition)
+        heard = self.listen(ev)
         frames = self._capture(source, ev)
         vision = self._vision(ev)
         scales = {f.index: self.fiducial.detect(f.image) for f in frames}
@@ -111,9 +115,13 @@ class Inspection:
                 overlay = Overlay.of(f, scales[f.index], view)
         if vision is not None:
             ev.models["vlm"] = vision.model
-        ev.measurements = self.measurer.combine(samples, self.method)
+        ev.measurements = self.measurer.combine(samples, self.method) + heard
         ev.citations = self._ground(jurisdiction, ev.errors)
         return self._decide(ev.build(), jurisdiction, overlay)
+
+    def listen(self, ev: EvidenceBuilder) -> list[Measurement]:
+        """Measurements by ear, taken before the frames. Scenes without audio take none."""
+        return []
 
     def reground(self, record: DossierRecord, jurisdiction: str) -> InspectionResult:
         """The same evidence decided again against another jurisdiction's approved requirements."""
@@ -127,6 +135,10 @@ class Inspection:
         citations = self.packs.load(jurisdiction).citations(self.scene)
         if not citations:
             errors.append(f"grounding: no approved {self.scene} requirement in the {jurisdiction} pack")
+        bounded = {kind for c in citations for kind in c.threshold}
+        for kind in self.required:
+            if citations and kind not in bounded:
+                errors.append(f"grounding: no approved {jurisdiction} requirement sets a threshold for {kind}")
         return citations
 
     def _decide(self, bundle: EvidenceBundle, jurisdiction: str, overlay: Overlay | None,
@@ -189,6 +201,7 @@ class DeckingInspection(Inspection):
     view = DeckingView
     action = "inspection.release_hold"
     method = "nemotron-vl edge points + fiducial homography"
+    required = ("gap_mm",)
 
     def make_measurer(self) -> Measurer:
         return DeckMeasurer()
@@ -201,6 +214,72 @@ class TrenchInspection(Inspection):
     view = TrenchView
     action = "trench.authorize_entry"
     method = "nemotron-vl wall points + upright fiducial homography"
+    required = ("slope_deg",)
 
     def make_measurer(self) -> Measurer:
         return TrenchMeasurer()
+
+
+class PlumbingInspection(Inspection):
+    """Push-fit joint before close-in: seated by ear (model and DSP must agree) and aligned by eye."""
+
+    scene = "plumbing"
+    view = PlumbingView
+    action = "inspection.release_hold"
+    method = "nemotron-vl axis points + fiducial homography"
+    required = ("seat_audio", "angle_deg")
+
+    def __init__(self, settings: Settings, gate: Gate | MockGate, store: DossierStore, packs: PackStore,
+                 vision: VisionModel | None = None, fiducial: Fiducial | None = None,
+                 audio: AudioSource | None = None, audio_model: AudioModel | None = None, dsp: SeatDsp | None = None):
+        super().__init__(settings, gate, store, packs, vision, fiducial)
+        self.audio = audio
+        self.audio_model = audio_model
+        self.dsp = dsp or SeatDsp(settings.audio_onset_ratio, settings.audio_centroid_hz)
+
+    def make_measurer(self) -> Measurer:
+        return AlignmentMeasurer()
+
+    def listen(self, ev: EvidenceBuilder) -> list[Measurement]:
+        if self.audio is None:
+            ev.error("audio", "no audio source is open")
+            return []
+        try:
+            clip = self.audio.record(self.settings.sitework_audio_seconds)
+        except ValueError as exc:
+            ev.error("audio", exc)
+            return []
+        ev.audio = clip.sha256
+        try:
+            dsp = self.dsp.analyse(clip)
+        except ValueError as exc:
+            ev.error("audio dsp", exc)
+            dsp = None
+        model = self._audio_model(ev)
+        reply = None
+        if model is not None:
+            ev.models["audio"] = model.model
+            try:
+                reply = model.listen(clip)
+            except AudioError as exc:
+                ev.error("audio model", exc)
+        if dsp is None or reply is None:
+            return []
+        said = "seated" if reply.seated else "not seated"
+        heard = "seated" if dsp.seated else "not seated"
+        evidence = (f"DSP onset ratio {dsp.onset_ratio} (min {self.dsp.min_ratio}), centroid {dsp.centroid_hz} Hz "
+                    f"(min {self.dsp.min_centroid_hz}) at {dsp.onset_s} s")
+        if reply.seated != dsp.seated:
+            ev.error("audio", f"model says {said} ({reply.confidence:.2f}) but {evidence} says {heard}")
+            return []
+        return [Measurement(kind="seat_audio", value=reply.seated, confidence=reply.confidence,
+                            method=f"{model.model} and {evidence}; both say {said}")]
+
+    def _audio_model(self, ev: EvidenceBuilder) -> AudioModel | None:
+        if self.audio_model is not None:
+            return self.audio_model
+        try:
+            return AudioModel(TokenFactory(self.settings).client, self.settings.nebius_audio_model)
+        except (MissingCredential, AudioError) as exc:
+            ev.error("audio model", exc)
+            return None

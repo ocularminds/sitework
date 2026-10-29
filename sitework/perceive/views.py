@@ -77,3 +77,25 @@ class TrenchView(View):
         'square marker. Reply with JSON only, exactly: {{"walls": [{{"top": [x, y], "toe": [x, y]}}], '
         '"confidence": c}} where c is 0 to 1: how sure you are that each point is on the true wall.'
     )
+
+
+class PlumbingView(View):
+    """A push-fit joint seen from above: the pipe's and the fitting's centre lines, two points each."""
+
+    pipe: Segment
+    fitting: Segment
+
+    def points(self) -> list[Point]:
+        return [*self.pipe, *self.fitting]
+
+    def segments(self) -> list[Segment]:
+        return [self.pipe, self.fitting]
+
+    PROMPT: ClassVar[str] = (
+        "You locate a plumbing joint for a measurement program. The image is {width}x{height} pixels, "
+        "origin top-left, and shows a pipe pushed into a fitting. Return the centre line of the pipe as two "
+        "points along it, and the centre line of the fitting body as two points along it, in pixels. "
+        "Ignore the black-and-white square marker. Reply with JSON only, exactly: "
+        '{{"pipe": [[x, y], [x, y]], "fitting": [[x, y], [x, y]], "confidence": c}} '
+        "where c is 0 to 1: how sure you are that both lines follow the true centre lines."
+    )
