@@ -25,6 +25,19 @@ class View(BaseModel):
     def within(self, width: int, height: int) -> bool:
         return all(0 <= x <= width and 0 <= y <= height for x, y in self.points())
 
+    def scaled(self, sx: float, sy: float):
+        """The same view with every [x, y] point multiplied by (sx, sy)."""
+        def walk(node):
+            if isinstance(node, list) and len(node) == 2 and all(isinstance(v, (int, float)) for v in node):
+                return [node[0] * sx, node[1] * sy]
+            if isinstance(node, list):
+                return [walk(n) for n in node]
+            if isinstance(node, dict):
+                return {k: walk(v) for k, v in node.items()}
+            return node
+        data = self.model_dump()
+        return type(self).model_validate({k: (v if k == "confidence" else walk(v)) for k, v in data.items()})
+
 
 class Board(BaseModel):
     model_config = ConfigDict(extra="forbid")

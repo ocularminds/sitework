@@ -14,7 +14,7 @@ from sitework.measure.fiducial import Fiducial
 from sitework.perceive.audio import AudioError, AudioModel, SeatDsp, SeatReply
 from sitework.scenes import PlumbingInspection
 from scenes import FakeVision, StillSource
-from synth import joint_audio, plumbing_view, scene_with_marker
+from synth import joint_audio, plumbing_scene, plumbing_view, scene_with_marker
 from vlm import FakeClient
 
 
@@ -82,17 +82,20 @@ def pack_store(tmp_path, threshold) -> PackStore:
     return store
 
 
+JOINT = plumbing_scene(1.0)  # (image, view): a pipe and fitting drawn 1° out of line
+
+
 def flow(tmp_path, clip, ear, threshold=None, mode="model+dsp"):
     cfg = Settings(_env_file=None, data_dir=tmp_path, decionis_org_id="00000000-0000-4000-8000-000000000002",
                    nebius_api_key=None, audio_mode=mode)
     threshold = threshold if threshold is not None else {"seat_audio": {"min": 1}, "angle_deg": {"max": 2.0}}
     return PlumbingInspection(cfg, MockGate(cfg, "ALLOW"), DossierStore(tmp_path / "dossiers"),
-                              pack_store(tmp_path, threshold), vision=FakeVision(plumbing_view(1.0)),
+                              pack_store(tmp_path, threshold), vision=FakeVision(JOINT[1]),
                               audio=FakeAudio(clip), audio_model=ear)
 
 
 def test_seated_by_ear_and_aligned_by_eye_gives_both_checks(tmp_path):
-    r = flow(tmp_path, joint_audio("click"), FakeEar(True)).run(StillSource(scene_with_marker()), "clean", "US")
+    r = flow(tmp_path, joint_audio("click"), FakeEar(True)).run(StillSource(JOINT[0]), "clean", "US")
     assert r.errors == []
     assert {(c["kind"], c["within"]) for c in r.checks} == {("seat_audio", True), ("angle_deg", True)}
     record = flow(tmp_path, joint_audio("click"), FakeEar(True)).store.get(r.record_id)
@@ -100,19 +103,19 @@ def test_seated_by_ear_and_aligned_by_eye_gives_both_checks(tmp_path):
 
 
 def test_agreeing_not_seated_is_a_failed_check_not_an_error(tmp_path):
-    r = flow(tmp_path, joint_audio("thud"), FakeEar(False)).run(StillSource(scene_with_marker()), "clean", "US")
+    r = flow(tmp_path, joint_audio("thud"), FakeEar(False)).run(StillSource(JOINT[0]), "clean", "US")
     assert r.errors == [] and ("seat_audio", False) in {(c["kind"], c["within"]) for c in r.checks}
 
 
 def test_model_and_dsp_disagreeing_is_an_error_so_the_policy_escalates(tmp_path):
-    r = flow(tmp_path, joint_audio("noise"), FakeEar(True)).run(StillSource(scene_with_marker()), "clean", "US")
+    r = flow(tmp_path, joint_audio("noise"), FakeEar(True)).run(StillSource(JOINT[0]), "clean", "US")
     assert any(e.startswith("audio: model says seated") for e in r.errors)
     assert all(m.kind != "seat_audio" for m in r.measurements)
 
 
 def test_missing_audio_and_unbounded_requirements_are_errors(tmp_path):
     r = flow(tmp_path, None, FakeEar(True), threshold={"angle_deg": {"max": 2.0}}).run(
-        StillSource(scene_with_marker()), "clean", "US")
+        StillSource(JOINT[0]), "clean", "US")
     assert "audio: no audio track in clip.mp4" in r.errors
     assert "grounding: no approved US requirement sets a threshold for seat_audio" in r.errors
 
@@ -134,7 +137,7 @@ def test_file_audio_reads_a_clip_track_with_ffmpeg(tmp_path):
 
 @pytest.mark.parametrize("kind,seated", [("click", True), ("thud", False), ("noise", False)])
 def test_dsp_alone_is_the_seat_measurement_by_default(tmp_path, kind, seated):
-    r = flow(tmp_path, joint_audio(kind), None, mode="dsp").run(StillSource(scene_with_marker()), "clean", "US")
+    r = flow(tmp_path, joint_audio(kind), None, mode="dsp").run(StillSource(JOINT[0]), "clean", "US")
     seat = [m for m in r.measurements if m.kind == "seat_audio"]
     assert len(seat) == 1 and seat[0].value is seated and "DSP alone" in seat[0].method
     assert not any(e.startswith("audio model") for e in r.errors)

@@ -18,6 +18,7 @@ from sitework.measure.align import AlignmentMeasurer
 from sitework.measure.base import Measurer
 from sitework.measure.deck import DeckMeasurer
 from sitework.measure.fiducial import Fiducial, Scale
+from sitework.measure.snap import EdgeSnapper
 from sitework.measure.trench import TrenchMeasurer
 from sitework.nebius import TokenFactory
 from sitework.perceive.audio import AudioError, AudioModel, DspReport, SeatDsp
@@ -36,11 +37,11 @@ class Overlay(BaseModel):
     segments: list[list[list[float]]] = []
 
     @classmethod
-    def of(cls, frame: Frame, scale: Scale | None = None, view: View | None = None) -> "Overlay":
+    def of(cls, frame: Frame, scale: Scale | None = None, segments: list | tuple = ()) -> "Overlay":
         w, h = frame.size
         return cls(frame_jpeg=base64.b64encode(frame.jpeg).decode(), width=w, height=h,
                    marker=scale.corners_px.tolist() if scale is not None else [],
-                   segments=view.segments() if view is not None else [])
+                   segments=[[list(map(float, p)) for p in seg] for seg in segments])
 
 
 class InspectionResult(BaseModel):
@@ -80,10 +81,15 @@ class Inspection:
         self.packs = packs
         self.vision = vision
         self.fiducial = fiducial or Fiducial(settings.fiducial_mm)
-        self.measurer = self.make_measurer()
+        snapper = EdgeSnapper(reach_frac=settings.snap_reach_frac) if settings.snap_edges else None
+        self.measurer = self.make_measurer(snapper)
 
-    def make_measurer(self) -> Measurer:
+    def make_measurer(self, snapper: EdgeSnapper | None) -> Measurer:
         raise NotImplementedError
+
+    @property
+    def measured_by(self) -> str:
+        return self.method + (", points snapped to image edges" if self.measurer.snapper else "")
 
     def run(self, source: Source | None, condition: Condition, jurisdiction: str,
             action: Action | None = None) -> InspectionResult:
@@ -107,15 +113,16 @@ class Inspection:
             if view is None:
                 continue
             try:
-                samples.append(self.measurer.sample(view, scales[f.index], f.index))
+                sample = self.measurer.sample(view, scales[f.index], f.index, f.image)
             except ValueError as exc:
                 ev.error(f"measure[{f.index}]", exc)
                 continue
+            samples.append(sample)
             if not overlay or not overlay.segments:
-                overlay = Overlay.of(f, scales[f.index], view)
+                overlay = Overlay.of(f, scales[f.index], sample.segments)
         if vision is not None:
             ev.models["vlm"] = vision.model
-        ev.measurements = self.measurer.combine(samples, self.method) + heard
+        ev.measurements = self.measurer.combine(samples, self.measured_by) + heard
         ev.citations = self._ground(jurisdiction, ev.errors)
         return self._decide(ev.build(), jurisdiction, overlay)
 
@@ -205,8 +212,8 @@ class DeckingInspection(Inspection):
     method = "nemotron-vl edge points + fiducial homography"
     required = ("gap_mm",)
 
-    def make_measurer(self) -> Measurer:
-        return DeckMeasurer()
+    def make_measurer(self, snapper: EdgeSnapper | None) -> Measurer:
+        return DeckMeasurer(snapper)
 
 
 class TrenchInspection(Inspection):
@@ -218,8 +225,8 @@ class TrenchInspection(Inspection):
     method = "nemotron-vl wall points + upright fiducial homography"
     required = ("slope_deg",)
 
-    def make_measurer(self) -> Measurer:
-        return TrenchMeasurer()
+    def make_measurer(self, snapper: EdgeSnapper | None) -> Measurer:
+        return TrenchMeasurer(snapper)
 
 
 class PlumbingInspection(Inspection):
@@ -239,8 +246,8 @@ class PlumbingInspection(Inspection):
         self.audio_model = audio_model
         self.dsp = dsp or SeatDsp(settings.audio_onset_ratio, settings.audio_centroid_hz)
 
-    def make_measurer(self) -> Measurer:
-        return AlignmentMeasurer()
+    def make_measurer(self, snapper: EdgeSnapper | None) -> Measurer:
+        return AlignmentMeasurer(snapper)
 
     def listen(self, ev: EvidenceBuilder) -> list[Measurement]:
         if self.audio is None:

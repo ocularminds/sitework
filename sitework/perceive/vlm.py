@@ -13,6 +13,11 @@ from sitework.capture import Frame
 from sitework.perceive.views import View
 
 V = TypeVar("V", bound=View)
+GRID = 1000
+# Nemotron VL answers on a 0-1000 grid whatever image size the prompt states (seen live 29 Oct),
+# so ask for that grid explicitly and convert deterministically.
+NORMALIZED = (" Give every coordinate on a 0 to 1000 grid instead of pixels: x is 0 at the left edge and "
+              "1000 at the right edge, y is 0 at the top and 1000 at the bottom.")
 T = TypeVar("T", bound=BaseModel)
 
 
@@ -75,12 +80,14 @@ class VisionModel:
         self.json = StrictJson(client, model, max_tokens, VisionError, extra, constrained)
 
     def locate(self, frame: Frame, schema: type[V]) -> V:
+        """Points come back on the model's own 0-1000 grid and are converted to pixels here."""
         width, height = frame.size
         image = f"data:image/jpeg;base64,{base64.b64encode(frame.jpeg).decode()}"
         content = [{"type": "image_url", "image_url": {"url": image}},
-                   {"type": "text", "text": schema.PROMPT.format(width=width, height=height)}]
-        return self.json.ask(content, schema, lambda v: "" if v.within(width, height) else
-                             f"some points fall outside the {width}x{height} image")
+                   {"type": "text", "text": schema.PROMPT.format(width=width, height=height) + NORMALIZED}]
+        view = self.json.ask(content, schema, lambda v: "" if v.within(GRID, GRID) else
+                             f"some points fall outside 0-{GRID}")
+        return view.scaled(width / GRID, height / GRID)
 
 
 def parse_json(text: str) -> dict:

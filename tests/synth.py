@@ -72,3 +72,57 @@ def joint_audio(kind: str, rate: int = 16000):
         t = np.arange(n) / rate
         y[int(1.5 * rate):int(1.5 * rate) + n] += (0.8 * np.sin(2 * np.pi * freq * t) * np.exp(-t * 3000 / ms)).astype(np.float32)
     return AudioClip(y, rate, f"synthetic:{kind}")
+
+
+SS = 4  # shapes are drawn at 4x and area-averaged, so their edges land where the views say
+
+
+def _hi(points_mm) -> list[tuple[int, int]]:
+    """Plane mm -> 4x image px in 1/16 px fixed point (low-res pixel x spans 4x .. 4x+3 up there)."""
+    pts = np.round((to_px(points_mm) * SS + (SS - 1) / 2) * 16).astype(np.int32)
+    return [tuple(int(v) for v in p) for p in pts]
+
+
+def _coverage(shape, draw) -> np.ndarray:
+    hi = np.zeros((shape[0] * SS, shape[1] * SS), np.uint8)
+    draw(hi)
+    return cv2.resize(hi, (shape[1], shape[0]), interpolation=cv2.INTER_AREA).astype(np.float32)[..., None] / 255
+
+
+def render(polys=(), lines=()):
+    """The marker scene with filled polygons and thick lines (px wide) drawn on the plane (mm)."""
+    img = scene_with_marker().astype(np.float32)
+    shapes = [(lambda hi, p=poly: cv2.fillPoly(hi, [np.array(_hi(p), np.int32)], 255, cv2.LINE_8, 4), colour)
+              for poly, colour in polys]
+    shapes += [(lambda hi, e=ends, w=width: cv2.line(hi, *_hi(e), 255, w * SS, cv2.LINE_8, 4), colour)
+               for ends, colour, width in lines]
+    for draw, colour in shapes:
+        alpha = _coverage(img.shape, draw)
+        img = img * (1 - alpha) + np.array(colour, np.float32) * alpha
+    return np.round(img).astype(np.uint8)
+
+
+BOARD = (60, 110, 170)
+
+
+def deck_scene(angle_deg: float, gap_mm: float):
+    """An image with two boards drawn exactly where deck_view() says they are, and that view."""
+    b1 = [[60, 60], [260, 60], [260, 90], [60, 90]]
+    origin = (60, 90 + gap_mm)
+    b2 = [rotate(p, angle_deg, origin) for p in [[60, 90 + gap_mm], [260, 90 + gap_mm], [260, 120 + gap_mm], [60, 120 + gap_mm]]]
+    return render([(b1, BOARD), (b2, BOARD)]), deck_view(angle_deg, gap_mm)
+
+
+def trench_scene(slope_deg: float, depth_mm: float):
+    """Soil in cross-section with one wall at slope_deg dropping depth_mm, and the matching view.
+    The ground and floor run off the picture, so the wall is the only sloping or vertical edge."""
+    run = depth_mm / math.tan(math.radians(slope_deg))
+    soil = [[-100, 60], [120, 60], [120 + run, 60 + depth_mm], [400, 60 + depth_mm], [400, 300], [-100, 300]]
+    return render([(soil, (40, 90, 140))]), trench_view(slope_deg, depth_mm)
+
+
+def plumbing_scene(misalign_deg: float):
+    """A pipe and a fitting drawn as thick strokes along plumbing_view()'s centre lines, and that view."""
+    end = rotate([200.0, 100.0], misalign_deg, (140.0, 100.0))
+    img = render(lines=[(([60, 100], [140, 100]), (120, 120, 120), 18), (([140, 100], end), (60, 60, 160), 26)])
+    return img, plumbing_view(misalign_deg)

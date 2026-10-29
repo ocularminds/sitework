@@ -37,20 +37,21 @@ def test_parse_json_tolerates_fences_and_prose():
         parse_json("no json here")
 
 
-def test_valid_reply_is_returned_and_prompt_names_the_image_size():
+def test_valid_reply_is_converted_from_the_0_to_1000_grid_to_pixels():
     client = FakeClient([json.dumps(GOOD)])
-    view = VisionModel(client, "acme/vl").locate(frame(), DeckingView)
+    view = VisionModel(client, "acme/vl").locate(frame(), DeckingView)  # frame is 320x240
     assert len(view.boards) == 2 and view.confidence == 0.8
+    assert view.boards[0].edges[0] == [[3.2, 2.4], [64.0, 2.4]]
     content = client.calls[0]["messages"][0]["content"]
     assert content[0]["image_url"]["url"].startswith("data:image/jpeg;base64,")
-    assert "320x240" in content[1]["text"] and client.calls[0]["temperature"] == 0
+    assert "0 to 1000 grid" in content[1]["text"] and client.calls[0]["temperature"] == 0
 
 
 @pytest.mark.parametrize("bad", [
     "not json",
     json.dumps({**GOOD, "notes": "free text is not allowed"}),
     json.dumps({**GOOD, "boards": GOOD["boards"][:1]}),
-    json.dumps({**GOOD, "boards": [{"edges": [[[10, 10], [900, 10]], [[10, 40], [200, 40]]]}] * 2}),
+    json.dumps({**GOOD, "boards": [{"edges": [[[10, 10], [1200, 10]], [[10, 40], [200, 40]]]}] * 2}),
 ])
 def test_one_bad_reply_is_retried_with_the_reason(bad):
     client = FakeClient([bad, json.dumps(GOOD)])

@@ -11,7 +11,7 @@ from sitework.ground.citation import Clause
 from sitework.ground.packs import Pack, PackStore
 from sitework.perceive.vlm import VisionError
 from sitework.scenes import DeckingInspection
-from synth import deck_view, scene_with_marker
+from synth import deck_scene, deck_view, scene_with_marker
 
 
 class StillSource(Source):
@@ -63,8 +63,9 @@ def inspection(tmp_path, vision, decision="ESCALATE", pack=True):
 
 
 def test_clean_flow_measures_cites_and_stores_a_record(tmp_path):
-    flow = inspection(tmp_path, FakeVision(deck_view(2.0, 5.0)), decision="ALLOW")
-    r = flow.run(StillSource(scene_with_marker()), "clean", "US")
+    image, view = deck_scene(2.0, 5.0)
+    flow = inspection(tmp_path, FakeVision(view), decision="ALLOW")
+    r = flow.run(StillSource(image), "clean", "US")
     assert r.errors == []
     assert [m.kind for m in r.measurements] == ["angle_deg", "gap_mm", "gap_mm"]
     assert r.measurements[0].value == pytest.approx(2.0, abs=0.1)
@@ -74,6 +75,15 @@ def test_clean_flow_measures_cites_and_stores_a_record(tmp_path):
     assert r.overlay and len(r.overlay.marker) == 4 and len(r.overlay.segments) == 4
     record = flow.store.get(r.record_id)
     assert record.evidence.models == {"vlm": "acme/vl-test"} and len(record.evidence.frame_sha256) == 3
+
+
+def test_lines_with_no_image_edge_under_them_are_errors_and_never_green(tmp_path):
+    flow = inspection(tmp_path, FakeVision(deck_view(2.0, 5.0)), decision="ALLOW")
+    r = flow.run(StillSource(scene_with_marker()), "clean", "US")  # the boards are not in the picture
+    assert sum("no clear image edges" in e for e in r.errors) == 3 and r.measurements == []
+    sent = flow.store.get(r.record_id).exchange.request["context"]["sitework"]
+    assert sent["summary"]["error_count"] == len(r.errors)  # the real gate's interlock and policy act on this
+    assert "snapped to image edges" in flow.measured_by
 
 
 def test_missing_marker_and_missing_citation_reach_the_gate_as_errors(tmp_path):

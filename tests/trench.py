@@ -10,7 +10,7 @@ from sitework.ground.packs import Pack, PackStore
 from sitework.measure.fiducial import Fiducial
 from sitework.measure.trench import TrenchMeasurer
 from sitework.scenes import TrenchInspection
-from synth import scene_with_marker, trench_view
+from synth import scene_with_marker, trench_scene, trench_view
 from scenes import FakeVision, StillSource
 
 
@@ -53,11 +53,12 @@ def packs(tmp_path) -> PackStore:
 
 
 def test_trench_entry_checks_slope_and_regrounds_under_another_jurisdiction(tmp_path):
+    image, view = trench_scene(60.0, 40.0)
     cfg = Settings(_env_file=None, data_dir=tmp_path, decionis_org_id="00000000-0000-4000-8000-000000000002",
                    nebius_api_key=None)
     flow = TrenchInspection(cfg, MockGate(cfg, "BLOCK"), DossierStore(tmp_path / "dossiers"), packs(tmp_path),
-                            vision=FakeVision(trench_view(60.0, 40.0)))
-    us = flow.run(StillSource(scene_with_marker()), "clean", "US")
+                            vision=FakeVision(view))
+    us = flow.run(StillSource(image), "clean", "US")
     assert us.action == "trench.authorize_entry" and us.errors == []
     assert [c["within"] for c in us.checks] == [False]  # 60° is steeper than 34°
     se = flow.reground(flow.store.get(us.record_id), "SE")
@@ -69,11 +70,12 @@ def test_trench_entry_checks_slope_and_regrounds_under_another_jurisdiction(tmp_
 
 
 def test_reground_to_a_pack_without_requirements_records_the_grounding_error(tmp_path):
+    image, view = trench_scene(30.0, 40.0)
     cfg = Settings(_env_file=None, data_dir=tmp_path, decionis_org_id="00000000-0000-4000-8000-000000000002",
                    nebius_api_key=None)
     store = packs(tmp_path)
     flow = TrenchInspection(cfg, MockGate(cfg), DossierStore(tmp_path / "dossiers"), store,
-                            vision=FakeVision(trench_view(30.0, 40.0)))
-    us = flow.run(StillSource(scene_with_marker()), "clean", "US")
+                            vision=FakeVision(view))
+    us = flow.run(StillSource(image), "clean", "US")
     other = flow.reground(flow.store.get(us.record_id), "DE")
     assert other.citations == [] and other.errors == ["grounding: no approved trench requirement in the DE pack"]
