@@ -18,13 +18,21 @@ Updated 29 October 2026, Europe/Stockholm.
 - An existing AI Builder Program Compute Grants application is also awaiting review. Nebius acknowledged receipt; this is not an approved AI Cloud grant.
 - AI Cloud billing is not activated. Its setup form requires a card and says submission will charge $25 to top up the balance. No billing details were submitted or GPU instance created.
 - The hackathon publishes $25 in Token Factory credit through the direct form and another $25 through the Builders Program. Its FAQ does not publish a separate AI Cloud credit grant. The compute-grant application is a separate reviewed program.
-- `NEBIUS_API_KEY` and `TAVILY_API_KEY` are not configured. Verify Token Factory's `/models` and the Tavily search after credentials are available. Exact model IDs remain unverified. Decionis's connection and workspace-identity checks now pass.
+- `NEBIUS_API_KEY` is not configured. Verify Token Factory's `/models` after its credential is available. Exact model IDs remain unverified. Tavily's live search and Decionis's connection and workspace-identity checks now pass.
 
 Sources: [hackathon resources](https://nebiusglobalaihackathon.devpost.com/resources), [hackathon FAQ](https://nebiusglobalaihackathon.devpost.com/details/faqs), [Builders Program](https://dev.nebius.com/builders).
 
+## Tavily account and credentials
+
+- Created and email-verified the account for `festus@binariesfort.com` on 29 October 2026. The account uses the free **Researcher** plan with 1,000 API credits per month; pay-as-you-go is off.
+- The existing default development API key is saved as `TAVILY_API_KEY` in ignored `.env`, mode 0600. The live `TavilyCheck` passed at 03:00 Stockholm and returned three results from the configured OSHA/eCFR allowlist, all on `www.osha.gov`.
+- Nebius Builders advertises an additional $25 Tavily credit, subject to eligibility and partner terms. The existing Builders application is still under review, and no Tavily coupon has been issued or applied. The Tavily dashboard has a **Coupon** field for the issued code.
+
+Sources: [Tavily pricing](https://tavily.com/pricing), [Builders Program](https://dev.nebius.com/builders).
+
 ## Still needed from you
 
-- [ ] `NEBIUS_API_KEY` (Token Factory) and `TAVILY_API_KEY` in `.env`, then run `make check`. It lists the Nemotron candidates from `GET /models` and probes whether the Omni model accepts `input_audio`. The exact IDs then go into `sitework/config.py`.
+- [ ] `NEBIUS_API_KEY` (Token Factory) in `.env`, then run `make check`. It lists the Nemotron candidates from `GET /models` and probes whether the Omni model accepts `input_audio`. The exact IDs then go into `sitework/config.py`. Tavily and Decionis credentials are already configured and verified.
 - [ ] **Decionis gate call for P1.** Which route should SiteWork call through dci?
   - `@decionis/sdk-node` exposes `POST /v1/authority/evaluate`, which returns `status: ALLOW | BLOCK | ESCALATE | REVIEW_REQUIRED | ERROR` plus `dossier_id` and `dossier_url`.
   - It also exposes `POST /v1/protocol/evaluate-decision`, which returns `outcome: APPROVE | ESCALATE | REJECT | REVIEW`.
