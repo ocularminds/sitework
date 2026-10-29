@@ -15,7 +15,6 @@ import sys
 import uuid
 from base64 import urlsafe_b64decode
 from datetime import datetime, timezone
-from pathlib import Path
 
 import httpx
 

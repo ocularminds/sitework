@@ -20,8 +20,9 @@ geometry and marker in every variant before carrying over source labels. Record
 changed or unmeasurable geometry explicitly. The generated videos have no audio;
 keep original recordings for the plumbing audio evaluation.
 
-The [current handoff](../cosmos_transfer/README.md) records the AWS quota requests
-and links the printable bench worksheet. No SiteWork GPU inference has run yet.
+The [current handoff](../cosmos_transfer/README.md) records the US-only GPU
+requirement and AWS quota requests. A separate [outdoor batch](../../docs/cosmos-outdoor-batch.md)
+is prepared from three unmeasured recordings. No SiteWork GPU inference has run yet.
 
 ## Requirements
 
@@ -70,7 +71,7 @@ Cosmos keeps the input's frame rate and generates in 93-frame chunks, so `run.py
 2. **Nebius AI Cloud:**
    - Activate billing.
    - Make sure the project has quota for one GPU of the platform you pick.
-3. **AWS fallback:** the 16-vCPU On-Demand P and P Spot requests in `eu-north-1` are already filed, both `CASE_OPENED`. Check approval using the [handoff commands](../cosmos_transfer/README.md); do not submit duplicates.
+3. **AWS fallback:** the 16-vCPU G/VT On-Demand and Spot requests in `us-east-1` are filed. Check approval using the [handoff](../cosmos_transfer/README.md); do not submit duplicates. Earlier Stockholm requests are historical and must not be used under the US-only requirement.
 4. **Hugging Face:**
    - Create a Read token.
    - Accept the license linked above.
@@ -83,44 +84,21 @@ Platforms with enough memory on one GPU ([VM types](https://docs.nebius.com/comp
 |---|---|---|---|
 | `gpu-h100-sxm` | H100 80 GB | `1gpu-16vcpu-200gb` | `eu-north1` |
 | `gpu-h200-sxm` | H200 141 GB | `1gpu-16vcpu-200gb` | `eu-north1`, `eu-west1`, `us-central1` |
+| `gpu-rtx6000` | RTX PRO 6000 96 GB | `1gpu-24vcpu-218gb` | `us-central1` (verified in console 29 October 2026) |
 
 L40S (48 GB) is too small for this model.
 
 **Console:**
 1. Go to **Compute → Virtual machines → Create resource → Virtual machine**.
 2. Choose **With GPUs**.
-3. Set **VM type** to **Preemptible** and **Max price** to **Follow spot price**.
-4. Pick the platform and preset.
-5. Boot disk: image family **`ubuntu24.04-cuda12`** (NVIDIA driver 570.x, CUDA 12.8, NVIDIA Container Toolkit), `network_ssd`, 200 GiB.
-6. Add a public IP and your SSH key.
+3. Set **VM type** to **Preemptible** and use a maximum-price policy. For the approved outdoor batch, the compute ceiling is **$1.79/hour** and the total usage budget is **$10**.
+4. Select the **US `us-central1` project**, platform `gpu-rtx6000` and preset `1gpu-24vcpu-218gb`.
+5. Boot disk: Ubuntu 24.04 GPU image available for that platform (the console currently offers CUDA 13), `network_ssd`, 200 GiB. `setup.sh` verifies the driver; its CUDA Python dependency set is selected with `COSMOS_CUDA_EXTRA`.
+6. Add a public IP and the existing SSH public key. Use key-only SSH, a three-hour shutdown timer and provider-side deletion after outputs are collected.
 
-**CLI equivalent**, assembled from the flags in Nebius's [VM](https://docs.nebius.com/compute/virtual-machines/manage) and [preemptible](https://docs.nebius.com/compute/virtual-machines/preemptible) docs:
-
-```bash
-export USER_DATA=$(jq -Rrs '.' <<EOF
-users:
-  - name: sitework
-    sudo: ALL=(ALL) NOPASSWD:ALL
-    shell: /bin/bash
-    ssh_authorized_keys:
-      - $(cat ~/.ssh/id_ed25519.pub)
-EOF
-)
-nebius compute instance create \
-  --name sitework-cosmos \
-  --resources-platform gpu-h100-sxm \
-  --resources-preset 1gpu-16vcpu-200gb \
-  --boot-disk-managed-disk-name sitework-cosmos-boot \
-  --boot-disk-managed-disk-type network_ssd \
-  --boot-disk-managed-disk-size-gibibytes 200 \
-  --boot-disk-managed-disk-source-image-family-image-family ubuntu24.04-cuda12 \
-  --boot-disk-attach-mode READ_WRITE \
-  --cloud-init-user-data "$USER_DATA" \
-  --network-interfaces '[{"name": "eth0", "ip_address": {}, "public_ip_address": {}, "subnet_id": "<subnet_ID>"}]' \
-  --follows-spot-price \
-  --recovery-policy fail \
-  --preemptible-on-preemption stop
-```
+The console's **View code → CLI** exports the exact command for the selected
+US project, subnet, image and maximum-price policy. Save that configuration with
+the run record before launch.
 
 **On preemption:**
 - Nebius sends SIGTERM 60 s before stopping the VM. `run.py` forwards it to Cosmos and doesn't count the cut-short jobs as failures.
@@ -133,6 +111,7 @@ nebius compute instance create \
 |---|---|---|---|
 | `p5.4xlarge` | 1× H100 80 GB | 16 | Running On-Demand P instances `L-417A185B` (Spot: All P Spot Instance Requests `L-7212CCBC`) ≥ 16 |
 | `g7e.2xlarge` | 1× RTX PRO 6000 Blackwell SE 96 GB | 8 | Running On-Demand G and VT instances `L-DB2E81BA` (Spot: All G and VT Spot Instance Requests `L-3819A6DF`) ≥ 8 |
+| `g7e.4xlarge` | 1× RTX PRO 6000 Blackwell SE 96 GB, 128 GiB host RAM | 16 | Same G and VT quotas ≥ 16 (requested in `us-east-1`; see the [handoff](../cosmos_transfer/README.md)) |
 
 - Both quotas default to 0 on new accounts ([EC2 instance type quotas](https://docs.aws.amazon.com/ec2/latest/instancetypes/ec2-instance-quotas.html)). Request the increase in **Service Quotas → Amazon EC2** in the region you will use. Check that region's availability first: AWS lists `p5.4xlarge` through EC2 Capacity Blocks in some regions.
 - `g7e.2xlarge` has 64 GiB of host RAM. If model loading runs out of memory, move up a `g7e` size.
@@ -157,11 +136,12 @@ bash sitework/scripts/cosmos/setup.sh
 hf auth login                      # Read token; accept the license linked above
 tmux new -s cosmos
 cd sitework
-python3 scripts/cosmos/run.py --cloud nebius --instance "gpu-h100-sxm 1gpu-16vcpu-200gb" --distilled --dry-run
-python3 scripts/cosmos/run.py --cloud nebius --instance "gpu-h100-sxm 1gpu-16vcpu-200gb" --distilled
+python3 scripts/cosmos/run.py --cloud nebius --instance "us-central1 gpu-rtx6000 1gpu-24vcpu-218gb" --distilled --dry-run
+python3 scripts/cosmos/run.py --cloud nebius --instance "us-central1 gpu-rtx6000 1gpu-24vcpu-218gb" --distilled
 ```
 
-- On AWS, use `--cloud aws --instance p5.4xlarge`.
+- On AWS, use `--cloud aws` and the instance actually launched, e.g. `--instance "us-east-1 g7e.4xlarge"`.
+- **Blackwell GPUs** (`g7e`, Nebius `gpu-rtx6000`): the pinned revision benchmarks the RTX PRO 6000 Blackwell SE, but its Docker setup builds Blackwell from a separate nightly image, while `setup.sh` installs the default `cu128` environment. That pairing is untested here. Run one condition first (`--conditions rain`) and read its log. If the CUDA extensions fail to load, rerun `setup.sh` with `COSMOS_CUDA_EXTRA=cu130`, which needs a driver ≥ 580.65.06.
 - `--dry-run` prepares the clips and specs and prints the Cosmos command without starting it.
 - The real run loads the model once for every pending variant.
 - Exit code 0 means every variant is done.

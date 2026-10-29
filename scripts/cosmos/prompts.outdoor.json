@@ -1,0 +1,8 @@
+{
+  "scene": "Handheld outdoor video of an existing building detail. Preserve the source camera motion and the geometry, positions and identities of the visible structures.",
+  "conditions": {
+    "rain": "Change only the weather and surface appearance to heavy rain: visible raindrops, water streaks, wet surfaces and grey overcast daylight. Preserve the source camera motion and the geometry, positions and identities of the visible structures. Do not add people, construction components or calibration markers.",
+    "mud": "Change only the surface appearance to wet brown mud and soil splashes, with dirty water collecting on existing surfaces and diffuse overcast light. Preserve the source camera motion and the geometry, positions and identities of the visible structures. Do not add people, construction components or calibration markers.",
+    "dusk_glare": "Change only the lighting to late dusk with a low sun, strong lens flare, bright reflections, long shadows and warm light. Preserve the source camera motion and the geometry, positions and identities of the visible structures. Do not add people, construction components or calibration markers."
+  }
+}

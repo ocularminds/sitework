@@ -7,6 +7,7 @@ COSMOS_DIR="${COSMOS_DIR:-$HOME/cosmos-transfer2.5}"
 COSMOS_REF="${COSMOS_REF:-2ff49d0717af02057ae79bc75c00fbff9da1b4e7}"  # main as of 2026-06-07
 COSMOS_CUDA_EXTRA="${COSMOS_CUDA_EXTRA:-cu128}"                        # cu130 for CUDA 13 images
 MIN_DRIVER="570.124.06"   # CUDA 12.8.1
+if [ "$COSMOS_CUDA_EXTRA" = cu130 ]; then MIN_DRIVER="580.65.06"; fi  # CUDA 13.0
 MIN_VRAM_MIB=62400        # 65.4 GB for Cosmos-Transfer2.5-2B on one GPU
 
 fail() { echo "setup: $*" >&2; exit 1; }
@@ -20,7 +21,7 @@ version_ge "$glibc" 2.35 || fail "glibc $glibc < 2.35; use Ubuntu 22.04 or newer
 command -v nvidia-smi >/dev/null || fail "nvidia-smi not found; use a GPU image with NVIDIA drivers"
 read -r driver vram name <<<"$(nvidia-smi --query-gpu=driver_version,memory.total,name \
   --format=csv,noheader,nounits | head -1 | tr -d ',')"
-version_ge "$driver" "$MIN_DRIVER" || fail "NVIDIA driver $driver < $MIN_DRIVER (needed for CUDA 12.8.1)"
+version_ge "$driver" "$MIN_DRIVER" || fail "NVIDIA driver $driver < $MIN_DRIVER (needed for --extra=$COSMOS_CUDA_EXTRA)"
 if [ "$vram" -lt "$MIN_VRAM_MIB" ] && [ -z "${COSMOS_SKIP_VRAM_CHECK:-}" ]; then
   fail "$name has $vram MiB; Cosmos-Transfer2.5-2B needs 65.4 GB on one GPU"
 fi
