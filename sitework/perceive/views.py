@@ -95,7 +95,8 @@ class TrenchView(View):
 
     PROMPT: ClassVar[str] = (
         "You locate trench walls for a measurement program. The image is {width}x{height} pixels, "
-        "origin top-left, and shows a trench in cross-section from the side. For each trench wall "
+        "origin top-left, and shows a trench in cross-section from the side. A wall is where the ground "
+        "surface drops down to the trench floor; the edge of the picture is never a wall. For each trench wall "
         "you can see (one or two), return the point where the wall meets the ground surface (top) "
         "and the point where it meets the trench floor (toe), in pixels. Ignore the black-and-white "
         'square marker. Reply with JSON only, exactly: {{"walls": [{{"top": [x, y], "toe": [x, y]}}], '
@@ -117,8 +118,10 @@ class PlumbingView(View):
 
     PROMPT: ClassVar[str] = (
         "You locate a plumbing joint for a measurement program. The image is {width}x{height} pixels, "
-        "origin top-left, and shows a pipe pushed into a fitting. Return the centre line of the pipe as two "
-        "points along it, and the centre line of the fitting body as two points along it, in pixels. "
+        "origin top-left, and shows a pipe pushed into a fitting. The pipe is the narrower tube; the fitting is "
+        "the wider body the pipe goes into, and the two meet at the joint. Return the centre line of the pipe as "
+        "two points inside the pipe, and the centre line of the fitting body as two points inside the fitting, "
+        "in pixels; neither line crosses the joint into the other part. "
         "Ignore the black-and-white square marker. Reply with JSON only, exactly: "
         '{{"pipe": [[x, y], [x, y]], "fitting": [[x, y], [x, y]], "confidence": c}} '
         "where c is 0 to 1: how sure you are that both lines follow the true centre lines."

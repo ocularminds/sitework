@@ -22,6 +22,8 @@ does not establish measured ground truth or a SiteWork verdict.
   and their resolution.
 - [ ] Build tabletop trench walls at known slopes measured from horizontal.
   Suggested capture targets are 20, 35 and 50 degrees. Record actual slopes.
+  Keep each wall's top and toe corners in frame and uncovered: depth is read
+  from where the wall's edge stops.
 - [ ] Use an unpressurized push-fit fixture. Mark the manufacturer's insertion
   depth, record a deliberately unseated joint, then record correct seating.
   Preserve the audio, including about three seconds around the seating event.

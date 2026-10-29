@@ -110,9 +110,23 @@ def render(polys=(), lines=()):
 BOARD = (60, 110, 170)
 
 
-def deck_scene(angle_deg: float, gap_mm: float):
+def grain(boards, seed: int = 1):
+    """Darker grain lines along each board's length at irregular spacing and width: straight,
+    parallel rivals to its edges."""
+    rng = np.random.default_rng(seed)
+    lines = []
+    for p0, p1, p2, p3 in (np.asarray(b, float) for b in boards):
+        for f in np.linspace(0.12, 0.88, 7) + rng.uniform(-0.04, 0.04, 7):
+            ends = ((p0 + f * (p3 - p0)).tolist(), (p1 + f * (p2 - p1)).tolist())
+            lines.append((ends, tuple(int(c * 0.72) for c in BOARD), int(rng.integers(1, 4))))
+    return lines
+
+
+def deck_scene(angle_deg: float, gap_mm: float, grained: bool = False):
     """An image with two boards drawn exactly where deck_view() says they are, and that view."""
-    return render([(board, BOARD) for board in deck_boards(angle_deg, gap_mm)]), deck_view(angle_deg, gap_mm)
+    boards = deck_boards(angle_deg, gap_mm)
+    image = render([(board, BOARD) for board in boards], grain(boards) if grained else ())
+    return image, deck_view(angle_deg, gap_mm)
 
 
 def trench_scene(slope_deg: float, depth_mm: float):

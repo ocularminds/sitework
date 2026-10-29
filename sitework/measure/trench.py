@@ -31,7 +31,7 @@ class TrenchMeasurer(Measurer):
     MIN_DROP_MM = 0.5
 
     def sample(self, view: TrenchView, scale: Scale, frame_index: int, image: np.ndarray | None = None) -> TrenchSample:
-        walls, quality = self.snap_lines(self.snapping(image), view.segments(), "wall")
+        walls, quality = self.snap_lines(self.snapping(image), view.segments(), "wall", need_ends=True)
         quality = view.confidence if quality is None else quality
         slopes, depths = [], []
         for top, toe in walls:

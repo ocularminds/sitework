@@ -43,9 +43,10 @@ class Measurer(ABC):
         return Gradients(image) if self.snapper is not None and image is not None else None
 
     def snap_lines(self, grads: Gradients | None, segments: list, what: str,
-                   polarity: int = 0) -> tuple[list, float | None]:
+                   polarity: int = 0, need_ends: bool = False) -> tuple[list, float | None]:
         """Each segment snapped on its own; (segments, worst quality). A fixed polarity makes a centre
-        line inside a solid body snap to the same-side border along its length."""
+        line inside a solid body snap to the same-side border along its length. With `need_ends`,
+        a measurement that depends on where a line stops requires both ends to show in the image."""
         if grads is None:
             return segments, None
         out, qualities = [], []
@@ -53,6 +54,8 @@ class Measurer(ABC):
             snap = self.snapper.snap(grads, seg, polarity)
             if snap is None:
                 raise ValueError(f"no clear image edge near the model's {what} line {i + 1}")
+            if need_ends and not all(snap.ends_found):
+                raise ValueError(f"the image edge under the model's {what} line {i + 1} has no clear end")
             out.append(snap.segment.tolist())
             qualities.append(snap.quality)
         return out, min(qualities)

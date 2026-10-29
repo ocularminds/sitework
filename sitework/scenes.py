@@ -209,7 +209,7 @@ class DeckingInspection(Inspection):
     scene = "decking"
     view = DeckingView
     action = "inspection.release_hold"
-    method = "nemotron-vl edge points + fiducial homography"
+    method = "nemotron-vl board corners + fiducial homography"
     required = ("gap_mm",)
 
     def make_measurer(self, snapper: EdgeSnapper | None) -> Measurer:
