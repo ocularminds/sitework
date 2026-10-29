@@ -22,10 +22,13 @@ KEYWORDS = {
     "decking": ["gap", "spacing", "space between", "spaced", "avstånd", "springa", "fogsprång", "mellanrum"],
     "trench": ["slope", "sloping", "angle", "horizontal to", "vertical", "slänt", "lutning", "schakt",
                "stödkonstruktion"],
+    "plumbing": ["insert", "insertion", "depth mark", "tube stop", "fully", "square", "click", "push-to-connect",
+                 "koppling", "insticksdjup", "vinkelrätt", "rörgenomföring", "fixerad"],
 }
 TOPICS = {
     "decking": "deck board spacing, gaps between boards and fastening requirements",
     "trench": "trench and excavation sloping, benching, maximum slope and protective system requirements",
+    "plumbing": "push-fit pipe joint installation: insertion depth, full seating, square cut and alignment",
 }
 
 

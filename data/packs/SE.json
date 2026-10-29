@@ -1,6 +1,6 @@
 {
   "jurisdiction": "SE",
-  "authority": "Arbetsmilj\u00f6verket AFS 2023:13 (schaktning); Svenskt Tr\u00e4 installation guidance (trall)",
+  "authority": "Arbetsmilj\u00f6verket AFS 2023:13 (schaktning); Svenskt Tr\u00e4 (trall); Branschregler S\u00e4ker Vatteninstallation 2026 (VVS)",
   "allowlist": {
     "decking": [
       "svenskttra.se",
@@ -8,6 +8,9 @@
     ],
     "trench": [
       "av.se"
+    ],
+    "plumbing": [
+      "sakervatten.se"
     ]
   },
   "seeds": {
@@ -17,6 +20,9 @@
     "trench": [
       "https://www.av.se/halsa-och-sakerhet/skydd-mot-skada-genom-ras",
       "https://www.av.se/arbetsmiljoarbete-och-inspektioner/publikationer/foreskrifter/afs-202313"
+    ],
+    "plumbing": [
+      "https://sakervatten.se/wp-content/uploads/2025/10/branschregler-saker-vatteninstallation-2026-web-v2-lagupplost.pdf"
     ]
   },
   "sources": [
@@ -144,6 +150,13 @@
       "url": "https://www.svenskttra.se/siteassets/5-publikationer/pdfer/montering-av-trall-2021-publikation.pdf",
       "content_sha256": "2858a6554e9a3d383e8173cd1f70c10016e1a31678e73881be65232c3dce395f",
       "retrieved_at": "2026-10-29T03:17:51.108426Z",
+      "via": "extract"
+    },
+    {
+      "scene": "plumbing",
+      "url": "https://sakervatten.se/wp-content/uploads/2025/10/branschregler-saker-vatteninstallation-2026-web-v2-lagupplost.pdf",
+      "content_sha256": "e9adcc11845d8a96f4949965b2d7f31aeb6fda003ec7fa0618aa78297b960e30",
+      "retrieved_at": "2026-10-29T04:01:05.479151Z",
       "via": "extract"
     }
   ],

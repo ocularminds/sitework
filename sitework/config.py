@@ -63,6 +63,10 @@ class Settings(BaseSettings):
     # SiteWork runtime.
     sitework_source: str = "0"  # camera index, or a video file to replay
     sitework_samples: int = 3  # frames measured per inspection
+    sitework_audio_source: str = ""  # "mic", "mic:<n>", a file; empty: the replayed clip's own track or mic
+    sitework_audio_seconds: float = 3.0  # recorded around the join when using a microphone
+    audio_onset_ratio: float = 8.0  # DSP seat click: starting values, to calibrate on bench recordings
+    audio_centroid_hz: float = 1500.0
     sitework_jurisdiction: str = "US"
     fiducial_mm: float = 40.0  # printed ArUco DICT_4X4_50 side length
     data_dir: Path = ROOT / "data"

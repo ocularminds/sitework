@@ -50,3 +50,25 @@ def trench_view(slope_deg: float, depth_mm: float, confidence: float = 0.9):
     run = depth_mm / math.tan(math.radians(slope_deg))
     top, toe = [120.0, 60.0], [120.0 + run, 60.0 + depth_mm]
     return TrenchView(confidence=confidence, walls=[{"top": to_px([top])[0].tolist(), "toe": to_px([toe])[0].tolist()}])
+
+
+def plumbing_view(misalign_deg: float, confidence: float = 0.9):
+    """A pipe along x into a fitting rotated by misalign_deg, both on the marker plane."""
+    from sitework.perceive.views import PlumbingView
+    pipe = [[60.0, 100.0], [140.0, 100.0]]
+    fitting = [[140.0, 100.0], rotate([200.0, 100.0], misalign_deg, (140.0, 100.0))]
+    return PlumbingView(confidence=confidence, pipe=to_px(pipe).tolist(), fitting=to_px(fitting).tolist())
+
+
+def joint_audio(kind: str, rate: int = 16000):
+    """3 s of faint noise, optionally with a 4 kHz seat click or an 80 Hz thud at 1.5 s."""
+    import numpy as np
+    from sitework.capture import AudioClip
+    rng = np.random.default_rng(0)
+    y = rng.normal(0, 0.005, 3 * rate).astype(np.float32)
+    if kind in ("click", "thud"):
+        freq, ms = (4000, 8) if kind == "click" else (80, 60)
+        n = int(rate * ms / 1000)
+        t = np.arange(n) / rate
+        y[int(1.5 * rate):int(1.5 * rate) + n] += (0.8 * np.sin(2 * np.pi * freq * t) * np.exp(-t * 3000 / ms)).astype(np.float32)
+    return AudioClip(y, rate, f"synthetic:{kind}")

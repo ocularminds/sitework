@@ -12,7 +12,7 @@ from fastapi.concurrency import run_in_threadpool
 from fastapi.responses import FileResponse, StreamingResponse
 from pydantic import BaseModel
 
-from sitework.capture import Source, open_source
+from sitework.capture import Source, open_audio, open_source
 from sitework.config import ROOT, Settings, get_settings
 from sitework.dossier import DossierStore
 from sitework.gate.authority import make_gate
@@ -20,7 +20,7 @@ from sitework.ground.packs import PackStore
 from sitework.ground.watch import PolicyUpdate, ProposalStore
 from sitework.light import LightState
 from sitework.proof import ProofError, Proofs
-from sitework.scenes import DeckingInspection, InspectionResult, TrenchInspection
+from sitework.scenes import DeckingInspection, InspectionResult, PlumbingInspection, TrenchInspection
 from sitework.schema import Action, Condition
 
 STATIC = ROOT / "static"
@@ -76,7 +76,7 @@ class Runtime:
         self.store = DossierStore(settings.data_dir / "dossiers")
         self.packs = PackStore(settings.data_dir / "packs")
         self.scenes = {cls.scene: cls(settings, self.gate, self.store, self.packs)
-                       for cls in (DeckingInspection, TrenchInspection)}
+                       for cls in (DeckingInspection, TrenchInspection, PlumbingInspection)}
         self.proofs = Proofs(settings)
         self.proposals = ProposalStore(settings.data_dir / "proposals")
         self.updates = PolicyUpdate(self.gate, self.proposals)
@@ -89,6 +89,8 @@ class Runtime:
         self.open(settings.sitework_source)
 
     def open(self, spec: str) -> None:
+        """Open the video source; the plumbing microphone follows it unless one is configured."""
+        self.scenes["plumbing"].audio = open_audio(self.settings.sitework_audio_source, spec)
         if self.source is not None:
             self.source.close()
         try:
@@ -151,6 +153,7 @@ class Runtime:
     def state(self) -> dict:
         return {
             "source": self.source.label if self.source else None,
+            "audio": self.scenes["plumbing"].audio.label if self.scenes["plumbing"].audio else None,
             "source_error": self.source_error,
             "gate_mode": self.gate.mode,
             "gateway": self.settings.decionis_gateway_url,

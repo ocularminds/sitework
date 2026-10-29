@@ -63,7 +63,7 @@
   <div class="tabs" role="tablist">
     <button role="tab" aria-selected="true" data-scene="decking">Decking</button>
     <button role="tab" aria-selected="false" data-scene="trench">Trench</button>
-    <button role="tab" disabled title="arrives in P4">Plumbing</button>
+    <button role="tab" aria-selected="false" data-scene="plumbing">Plumbing</button>
   </div>
   <label class="muted">Condition
     <select id="condition">
@@ -133,7 +133,8 @@ function applyState(st) {
   $("gate").textContent = st.gate_mode === "mock" ? "MOCK GATE" : `gate ${new URL(st.gateway).host}`;
   $("jurisdiction").innerHTML = (st.jurisdictions || [st.jurisdiction]).map((j) =>
     `<option ${j === st.jurisdiction ? "selected" : ""}>${esc(j)}</option>`).join("");
-  $("source").textContent = st.source ? `source ${st.source}` : `no source: ${st.source_error}`;
+  $("source").textContent = (st.source ? `source ${st.source}` : `no source: ${st.source_error}`)
+    + (st.audio ? ` · audio ${st.audio}` : "");
   if (st.last) render(st.last);
 }
 
@@ -293,7 +294,7 @@ $("showInspected").onclick = () => last && last.overlay && show("inspected");
 $("lightBtn").onclick = () => window.open("/light", "sitework-light");
 $("inspect").onclick = async () => {
   const btn = $("inspect");
-  btn.disabled = true; btn.textContent = "Inspecting…";
+  btn.disabled = true; btn.textContent = scene === "plumbing" ? "Listening… push the joint home" : "Inspecting…";
   try {
     const res = await fetch("/api/inspect", { method: "POST", headers: { "content-type": "application/json" },
       body: JSON.stringify({ scene, condition: $("condition").value }) });
