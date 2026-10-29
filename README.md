@@ -198,7 +198,9 @@ Tavily is never in the decision's hot path. Packs are built and approved beforeh
 
 ## Models
 
-Exact IDs come from Token Factory `GET /models` via `make check` and are recorded in `sitework/config.py`. Until then they are placeholders, and every inspection records "no model configured" as an error, which escalates.
+Exact IDs come from Token Factory `GET /models` via `make check` and are recorded in `sitework/config.py`. On 29 October 2026, the configured `us-central1` endpoint authenticated successfully, listed 18 models, and served a test completion on `nvidia/nemotron-3-super-120b-a12b`.
+
+The planned Nemotron VL and Omni models are absent from that public endpoint; their Nebius detail pages offer dedicated endpoints only. Vision and audio IDs remain unset until callable endpoints are verified. Every inspection records a missing model as an error, which escalates. Credential setup is complete; model availability remains open in `TODO_HUMAN.md`.
 
 | Role | Model | Runs on | Exact ID |
 |---|---|---|---|

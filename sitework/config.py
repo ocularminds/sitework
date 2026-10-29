@@ -29,10 +29,11 @@ class Settings(BaseSettings):
     nebius_api_key: SecretStr | None = None
     nebius_base_url: str = "https://api.tokenfactory.nebius.com/v1/"
 
-    # Exact IDs from Token Factory `GET /models`. `make check` lists the
-    # candidates; record the chosen IDs here. Empty means "not yet verified".
+    # Exact IDs from Token Factory `GET /models`, verified 2026-10-29 in us-central1.
+    # Super is served publicly; Nemotron VL and Omni need dedicated endpoints.
+    # Empty means no callable model has been verified for that role.
     nebius_vlm_model: str = ""
-    nebius_agent_model: str = ""
+    nebius_agent_model: str = "nvidia/nemotron-3-super-120b-a12b"
     nebius_audio_model: str = ""
 
     # Tavily.
