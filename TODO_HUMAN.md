@@ -14,8 +14,9 @@ Updated 29 October 2026, Europe/Stockholm.
 
 ## Nebius offers and credentials
 
-- The official hackathon credit request was submitted for the signed-in Token Factory account with activation code `NEBIUS-DEVPOST-GLOBAL26`. Nebius confirmed: "Form submitted" and "The promo code will be emailed to you." Redeem the issued code in Token Factory's **Top up balance → With promo code** when it arrives. The activation code itself is not accepted there.
-- An existing Nebius AI Builder Program application is already under review. Nebius's email says to expect an update within two business days. Do not submit a duplicate application.
+- **Issued promo codes submitted (29 October).** Two redemption codes arrived in `mail.festus@gmail.com` and were submitted through **Top up balance → With promo code** in `Decionis, Inc.-g65`. The 06:21 email's code produced the explicit confirmation **"Promo code applied. $25.00 added to your account balance."** The 09:11 email specifies $25 and redemption before 31 December 2026; its first submission closed the form, and one recheck returned **"Promocode apply limit exceeded"**. Do not keep resubmitting either code. The emails say credits do not expire once applied.
+- **Credit reconciliation remains open.** After those submissions, the displayed balance remained **-$0.12**, Payments showed no documents, and Transactions showed only consumption. At least one $25 redemption is confirmed by Nebius; the combined $50 total is not yet verified in billing. No card top-up was submitted. Local evidence is in ignored `.local/setup/nebius-promo-status.json`.
+- **Nebius AI Builder Program accepted.** The 29 October welcome email confirms membership and a $25 Token Factory offer sent separately. This acceptance does not approve the separate AI Cloud compute grant.
 - An existing AI Builder Program Compute Grants application is also awaiting review. Nebius acknowledged receipt; this is not an approved AI Cloud grant.
 - AI Cloud billing is not activated. Its setup form requires a card and says submission will charge $25 to top up the balance. No billing details were submitted or GPU instance created.
 - The hackathon publishes $25 in Token Factory credit through the direct form and another $25 through the Builders Program. Its FAQ does not publish a separate AI Cloud credit grant. The compute-grant application is a separate reviewed program.
@@ -28,7 +29,7 @@ Sources: [hackathon resources](https://nebiusglobalaihackathon.devpost.com/resou
 
 - Created and email-verified the account for `festus@binariesfort.com` on 29 October 2026. The account uses the free **Researcher** plan with 1,000 API credits per month; pay-as-you-go is off.
 - The existing default development API key is saved as `TAVILY_API_KEY` in ignored `.env`, mode 0600. The live `TavilyCheck` passed at 03:00 Stockholm and returned three results from the configured OSHA/eCFR allowlist, all on `www.osha.gov`.
-- Nebius Builders advertises an additional $25 Tavily credit, subject to eligibility and partner terms. The existing Builders application is still under review, and no Tavily coupon has been issued or applied. The Tavily dashboard has a **Coupon** field for the issued code.
+- Nebius Builders advertises an additional $25 Tavily credit, subject to eligibility and partner terms. The Builders application is now accepted, and its welcome email includes partner claim links. The Tavily partner offer has not been claimed or applied. The Tavily dashboard has a **Coupon** field for an issued code.
 
 Sources: [Tavily pricing](https://tavily.com/pricing), [Builders Program](https://dev.nebius.com/builders).
 
