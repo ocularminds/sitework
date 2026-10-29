@@ -58,7 +58,7 @@ Label every recorded clip (clean bench, Cosmos variants, outdoor) in `eval/label
 
 Leave inapplicable or unknown truth blank. Review each Cosmos variant before inheriting its clean clip's truth: edge control does not guarantee unchanged geometry, visibility or seating evidence.
 
-The [approved requirements](docs/requirements.md) name Festus B. Jejelowo. US decking uses the TimberTech Advanced PVC/Cortex spacing profile (3.175–6.35 mm); US trench uses OSHA Option 1's stated 34° limit. SE decking, SE trench and both plumbing profiles are qualitative and currently escalate. No physical clips or measured labels are available yet, so there are no Results numbers.
+The [approved requirements](docs/requirements.md) name Festus B. Jejelowo. US decking uses the TimberTech Advanced PVC/Cortex spacing profile (3.175–6.35 mm); US trench uses OSHA Option 1's stated 34° limit. SE decking, SE trench and both plumbing profiles are qualitative and currently escalate. Ten raw field recordings are available. The current labels use three pipe/drainage clips for six paired US/SE input-refusal checks, with no dimensional or seating truth. Read [the evaluation scope](eval/README.md) before interpreting any Results numbers; calibrated bench accuracy remains unmeasured.
 
 ```bash
 uv run python scripts/eval.py --run-label "run 1"

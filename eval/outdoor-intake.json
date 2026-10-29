@@ -1,0 +1,561 @@
+{
+  "review_date": "2026-10-29",
+  "timezone": "Europe/Stockholm",
+  "source": "User-provided sw-rig recordings, copied without transcoding from Downloads.",
+  "user_statement": "No measurement. Just raw video recording",
+  "condition_source": "User described the set as physical outdoor recordings; this is not a measured lighting classification.",
+  "evaluation_scope": "Missing-calibration input-refusal checks through the plumbing pipeline. No dimensional, alignment, mechanical seating or construction-compliance accuracy claim.",
+  "selection": "Three pipe/drainage inputs, each paired across US and SE. Other footage retained but not scored as decking or trench scenes.",
+  "review_method": "Five decoded review samples per video, ArUco DICT_4X4_50 detection on each; visual overview and closer review of selected clips. This is not an assertion about every video frame.",
+  "clips": [
+    {
+      "clip": "data/clips/outdoor/sw-rig01.mp4",
+      "sha256": "0bca8608d7101553892b8bf819ef375cc86f31b02bba2766fd6158e66facbab7",
+      "duration_seconds": 31.761667,
+      "video_codec": "h264",
+      "width_px": 1024,
+      "height_px": 576,
+      "has_audio": true,
+      "observed_content": "Indoor kitchen/cabinetry removal and wall surfaces.",
+      "evaluation_use": "not_scored",
+      "review_frames": [
+        {
+          "requested_index": 0,
+          "index": 0,
+          "seconds": 0.0,
+          "marker_id": null
+        },
+        {
+          "requested_index": 237,
+          "index": 237,
+          "seconds": 7.907,
+          "marker_id": null
+        },
+        {
+          "requested_index": 475,
+          "index": 475,
+          "seconds": 15.847,
+          "marker_id": null
+        },
+        {
+          "requested_index": 713,
+          "index": 713,
+          "seconds": 23.788,
+          "marker_id": null
+        },
+        {
+          "requested_index": 951,
+          "index": 951,
+          "seconds": 31.728,
+          "marker_id": null
+        }
+      ],
+      "unreadable_review_requests": [],
+      "pipeline_sample_indices": [
+        0,
+        475,
+        951
+      ],
+      "pipeline_marker_count": 0,
+      "independent_measurements": null,
+      "mechanical_seating_check": null,
+      "exclusion_reason": "No supported bench hold-point scene established from the review; retained as raw reference footage."
+    },
+    {
+      "clip": "data/clips/outdoor/sw-rig02.mp4",
+      "sha256": "83e7c4e9fe8bf4aee27dff08f29ab487e20026b0358bea8b6f7f2b4768046b76",
+      "duration_seconds": 26.6,
+      "video_codec": "h264",
+      "width_px": 1024,
+      "height_px": 576,
+      "has_audio": true,
+      "observed_content": "Exterior roof/eaves, beam/post connection and guardrail.",
+      "evaluation_use": "not_scored",
+      "review_frames": [
+        {
+          "requested_index": 0,
+          "index": 0,
+          "seconds": 0.0,
+          "marker_id": null
+        },
+        {
+          "requested_index": 199,
+          "index": 199,
+          "seconds": 6.642,
+          "marker_id": null
+        },
+        {
+          "requested_index": 398,
+          "index": 398,
+          "seconds": 13.283,
+          "marker_id": null
+        },
+        {
+          "requested_index": 597,
+          "index": 597,
+          "seconds": 19.925,
+          "marker_id": null
+        },
+        {
+          "requested_index": 796,
+          "index": 796,
+          "seconds": 26.567,
+          "marker_id": null
+        }
+      ],
+      "unreadable_review_requests": [],
+      "pipeline_sample_indices": [
+        0,
+        398,
+        796
+      ],
+      "pipeline_marker_count": 0,
+      "independent_measurements": null,
+      "mechanical_seating_check": null,
+      "exclusion_reason": "No supported bench hold-point scene established from the review; retained as raw reference footage."
+    },
+    {
+      "clip": "data/clips/outdoor/sw-rig03.mp4",
+      "sha256": "b163a47bd8bf3d0a583be8aebd0800c4f442dbdd6ecbccd0740c044f44ef3abf",
+      "duration_seconds": 16.751667,
+      "video_codec": "h264",
+      "width_px": 1024,
+      "height_px": 576,
+      "has_audio": true,
+      "observed_content": "Brick wall, window and a narrow vertical pipe; mixed close-up views.",
+      "evaluation_use": "not_scored",
+      "review_frames": [
+        {
+          "requested_index": 0,
+          "index": 0,
+          "seconds": 0.0,
+          "marker_id": null
+        },
+        {
+          "requested_index": 125,
+          "index": 125,
+          "seconds": 4.171,
+          "marker_id": null
+        },
+        {
+          "requested_index": 250,
+          "index": 250,
+          "seconds": 8.342,
+          "marker_id": null
+        },
+        {
+          "requested_index": 375,
+          "index": 375,
+          "seconds": 12.514,
+          "marker_id": null
+        },
+        {
+          "requested_index": 501,
+          "index": 501,
+          "seconds": 16.718,
+          "marker_id": null
+        }
+      ],
+      "unreadable_review_requests": [],
+      "pipeline_sample_indices": [
+        0,
+        250,
+        501
+      ],
+      "pipeline_marker_count": 0,
+      "independent_measurements": null,
+      "mechanical_seating_check": null,
+      "exclusion_reason": "No supported bench hold-point scene established from the review; retained as raw reference footage."
+    },
+    {
+      "clip": "data/clips/outdoor/sw-rig04.mp4",
+      "sha256": "193c8926af2e977cd3db64551774fdca2a2cb6c00940f841b197b9130c575162",
+      "duration_seconds": 19.095,
+      "video_codec": "h264",
+      "width_px": 1024,
+      "height_px": 576,
+      "has_audio": true,
+      "observed_content": "Paired pipes and visible couplings against brickwork; camera also pans away.",
+      "evaluation_use": "plumbing_input_refusal",
+      "review_frames": [
+        {
+          "requested_index": 0,
+          "index": 0,
+          "seconds": 0.0,
+          "marker_id": null
+        },
+        {
+          "requested_index": 142,
+          "index": 142,
+          "seconds": 4.749,
+          "marker_id": null
+        },
+        {
+          "requested_index": 285,
+          "index": 285,
+          "seconds": 9.531,
+          "marker_id": null
+        },
+        {
+          "requested_index": 427,
+          "index": 427,
+          "seconds": 14.279,
+          "marker_id": null
+        },
+        {
+          "requested_index": 570,
+          "index": 568,
+          "seconds": 18.995,
+          "marker_id": null
+        }
+      ],
+      "unreadable_review_requests": [
+        570
+      ],
+      "pipeline_sample_indices": [
+        0,
+        285
+      ],
+      "pipeline_marker_count": 0,
+      "independent_measurements": null,
+      "mechanical_seating_check": null,
+      "jurisdictions": [
+        "US",
+        "SE"
+      ],
+      "expected": "ESCALATE",
+      "expected_reason": "No calibration marker in the pipeline samples; both plumbing packs also lack required quantitative bounds.",
+      "limitation": "Pipe/drainage imagery does not establish a compatible push-fit product or any seating event."
+    },
+    {
+      "clip": "data/clips/outdoor/sw-rig05.mp4",
+      "sha256": "800bad07ac493e4e815dda51bf039e5fd0ea01a2d0d3300a60c3b3b8620178da",
+      "duration_seconds": 22.733333,
+      "video_codec": "h264",
+      "width_px": 1024,
+      "height_px": 576,
+      "has_audio": true,
+      "observed_content": "Exterior building base, vertical pipe/drainage component, wall and windows.",
+      "evaluation_use": "plumbing_input_refusal",
+      "review_frames": [
+        {
+          "requested_index": 0,
+          "index": 0,
+          "seconds": 0.0,
+          "marker_id": null
+        },
+        {
+          "requested_index": 170,
+          "index": 170,
+          "seconds": 5.675,
+          "marker_id": null
+        },
+        {
+          "requested_index": 340,
+          "index": 340,
+          "seconds": 11.35,
+          "marker_id": null
+        },
+        {
+          "requested_index": 510,
+          "index": 510,
+          "seconds": 17.025,
+          "marker_id": null
+        },
+        {
+          "requested_index": 680,
+          "index": 680,
+          "seconds": 22.7,
+          "marker_id": null
+        }
+      ],
+      "unreadable_review_requests": [],
+      "pipeline_sample_indices": [
+        0,
+        340,
+        680
+      ],
+      "pipeline_marker_count": 0,
+      "independent_measurements": null,
+      "mechanical_seating_check": null,
+      "jurisdictions": [
+        "US",
+        "SE"
+      ],
+      "expected": "ESCALATE",
+      "expected_reason": "No calibration marker in the pipeline samples; both plumbing packs also lack required quantitative bounds.",
+      "limitation": "Pipe/drainage imagery does not establish a compatible push-fit product or any seating event."
+    },
+    {
+      "clip": "data/clips/outdoor/sw-rig06.mp4",
+      "sha256": "bf3b36da73be02f5bbea82b80e08c9c85966db6b5acbad5b2f2298a9b349f78a",
+      "duration_seconds": 25.65,
+      "video_codec": "h264",
+      "width_px": 1024,
+      "height_px": 576,
+      "has_audio": true,
+      "observed_content": "Exterior concrete/plinth joints and ground surface.",
+      "evaluation_use": "not_scored",
+      "review_frames": [
+        {
+          "requested_index": 0,
+          "index": 0,
+          "seconds": 0.0,
+          "marker_id": null
+        },
+        {
+          "requested_index": 192,
+          "index": 192,
+          "seconds": 6.404,
+          "marker_id": null
+        },
+        {
+          "requested_index": 384,
+          "index": 384,
+          "seconds": 12.808,
+          "marker_id": null
+        },
+        {
+          "requested_index": 576,
+          "index": 576,
+          "seconds": 19.212,
+          "marker_id": null
+        },
+        {
+          "requested_index": 768,
+          "index": 768,
+          "seconds": 25.617,
+          "marker_id": null
+        }
+      ],
+      "unreadable_review_requests": [],
+      "pipeline_sample_indices": [
+        0,
+        384,
+        768
+      ],
+      "pipeline_marker_count": 0,
+      "independent_measurements": null,
+      "mechanical_seating_check": null,
+      "exclusion_reason": "No supported bench hold-point scene established from the review; retained as raw reference footage."
+    },
+    {
+      "clip": "data/clips/outdoor/sw-rig07.mp4",
+      "sha256": "76ece8a0dedf964b8764cbdcb9a50084b50ab923861980ea1b9563df194a10d6",
+      "duration_seconds": 17.633333,
+      "video_codec": "h264",
+      "width_px": 1024,
+      "height_px": 576,
+      "has_audio": true,
+      "observed_content": "Drain grate, paving edge, narrow tube/cable and fence boards.",
+      "evaluation_use": "not_scored",
+      "review_frames": [
+        {
+          "requested_index": 0,
+          "index": 0,
+          "seconds": 0.0,
+          "marker_id": null
+        },
+        {
+          "requested_index": 131,
+          "index": 131,
+          "seconds": 4.375,
+          "marker_id": null
+        },
+        {
+          "requested_index": 263,
+          "index": 263,
+          "seconds": 8.783,
+          "marker_id": null
+        },
+        {
+          "requested_index": 395,
+          "index": 395,
+          "seconds": 13.192,
+          "marker_id": null
+        },
+        {
+          "requested_index": 527,
+          "index": 527,
+          "seconds": 17.6,
+          "marker_id": null
+        }
+      ],
+      "unreadable_review_requests": [],
+      "pipeline_sample_indices": [
+        0,
+        263,
+        527
+      ],
+      "pipeline_marker_count": 0,
+      "independent_measurements": null,
+      "mechanical_seating_check": null,
+      "exclusion_reason": "No supported bench hold-point scene established from the review; retained as raw reference footage."
+    },
+    {
+      "clip": "data/clips/outdoor/sw-rig08.mp4",
+      "sha256": "73599e81cf3f92a176f4cba34c1b2a9d8a337e917e3e6dc53b1097e656a0b354",
+      "duration_seconds": 45.03,
+      "video_codec": "h264",
+      "width_px": 1024,
+      "height_px": 576,
+      "has_audio": true,
+      "observed_content": "Exterior rainwater downpipe/elbow, wall panels, windows and railing.",
+      "evaluation_use": "plumbing_input_refusal",
+      "review_frames": [
+        {
+          "requested_index": 0,
+          "index": 0,
+          "seconds": 0.0,
+          "marker_id": null
+        },
+        {
+          "requested_index": 337,
+          "index": 337,
+          "seconds": 11.241,
+          "marker_id": null
+        },
+        {
+          "requested_index": 674,
+          "index": 674,
+          "seconds": 22.482,
+          "marker_id": null
+        },
+        {
+          "requested_index": 1011,
+          "index": 1011,
+          "seconds": 33.722,
+          "marker_id": null
+        },
+        {
+          "requested_index": 1349,
+          "index": 1349,
+          "seconds": 44.997,
+          "marker_id": null
+        }
+      ],
+      "unreadable_review_requests": [],
+      "pipeline_sample_indices": [
+        0,
+        674,
+        1349
+      ],
+      "pipeline_marker_count": 0,
+      "independent_measurements": null,
+      "mechanical_seating_check": null,
+      "jurisdictions": [
+        "US",
+        "SE"
+      ],
+      "expected": "ESCALATE",
+      "expected_reason": "No calibration marker in the pipeline samples; both plumbing packs also lack required quantitative bounds.",
+      "limitation": "Pipe/drainage imagery does not establish a compatible push-fit product or any seating event."
+    },
+    {
+      "clip": "data/clips/outdoor/sw-rig09.mp4",
+      "sha256": "65cd3e77f66299b95269570f3a2319d330507d70ea5850ab8aa1e562bc99d8d3",
+      "duration_seconds": 10.006667,
+      "video_codec": "h264",
+      "width_px": 1024,
+      "height_px": 576,
+      "has_audio": true,
+      "observed_content": "Concrete block joints beside paving.",
+      "evaluation_use": "not_scored",
+      "review_frames": [
+        {
+          "requested_index": 0,
+          "index": 0,
+          "seconds": 0.0,
+          "marker_id": null
+        },
+        {
+          "requested_index": 74,
+          "index": 74,
+          "seconds": 2.468,
+          "marker_id": null
+        },
+        {
+          "requested_index": 149,
+          "index": 149,
+          "seconds": 4.97,
+          "marker_id": null
+        },
+        {
+          "requested_index": 224,
+          "index": 224,
+          "seconds": 7.472,
+          "marker_id": null
+        },
+        {
+          "requested_index": 299,
+          "index": 299,
+          "seconds": 9.973,
+          "marker_id": null
+        }
+      ],
+      "unreadable_review_requests": [],
+      "pipeline_sample_indices": [
+        0,
+        149,
+        299
+      ],
+      "pipeline_marker_count": 0,
+      "independent_measurements": null,
+      "mechanical_seating_check": null,
+      "exclusion_reason": "No supported bench hold-point scene established from the review; retained as raw reference footage."
+    },
+    {
+      "clip": "data/clips/outdoor/sw-rig10.mp4",
+      "sha256": "5d7fca866115371933e35d5322d7ea0ef2484816e31dd4368256138377caddfb",
+      "duration_seconds": 28.246667,
+      "video_codec": "h264",
+      "width_px": 1024,
+      "height_px": 576,
+      "has_audio": true,
+      "observed_content": "Timber fence/cladding surfaces; lens covered near the end.",
+      "evaluation_use": "not_scored",
+      "review_frames": [
+        {
+          "requested_index": 0,
+          "index": 0,
+          "seconds": 0.0,
+          "marker_id": null
+        },
+        {
+          "requested_index": 211,
+          "index": 211,
+          "seconds": 7.037,
+          "marker_id": null
+        },
+        {
+          "requested_index": 423,
+          "index": 423,
+          "seconds": 14.107,
+          "marker_id": null
+        },
+        {
+          "requested_index": 634,
+          "index": 634,
+          "seconds": 21.143,
+          "marker_id": null
+        },
+        {
+          "requested_index": 846,
+          "index": 846,
+          "seconds": 28.213,
+          "marker_id": null
+        }
+      ],
+      "unreadable_review_requests": [],
+      "pipeline_sample_indices": [
+        0,
+        423,
+        846
+      ],
+      "pipeline_marker_count": 0,
+      "independent_measurements": null,
+      "mechanical_seating_check": null,
+      "exclusion_reason": "No supported bench hold-point scene established from the review; retained as raw reference footage."
+    }
+  ]
+}

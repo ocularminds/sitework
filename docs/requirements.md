@@ -64,11 +64,13 @@ examples, and obtain an explicit bench alignment criterion with its scope.
 Until then, plumbing recordings can evaluate angle error and seating detection,
 but an ESCALATE does not demonstrate an automatic plumbing release.
 
-The physical rig was reported as still needing preparation on 29 October.
-`eval/labels.csv` therefore remains header-only. Fixture setpoints in the capture
-plan are not recorded measurements or evaluation labels.
+The measured bench rig was reported as still needing preparation on 29 October.
+Ten raw field recordings subsequently arrived, with no independent measurements.
+`eval/labels.csv` now contains missing-calibration input-refusal cases; its
+dimensional and seating truth fields remain blank. See [the evaluation scope](../eval/README.md).
+Fixture setpoints in the capture plan are not recorded measurements or labels.
 
-## Verification on 29 October
+## Initial verification on 29 October, before the recordings arrived
 
 All six stored excerpts matched the cached Tavily text and its SHA-256, with the
 supplied approver name and UTC timestamps. The grounding check found no missing
