@@ -6,7 +6,7 @@ Physical AI that inspects construction work at the hold point, before it disappe
 
 > Models observe → code measures → policy decides → humans sign when the AI isn't sure → everything is provable.
 
-Status: **P5, evaluation harness.** All three hold points are built, and `scripts/eval.py` scores labelled clips per condition. `eval/results.md` is produced only by running it on real clips (see `IMPLEMENT.md`).
+Status: **built; awaiting live data.** Decking, trench entry and plumbing close-in are gated by Decionis. Packs, offline proof, the amendment watch and the eval harness are in place. Model IDs and `eval/results.md` come from live runs on recorded clips (see `TODO_HUMAN.md`).
 
 ## Setup
 
@@ -142,7 +142,6 @@ physical capture has been completed by this setup work.
 | `SITEWORK_SAMPLES`, `SITEWORK_JURISDICTION`, `FIDUCIAL_MM` | Frames per inspection (3), pack to read (`US`), marker side in mm (40) |
 | `SITEWORK_AUDIO_SOURCE`, `SITEWORK_AUDIO_SECONDS` | Plumbing audio: `mic`, `mic:<n>` or a file (default: the replayed clip's track, else the default mic); seconds recorded (3) |
 | `AUDIO_ONSET_RATIO`, `AUDIO_CENTROID_HZ` | DSP seat-click thresholds (8, 1500 Hz); calibrate on bench recordings |
-| `COSMOS_REASON_URL` | Optional Cosmos Reason 2 endpoint (vLLM on Nebius AI Cloud) |
 
 ## Layout
 
@@ -150,12 +149,70 @@ physical capture has been completed by this setup work.
 sitework/   config, clients, perception, measurement, grounding, gate
 scripts/    check.py, pack.py (jurisdiction packs), proof.py (dossier verify), watch.py (amendments), policy.py, cosmos/
 static/     dashboard (single page, no build step)
-policies/   SiteWork policy draft for Decionis
+policies/   SiteWork rules loaded into Decionis (sitework.json) and their rationale
 eval/       labelled clips and results
 data/       clips, jurisdiction packs, dossiers (large media git-ignored)
 tests/      pytest suite
 ```
 
-## License
+## Architecture
 
-Apache-2.0. See `LICENSE`.
+```mermaid
+flowchart LR
+  subgraph Capture
+    cam[Webcam or replayed clip] --> frames[3 hashed frames]
+    mic[Microphone or clip track] --> audio[~3 s hashed WAV]
+  end
+  subgraph Perceive["Perceive (Nebius Token Factory)"]
+    vlm[Nemotron VL: points as strict JSON]
+    ear[Audio model: seated?]
+    dsp[DSP: onset + spectral centroid]
+  end
+  subgraph Measure["Measure (code)"]
+    fid[ArUco 40 mm: mm and homography]
+    geo[gap, angle, slope, depth, alignment]
+  end
+  subgraph Ground["Ground (Tavily, at job setup)"]
+    pack[(Jurisdiction pack: allowlisted sources,<br/>hashes, named-approver thresholds)]
+    watch[Research: amendments and recalls]
+  end
+  frames --> fid --> geo
+  frames --> vlm --> geo
+  audio --> ear
+  audio --> dsp
+  geo --> ev[Evidence bundle + facts]
+  ear --> ev
+  dsp --> ev
+  pack --> ev
+  ev --> intent[Agent-Safe Intent v1 + hash]
+  watch --> upd[policy.update intent]
+  intent --> gate{Decionis via dci:<br/>enforce-and-bind}
+  upd --> gate
+  gate -->|ALLOW + grant claimed| green[Light green]
+  gate -->|ESCALATE| person[Named person: release = blue, keep = red]
+  gate -->|BLOCK / ERROR / no decision| red[Light red]
+  gate --> dossier[(Ed25519 dossier, verified offline)]
+```
+
+Tavily is never in the decision's hot path. Packs are built and approved beforehand, and a decision reads the pack.
+
+## Models
+
+Exact IDs come from Token Factory `GET /models` via `make check` and are recorded in `sitework/config.py`. Until then they are placeholders, and every inspection records "no model configured" as an error, which escalates.
+
+| Role | Model | Runs on | Exact ID |
+|---|---|---|---|
+| Vision: points for boards, trench walls, pipe and fitting axes | NVIDIA Nemotron VL | Nebius Token Factory | ⟦from `make check`⟧ |
+| Audio: joint seating (`input_audio`) | NVIDIA Nemotron Omni, if Token Factory accepts audio; else the fallback below | Nebius Token Factory | ⟦from `make check`⟧ |
+| Weather and light variants for the stress test | NVIDIA Cosmos-Transfer2.5-2B (edge control) | ⟦Nebius AI Cloud GPU or AWS fallback⟧ | commit `2ff49d0` of `nvidia-cosmos/cosmos-transfer2.5` |
+
+Not built, so not claimed: Cosmos Reason 2 and a Nemotron 3 Super grounding agent. Requirement thresholds are approved by a named person instead.
+
+## Licences
+
+- **SiteWork:** Apache-2.0 (`LICENSE`).
+- **Decionis:** used only through its published HTTP API and packages. `@decionis/verify` (Apache-2.0) runs via `npx`. The Agent-Safe Intent v1 conformance vectors in `tests/vectors/` are copied unchanged from `decionis/agent-safe-pipeline` (Apache-2.0). No Decionis proprietary code is in this repository.
+- **NVIDIA Cosmos:** the Cosmos code is Apache-2.0, and the model weights are under the NVIDIA Open Model License, which must be accepted on Hugging Face (see `scripts/cosmos/README.md`).
+- **Audio fallback:** if Audio Flamingo 3 is self-hosted because Token Factory does not accept audio, its weights are non-commercial. That is acceptable for this hackathon, not for production.
+- **Python dependencies:** OpenCV, NumPy, librosa, FastAPI, httpx, openai, tavily-python and sounddevice keep their own licences, pinned in `uv.lock`.
+- **Requirement sources** (OSHA, eCFR, Arbetsmiljöverket, Svenskt Trä, Säker Vatten, Trex, TimberTech, SharkBite) are cited by URL and content hash. Their page text is cached locally (`data/packs/pages/`, git-ignored) and is not redistributed; only short approved excerpts appear in the packs.

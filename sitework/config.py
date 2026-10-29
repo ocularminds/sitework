@@ -71,8 +71,6 @@ class Settings(BaseSettings):
     fiducial_mm: float = 40.0  # printed ArUco DICT_4X4_50 side length
     data_dir: Path = ROOT / "data"
 
-    # Optional Cosmos Reason 2 served by vLLM on the Nebius AI Cloud GPU VM.
-    cosmos_reason_url: str = ""
 
     request_timeout: float = 20.0
 
