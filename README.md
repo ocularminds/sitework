@@ -21,7 +21,7 @@ make test
 
 `make check` lists the Nemotron models Token Factory serves to your key, runs one Tavily search, verifies the Decionis workspace identity, and checks the selected gateway. Anything it cannot verify is reported as a blocker; open items live in `TODO_HUMAN.md`.
 
-SiteWork currently uses `https://dci.decionisedge.com`, explicitly selected on 29 October 2026. Its ingress key is configured locally in the ignored `.env`. The authenticated gateway health check passes; a Decionis workspace API key is still needed for decision calls. This health check does not validate a SiteWork policy or enforcement. Run only the connection checks with `uv run --frozen python scripts/check_env.py --decionis-only`. See `docs/gateway-setup.md` for the verified setup and limitations.
+SiteWork currently uses `https://dci.decionisedge.com`, explicitly selected on 29 October 2026. Both its ingress key and workspace API key are configured locally in the ignored `.env`. Gateway health and workspace authentication pass, including an authenticated request through dci. SiteWork policy evaluation and enforcement remain work for later phases. Run only the connection checks with `uv run --frozen python scripts/check_env.py --decionis-only`. See `docs/gateway-setup.md` for the verified setup and limitations.
 
 ## Environment
 

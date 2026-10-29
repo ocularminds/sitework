@@ -5,10 +5,10 @@ Updated 29 October 2026, Europe/Stockholm.
 ## AgentSafe gateway
 
 - **Selected and connected:** the user chose the existing `https://dci.decionisedge.com` gateway. Its locally stored ingress key matches the active fleet registry. An authenticated `GET /v1/health` returned HTTP 200, `ok: true`, and `agentsafe-execution: PASSTHROUGH` on 29 October 2026. The key is now in SiteWork's ignored `.env` with mode 0600.
-- **Still needed:** a Decionis workspace API key for `124e5022-6eee-4717-ab65-a03899db6237` to authenticate actual decision calls. Gateway health is not a signed decision or a SiteWork policy/enforcement test. The fleet's private workspace key is not readable by the current Azure identity.
+- **API authentication verified:** the workspace API key for `124e5022-6eee-4717-ab65-a03899db6237` is now saved in ignored `.env`, mode 0600. Direct and gateway-routed `POST /v1/auth/credential-context` returned HTTP 200 for that workspace. The key has `org:read`, `decision:run`, `decision:read`, and `policy:read` scopes. SiteWork policy evaluation and signed inspection decisions remain work for P1.
 - The separate `sitework.decionisedge.com` hostname is not provisioned. A new-workspace signup for `festus@binariesfort.com` reached email verification, after which the user chose dci instead; no new workspace was created. Clasp remains the original workspace's deployment.
 - The source matching the live Decionis API revision (`67be91fb88cb2a6197f6921cd7473ccb49223f24`) still permits only one gateway per workspace. Its database reservation and fleet provisioner both enforce this restriction. See `docs/gateway-setup.md` for the concrete implementation work required.
-- Azure is signed in, but the current identity cannot list the fleet's Kubernetes ExternalSecrets. The local operator CLI also predates the additional enforcement vault and refuses its automatic vault discovery. No Azure permissions, secrets, registry entries, upstream proofs, or existing deployments were changed.
+- The operator preflight encountered a Kubernetes ExternalSecrets permission denial and an outdated CLI that refuses two vaults. The user later approved temporary `Key Vault Secrets User` access on only the dci API-key secret. The key was retrieved and verified, then that exact role assignment was deleted and confirmed absent. No permanent Azure access was added.
 - SiteWork now sends the selected tenant's ingress key in `AgentSafe-Tenant-Key` and does not try another tenant with that key. Workspace authentication is checked separately using `POST /v1/auth/credential-context` and the configured organization ID.
 
 ## Nebius offers and credentials
@@ -18,6 +18,6 @@ Updated 29 October 2026, Europe/Stockholm.
 - An existing AI Builder Program Compute Grants application is also awaiting review. Nebius acknowledged receipt; this is not an approved AI Cloud grant.
 - AI Cloud billing is not activated. Its setup form requires a card and says submission will charge $25 to top up the balance. No billing details were submitted or GPU instance created.
 - The hackathon publishes $25 in Token Factory credit through the direct form and another $25 through the Builders Program. Its FAQ does not publish a separate AI Cloud credit grant. The compute-grant application is a separate reviewed program.
-- `NEBIUS_API_KEY`, `TAVILY_API_KEY`, and `DECIONIS_API_KEY` are not configured. Verify Token Factory's `/models`, the Tavily search, and the Decionis workspace identity after credentials are available. Exact model IDs remain unverified.
+- `NEBIUS_API_KEY` and `TAVILY_API_KEY` are not configured. Verify Token Factory's `/models` and the Tavily search after credentials are available. Exact model IDs remain unverified. Decionis's connection and workspace-identity checks now pass.
 
 Sources: [hackathon resources](https://nebiusglobalaihackathon.devpost.com/resources), [hackathon FAQ](https://nebiusglobalaihackathon.devpost.com/details/faqs), [Builders Program](https://dev.nebius.com/builders).
