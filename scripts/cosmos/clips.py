@@ -95,7 +95,7 @@ class Settings:
 
 
 class SpecWriter:
-    """Writes one Cosmos inference JSON per job. Edge control keeps scene geometry fixed."""
+    """Writes one inference JSON per job. Review generated geometry before reusing labels."""
 
     def __init__(self, out_dir: Path, prompts: Prompts, settings: Settings):
         self.out_dir = out_dir

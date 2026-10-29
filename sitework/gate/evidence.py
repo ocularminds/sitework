@@ -64,6 +64,20 @@ class Facts:
             "unchecked_kinds": sorted({m.kind for m in self.bundle.measurements} - {c["kind"] for c in checks}),
         }
 
+    def flat(self) -> dict:
+        """Top-level `context.sitework_*` facts the Decionis policy rules read (policies/sitework.json)."""
+        s = self.summary()
+        return {
+            "sitework_scene": self.bundle.scene,
+            "sitework_condition": self.bundle.condition,
+            "sitework_error_count": s["error_count"],
+            "sitework_citation_count": s["citation_count"],
+            "sitework_measurement_count": s["measurement_count"],
+            "sitework_min_confidence": s["min_confidence"],
+            "sitework_checks_total": s["checks_total"],
+            "sitework_checks_outside": s["checks_outside"],
+        }
+
 
 def bundle_sha256(bundle: EvidenceBundle) -> str:
     """Hash of the canonical bundle JSON (sorted keys), bound into the gate request."""

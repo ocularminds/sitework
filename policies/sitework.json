@@ -1,0 +1,127 @@
+{
+  "description": "SiteWork rules for Decionis. Scoped to SiteWork action types only; they outrank the workspace starter rules (priority <= 300) for those types and leave every other decision type untouched. Approve only on explicit, complete evidence; everything else for a SiteWork action escalates. Facts are the flat context.sitework_* fields built in sitework/gate/evidence.py (Facts.flat).",
+  "rules": [
+    {
+      "rule_id": "sitework_block_outside_requirement",
+      "name": "SiteWork: block a hold release outside its cited requirement",
+      "decision_domain": "*",
+      "priority": 460,
+      "enabled": true,
+      "rationale": "A clean measurement falls outside the human-approved threshold of the cited requirement, so the work may not be covered.",
+      "when": {"all": [
+        {"field": "decision_type", "operator": "MATCHES", "value": "^(inspection\\.release_hold|trench\\.authorize_entry|work\\.cover_up)$"},
+        {"field": "context.sitework_error_count", "operator": "EQ", "value": 0},
+        {"field": "context.sitework_citation_count", "operator": "GT", "value": 0},
+        {"field": "context.sitework_checks_outside", "operator": "GT", "value": 0}
+      ]},
+      "then": {"action": "AUTO_REJECT", "severity": "elevated"}
+    },
+    {
+      "rule_id": "sitework_allow_clean",
+      "name": "SiteWork: allow complete evidence within requirement (clean, floor 0.70)",
+      "decision_domain": "*",
+      "priority": 450,
+      "enabled": true,
+      "rationale": "Every check is within its cited requirement, nothing failed, and confidence meets the clean-condition floor.",
+      "when": {"all": [
+        {"field": "decision_type", "operator": "MATCHES", "value": "^(inspection\\.release_hold|trench\\.authorize_entry|work\\.cover_up)$"},
+        {"field": "context.sitework_condition", "operator": "EQ", "value": "clean"},
+        {"field": "context.sitework_error_count", "operator": "EQ", "value": 0},
+        {"field": "context.sitework_citation_count", "operator": "GT", "value": 0},
+        {"field": "context.sitework_measurement_count", "operator": "GT", "value": 0},
+        {"field": "context.sitework_checks_total", "operator": "GT", "value": 0},
+        {"field": "context.sitework_checks_outside", "operator": "EQ", "value": 0},
+        {"field": "context.sitework_min_confidence", "operator": "GTE", "value": 0.7}
+      ]},
+      "then": {"action": "AUTO_APPROVE", "severity": "routine"}
+    },
+    {
+      "rule_id": "sitework_allow_outdoor",
+      "name": "SiteWork: allow complete evidence within requirement (outdoor, floor 0.75)",
+      "decision_domain": "*",
+      "priority": 450,
+      "enabled": true,
+      "rationale": "Every check is within its cited requirement, nothing failed, and confidence meets the outdoor floor.",
+      "when": {"all": [
+        {"field": "decision_type", "operator": "MATCHES", "value": "^(inspection\\.release_hold|trench\\.authorize_entry|work\\.cover_up)$"},
+        {"field": "context.sitework_condition", "operator": "EQ", "value": "outdoor"},
+        {"field": "context.sitework_error_count", "operator": "EQ", "value": 0},
+        {"field": "context.sitework_citation_count", "operator": "GT", "value": 0},
+        {"field": "context.sitework_measurement_count", "operator": "GT", "value": 0},
+        {"field": "context.sitework_checks_total", "operator": "GT", "value": 0},
+        {"field": "context.sitework_checks_outside", "operator": "EQ", "value": 0},
+        {"field": "context.sitework_min_confidence", "operator": "GTE", "value": 0.75}
+      ]},
+      "then": {"action": "AUTO_APPROVE", "severity": "routine"}
+    },
+    {
+      "rule_id": "sitework_allow_rain",
+      "name": "SiteWork: allow complete evidence within requirement (rain, floor 0.85)",
+      "decision_domain": "*",
+      "priority": 450,
+      "enabled": true,
+      "rationale": "Degraded conditions need higher confidence before anything is released without a person.",
+      "when": {"all": [
+        {"field": "decision_type", "operator": "MATCHES", "value": "^(inspection\\.release_hold|trench\\.authorize_entry|work\\.cover_up)$"},
+        {"field": "context.sitework_condition", "operator": "EQ", "value": "rain"},
+        {"field": "context.sitework_error_count", "operator": "EQ", "value": 0},
+        {"field": "context.sitework_citation_count", "operator": "GT", "value": 0},
+        {"field": "context.sitework_measurement_count", "operator": "GT", "value": 0},
+        {"field": "context.sitework_checks_total", "operator": "GT", "value": 0},
+        {"field": "context.sitework_checks_outside", "operator": "EQ", "value": 0},
+        {"field": "context.sitework_min_confidence", "operator": "GTE", "value": 0.85}
+      ]},
+      "then": {"action": "AUTO_APPROVE", "severity": "routine"}
+    },
+    {
+      "rule_id": "sitework_allow_mud",
+      "name": "SiteWork: allow complete evidence within requirement (mud, floor 0.85)",
+      "decision_domain": "*",
+      "priority": 450,
+      "enabled": true,
+      "rationale": "Degraded conditions need higher confidence before anything is released without a person.",
+      "when": {"all": [
+        {"field": "decision_type", "operator": "MATCHES", "value": "^(inspection\\.release_hold|trench\\.authorize_entry|work\\.cover_up)$"},
+        {"field": "context.sitework_condition", "operator": "EQ", "value": "mud"},
+        {"field": "context.sitework_error_count", "operator": "EQ", "value": 0},
+        {"field": "context.sitework_citation_count", "operator": "GT", "value": 0},
+        {"field": "context.sitework_measurement_count", "operator": "GT", "value": 0},
+        {"field": "context.sitework_checks_total", "operator": "GT", "value": 0},
+        {"field": "context.sitework_checks_outside", "operator": "EQ", "value": 0},
+        {"field": "context.sitework_min_confidence", "operator": "GTE", "value": 0.85}
+      ]},
+      "then": {"action": "AUTO_APPROVE", "severity": "routine"}
+    },
+    {
+      "rule_id": "sitework_allow_dusk_glare",
+      "name": "SiteWork: allow complete evidence within requirement (dusk_glare, floor 0.85)",
+      "decision_domain": "*",
+      "priority": 450,
+      "enabled": true,
+      "rationale": "Degraded conditions need higher confidence before anything is released without a person.",
+      "when": {"all": [
+        {"field": "decision_type", "operator": "MATCHES", "value": "^(inspection\\.release_hold|trench\\.authorize_entry|work\\.cover_up)$"},
+        {"field": "context.sitework_condition", "operator": "EQ", "value": "dusk_glare"},
+        {"field": "context.sitework_error_count", "operator": "EQ", "value": 0},
+        {"field": "context.sitework_citation_count", "operator": "GT", "value": 0},
+        {"field": "context.sitework_measurement_count", "operator": "GT", "value": 0},
+        {"field": "context.sitework_checks_total", "operator": "GT", "value": 0},
+        {"field": "context.sitework_checks_outside", "operator": "EQ", "value": 0},
+        {"field": "context.sitework_min_confidence", "operator": "GTE", "value": 0.85}
+      ]},
+      "then": {"action": "AUTO_APPROVE", "severity": "routine"}
+    },
+    {
+      "rule_id": "sitework_escalate_otherwise",
+      "name": "SiteWork: anything not explicitly allowed or blocked goes to a named person",
+      "decision_domain": "*",
+      "priority": 400,
+      "enabled": true,
+      "rationale": "Missing evidence, a missing citation, a model failure, low confidence or a policy.update proposal is decided by a person, never by default.",
+      "when": {"all": [
+        {"field": "decision_type", "operator": "MATCHES", "value": "^(inspection\\.release_hold|trench\\.authorize_entry|work\\.cover_up|policy\\.update)$"}
+      ]},
+      "then": {"action": "ESCALATE", "severity": "elevated", "sla_minutes": 30}
+    }
+  ]
+}

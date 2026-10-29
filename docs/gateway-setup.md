@@ -1,6 +1,6 @@
 # SiteWork gateway setup investigation
 
-Status on 29 October 2026: **using the existing dci gateway at the user's request**. SiteWork remains in P0.
+Status on 29 October 2026: **using the existing dci gateway at the user's request**. This document records gateway setup; see the repository README for implementation progress.
 
 ## Selected connection
 
@@ -15,7 +15,32 @@ Status on 29 October 2026: **using the existing dci gateway at the user's reques
 
 The client now sends the ingress key only to its selected gateway. `POST /v1/auth/credential-context` independently verifies that an API key belongs to the configured workspace; missing keys, a different workspace, redirects and error responses do not pass. No automatic fallback sends a tenant key to another hostname.
 
-Run `uv run --frozen python scripts/check.py --decionis-only` to repeat the connection checks. All Decionis checks pass. The full `make check` still needs Nebius and Tavily credentials.
+Run `uv run --frozen python scripts/check.py --decionis-only` to repeat the connection checks. All Decionis connection checks pass. Tavily is also configured and verified; the full `make check` still needs the Nebius credential.
+
+## Policy authoring access
+
+`DECIONIS_POLICY_API_KEY` is a separate authoring key for the same dci workspace,
+stored only in ignored `.env`, mode 0600. It has exactly `policy:read` and
+`policy:write`, role MEMBER, and is named `SiteWork policy authoring`. Use it
+directly with `DECIONIS_API_BASE` when authoring policies.
+
+AgentSafe's onboarding and reconciliation checks require narrow runtime scopes
+and reject `policy:write` on a gateway runtime key. The original
+`DECIONIS_API_KEY` therefore retains `org:read`, `decision:run`, `decision:read`
+and `policy:read`. The application continues to use that key for gate calls.
+
+The user identified `festus@decionis.com` as the owner account, whose mailbox is
+currently inaccessible. The existing authorized Kubernetes operator access
+allowed use of the API's supported `db:create-api-key` command instead. The key
+was created once; no owner, role assignment, gateway registry, or deployment
+configuration was changed. The temporary command cache was removed afterwards.
+
+At `2026-10-29T02:50:20.921107Z` (03:50 Stockholm), direct
+`POST /v1/auth/credential-context` returned HTTP 200 for the authoring key,
+the correct workspace and exactly the two policy scopes. The original runtime
+key also returned HTTP 200 through dci with its original scopes and
+`agentsafe-execution: PASSTHROUGH`. These checks verify credentials; issuing the
+key did not create or activate the SiteWork policy.
 
 ## Temporary credential access
 
@@ -49,7 +74,7 @@ The published `@decionis/agentsafe` version 0.7.0 can route separate tenant labe
 - Update the fleet's binding rules to support an explicitly authorized additional deployment under the same organization. Keep each gateway's ingress key, upstream credentials, ownership proof, reconciliation generation and runtime state separate.
 - Verify concurrent creation, access from another workspace, key isolation, upstream-proof binding, and regression of the existing enforcing Clasp deployment before deploying the change.
 
-No platform code, schema, fleet registry or deployed workload was changed. The temporary read grant described above was created and removed only after the user's explicit approval.
+No platform source code, schema, fleet registry or deployment configuration was changed. The authoring key was issued using the existing operator command. The temporary read grant described above was created and removed only after the user's explicit approval.
 
 ## SiteWork integration requirements
 

@@ -37,6 +37,16 @@ SiteWork uses the `https://dci.decionisedge.com` gateway, explicitly selected on
 
 Nothing is faked: errors (no marker, model failure, missing key, no approved requirement) are sent to Decionis as facts. `DECIONIS_MODE=mock` exists for tests only and puts a red MOCK GATE banner on every page.
 
+## Bench and Cosmos preparation
+
+Print the [40 mm ArUco marker and capture worksheet](output/pdf/sitework-bench.pdf)
+at Actual Size / 100%. The [bench checklist](docs/bench-rig.md) covers board
+angles, tabletop trench slopes, the unseated joint and outdoor captures.
+
+The [Cosmos handoff](scripts/cosmos_transfer/README.md) links the resumable GPU
+runner and records the AWS fallback quota requests. No SiteWork GPU run or
+physical capture has been completed by this setup work.
+
 ## Environment
 
 | Variable | Purpose |
@@ -45,6 +55,7 @@ Nothing is faked: errors (no marker, model failure, missing key, no approved req
 | `NEBIUS_VLM_MODEL`, `NEBIUS_AGENT_MODEL`, `NEBIUS_AUDIO_MODEL` | Optional overrides of the model IDs recorded in `sitework/config.py` |
 | `TAVILY_API_KEY` | Tavily search / extract / map / crawl / research |
 | `DECIONIS_API_KEY`, `DECIONIS_ORG_ID` | Decionis credentials |
+| `DECIONIS_POLICY_API_KEY` | Separate `policy:read` / `policy:write` key for authoring via `DECIONIS_API_BASE` |
 | `AGENTSAFE_TENANT_KEY` | Ingress key for the selected AgentSafe tenant; distinct from the workspace API key |
 | `DECIONIS_API_BASE`, `DECIONIS_GATEWAY_URL` | Decionis API and selected hosted AgentSafe gateway; no automatic switch to another tenant |
 | `DECIONIS_MODE` | `live` (default). `mock` is for unit tests only |
