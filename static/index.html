@@ -139,12 +139,13 @@ function applyState(st) {
 }
 
 function render(r) {
+  if (!last || last.record_id !== r.record_id) selectScene(r.scene);  // a new result shows its own scene
   last = r;
   const card = $("verdictCard");
   card.className = `panel verdict ${r.light.color}`;
   if (r.verdict) {
     $("decision").textContent = r.verdict.decision;
-    $("reason").textContent = r.verdict.reason;
+    $("reason").textContent = r.verdict.reason + (r.verdict.grant_error ? ` · hold stays closed: ${r.verdict.grant_error}` : "");
     $("verdictMeta").textContent = `${r.action} · ${r.jurisdiction} · policy ${r.verdict.policy_version || "—"} · ${r.verdict.latency_ms} ms · ${r.gate_mode}`
       + (r.regrounded_from ? ` · re-grounded from ${r.regrounded_from.slice(0, 8)}` : "");
   } else {
@@ -222,12 +223,11 @@ $("release").onclick = () => holdDecision(true);
 $("keep").onclick = () => holdDecision(false);
 
 let scene = "decking";
-document.querySelectorAll('[role="tab"][data-scene]').forEach((tab) => {
-  tab.onclick = () => {
-    scene = tab.dataset.scene;
-    document.querySelectorAll('[role="tab"][data-scene]').forEach((t) => t.setAttribute("aria-selected", String(t === tab)));
-  };
-});
+function selectScene(s) {
+  scene = s;
+  document.querySelectorAll('[role="tab"][data-scene]').forEach((t) => t.setAttribute("aria-selected", String(t.dataset.scene === s)));
+}
+document.querySelectorAll('[role="tab"][data-scene]').forEach((tab) => { tab.onclick = () => selectScene(tab.dataset.scene); });
 $("jurisdiction").onchange = async () => {
   $("reason").textContent = `Re-grounding against the ${$("jurisdiction").value} pack…`;
   try { applyState(await post("/api/jurisdiction", { jurisdiction: $("jurisdiction").value })); }

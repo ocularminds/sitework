@@ -82,7 +82,8 @@ class TokenFactoryCheck(Check):
         audio = next(r for r in ROLES if r.name == "audio")
         model = self.settings.model_for("audio") or next(iter(catalog.candidates(audio)), "")
         if not model:
-            result.detail.append("audio: no Nemotron Omni listed; fallback is Audio Flamingo 3")
+            result.detail.append(f"audio: no Nemotron Omni listed; the seat check is the DSP "
+                                 f"(AUDIO_MODE={self.settings.audio_mode})")
             return
         accepted, reply = factory.accepts_audio(model)
         verdict = "accepts input_audio" if accepted else "rejected input_audio"

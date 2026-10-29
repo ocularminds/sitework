@@ -223,6 +223,6 @@ Not built, so not claimed: Cosmos Reason 2 and a Nemotron 3 Super grounding agen
 - **SiteWork:** Apache-2.0 (`LICENSE`).
 - **Decionis:** used only through its published HTTP API and packages. `@decionis/verify` (Apache-2.0) runs via `npx`. The Agent-Safe Intent v1 conformance vectors in `tests/vectors/` are copied unchanged from `decionis/agent-safe-pipeline` (Apache-2.0). No Decionis proprietary code is in this repository.
 - **NVIDIA Cosmos:** the Cosmos code is Apache-2.0, and the model weights are under the NVIDIA Open Model License, which must be accepted on Hugging Face (see `scripts/cosmos/README.md`).
-- **Audio fallback:** if Audio Flamingo 3 is self-hosted because Token Factory does not accept audio, its weights are non-commercial. That is acceptable for this hackathon, not for production.
+- **Audio:** no audio model is used; the seat check is the DSP (librosa). If Audio Flamingo 3 is ever self-hosted for `AUDIO_MODE=model+dsp`, its weights are non-commercial: acceptable for a hackathon, not for production.
 - **Python dependencies:** OpenCV, NumPy, librosa, FastAPI, httpx, openai, tavily-python and sounddevice keep their own licences, pinned in `uv.lock`.
 - **Requirement sources** (OSHA, eCFR, Arbetsmiljöverket, Svenskt Trä, Säker Vatten, Trex, TimberTech, SharkBite) are cited by URL and content hash. Their page text is cached locally (`data/packs/pages/`, git-ignored) and is not redistributed; only short approved excerpts appear in the packs.

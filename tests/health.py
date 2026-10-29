@@ -52,7 +52,7 @@ def test_unrecorded_model_ids_block_until_written_to_config():
     assert not result.ok
     assert any("nebius_vlm_model" in b for b in result.blockers)
     assert any("nebius_agent_model" in b for b in result.blockers)
-    assert any("fallback is Audio Flamingo 3" in d for d in result.detail)
+    assert any("the seat check is the DSP (AUDIO_MODE=dsp)" in d for d in result.detail)
 
 
 def test_recorded_ids_that_are_listed_pass():
