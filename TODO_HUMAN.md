@@ -53,28 +53,28 @@ Sources: [Tavily pricing](https://tavily.com/pricing), [Builders Program](https:
 - [ ] **Resolve the first policy update.** Tavily Research found AFS 2025:6 and AFS 2025:8, amendments to AFS 2023:13 published on av.se.
   - The `policy.update` proposal `b07aff06-f2fa-422c-aaa1-f5a482cd9b47` went through the gate in SHADOW mode and came back **ESCALATE** (dossier `14332762-ce65-4cf8-a7ce-0041fb3000b9`, which verifies offline).
   - Approve or reject it with your name on the dashboard, or with `uv run python scripts/watch.py resolve <id> --approve --approver "Your Name"`.
-- [ ] **Approve trench requirements for both packs, for P3.**
-  - US: OSHA Appendix B, e.g. "maximum allowable slope of 1½:1" (Type C soil).
-  - SE: AFS 2023:13 is qualitative, with no fixed slope; candidates come from `scripts/pack.py --jurisdiction SE build trench --qualitative --cached`.
-  - Choose how a qualitative Swedish rule should be represented, for example no numeric threshold, so the policy escalates.
+- [x] **Approve decking, trench and plumbing sources in both packs.** Recorded all six approvals on 29 October under the supplied name **Festus B. Jejelowo**, with source excerpts, hashes and timestamps. See [the approval review](docs/requirements.md).
+  - US decking: TimberTech Advanced PVC with Cortex screws, gap **3.175–6.35 mm**. This is the selected product-specific bench reference; no board-angle limit is stated.
+  - US trench: OSHA 29 CFR 1926.652(b)(1)(i), Option 1, **34° maximum** from horizontal for the bench sloping profile. Field configuration, soil, depth and protective-system assessment remain outside this angle check.
+  - SE decking, SE trench and both plumbing approvals are **qualitative**, with empty threshold dictionaries. They intentionally retain human review; six source approvals do not mean six automatic-release profiles.
 - [x] **dci owner claim completed.** With the user's explicit approval, claimed the existing `decionisedge dci Agent Workspace` under the verified `mail.festus@gmail.com` account through Decionis's claim page. The workspace, gateway, policies and ledger were retained. Its mode now reports `max_mode: ENFORCEMENT`; the provisional cap no longer blocks requests.
-- [ ] **Approve the decking requirement.** Run `uv run python scripts/pack.py search decking "deck board spacing gap between deck boards"`, read the candidates, then approve one with your name and the threshold you accept, in mm. For example, TimberTech states "1/8” to 1/4” side-to-side spacing" (3.17–6.35 mm):
-  `uv run python scripts/pack.py approve decking <index> --requirement "..." --threshold '{"gap_mm": {"min": 3.17, "max": 6.35}}' --approver "Your Name"`
-  No source found so far states an angle limit, so `angle_deg` stays unchecked unless you approve one.
+- [ ] **Complete the SE decking fixture profile.** Identify timber type and nominal width, measure actual width and edge-to-edge spacing, then establish an applicable clear-gap check. Svenskt Trä explicitly says Table 3 spacing is not the clear gap; its 3 mm `fogsprång` limit is a vertical step. Neither is a universal `gap_mm` threshold.
 - [ ] **One accidental decision to know about.** While probing routes on 29 Oct, an empty-body `POST /v1/protocol/evaluate-decision` returned 200 `verdict: ALLOW` (`authority_classification: OBSERVATIONAL`) instead of a validation error. It may have recorded one decision, with idempotency key `probe-empty-body`. It was not repeated.
-- [ ] **Plumbing requirements, for P4.** Both packs now have plumbing sources and candidates. Run `uv run python scripts/pack.py --jurisdiction US build plumbing --qualitative --cached` (and the same with `SE`) to list them.
-  - A plumbing requirement must bound both `seat_audio` and `angle_deg`, e.g. `{"seat_audio": {"min": 1}, "angle_deg": {"max": 2}}`. The angle limit is your call: SharkBite asks for a square cut and full insertion, and Säker Vatten for "fixerade vinkelrätt", but neither gives a number.
-  - Without both thresholds the inspection escalates.
+- [ ] **Complete the plumbing bench acceptance criteria, for P4.** Both source requirements are approved, but automatic release still needs supported criteria for `seat_audio` and `angle_deg`.
+  - Identify the actual fitting/system, pipe size and supplier insertion instructions. Establish mechanical seating independently, then calibrate the acoustic detector against it. A click alone is not proof of full insertion.
+  - Neither selected source gives a numeric pipe-to-fitting alignment tolerance. Säker Vatten's `fixerad vinkelrätt` concerns penetrations relative to a wall/floor, not this joint angle. No 2° tolerance has been approved.
+  - Both packs currently escalate plumbing. A live plumbing ALLOW/BLOCK sequence remains unvalidated; a qualitative approval does not enable it.
 - [x] **Plumbing audio, decided 29 Oct:** the DSP check decides alone (`AUDIO_MODE=dsp`), because Token Factory rejects `input_audio` for every model.
 - [ ] **Calibrate the DSP** (`AUDIO_ONSET_RATIO`, `AUDIO_CENTROID_HZ`) on a few bench recordings of a seated and an unseated joint.
 - [x] **Vision precision, decided 29 Oct:** edge snapping added. Model lines are snapped to image edges and the fit quality is the confidence; no clear edge escalates. On synthetic renders it fixed trench and plumbing angles to within 0.25° (NOTES_FEEDBACK.md).
 - [x] **Decking locate step, fixed 29 Oct.** Asked for edges, Nemotron VL returned box diagonals, so every decking inspection escalated. It now returns each board's four corners and code takes the long sides; all five synthetic decking renders measure after snapping. Still to confirm on real bench frames, where wood grain and shadows add competing edges.
 - [ ] **Calibrate snapping with eval.** `EdgeSnapper.MAX_RESIDUAL_PX` (4 px), `EdgeSnapper.CLEAR` (0.5) and `SNAP_REACH_FRAC` (0.04) are starting values; check them, and the policy's confidence floor, against bench and Cosmos clips. `tests/stress.py` checks on synthetic noise, blur, low contrast, shadow, texture, rain, glare and wood grain that a frame is measured right, refused, or below the floor; real frames are the real test.
 - [ ] **Label the clips and run eval (P5).**
+  - The 29 October readiness invocation of `scripts/eval.py` exited with code 2 because `eval/labels.csv` has no rows. It processed no clips and generated no Results files. The 48 relevant unit tests passed; those are not bench metrics.
   - For every bench, Cosmos and outdoor clip, add a row to `eval/labels.csv` with the truth you set and the verdict you expect (see README, Evaluation).
   - Then run `uv run python scripts/eval.py --run-label "run 1"`.
   - If any condition shows false ALLOWs, decide whether to raise its floor in `policies/sitework.json`, submit it, and run again as "run 2". Both runs go into `eval/results.md` and then into the brief's Results table.
-  - Needs: recorded clips, callable vision/audio models, approved requirements in the packs, and the Cosmos variants.
+  - Needs: recorded clips and independent measurements. Vision and DSP are configured, and the six source approvals are saved. Qualitative profiles expect ESCALATE; they do not demonstrate automatic release. Review Cosmos geometry and visibility before inheriting labels.
 - [ ] **Cosmos Transfer run (you run it on a GPU).** The scripts and full instructions are in `scripts/cosmos/README.md`. Steps:
   1. Record 3–5 clean clips, 6–10 s each, into `data/clips/clean/`. Use a fixed camera, keep the ArUco marker in frame, and set the work up beforehand: decking at known angles, trench at known slopes.
   2. Activate Nebius AI Cloud billing (see above). Create a preemptible `gpu-h100-sxm` VM (`eu-north1`) or a `gpu-h200-sxm` VM, preset `1gpu-16vcpu-200gb`, using image family `ubuntu24.04-cuda12` and a 200 GiB `network_ssd` boot disk.
@@ -83,6 +83,7 @@ Sources: [Tavily pricing](https://tavily.com/pricing), [Builders Program](https:
   5. On the VM, run `setup.sh`, then `hf auth login`, then `run.py --cloud nebius --instance "<platform> <preset>" --distilled`.
   6. Copy `data/clips/` back. `RUN_INFO.md` records which cloud ran the job, plus per-variant wall times.
 - [ ] **Bench rig.**
+  - The user confirmed on 29 October that the physical rig still needs preparation. No physical media was found and `eval/labels.csv` is header-only; no Results numbers can be produced yet.
   - Print the [prepared marker and capture worksheet](output/pdf/sitework-bench.pdf) at 100%. Check both black edges are 40 mm and the check bar is 100 mm. The vector dimensions and marker ID 0 were verified digitally; the paper print still needs measuring.
-  - Follow [the bench checklist](docs/bench-rig.md): measure board angles and gaps, model trench slopes, and an unseated push-fit joint followed by proper seating with audio.
+  - Follow [the capture matrix and measurement record](docs/bench-rig.md): measure board angles and gaps, model trench slopes, and an unseated push-fit joint followed by proper seating with audio. Keep calibration takes separate from evaluation takes.
   - Record outdoor phone clips and 3–5 clean originals, preserving measured ground truth and original audio. Suggested fixture angles in the worksheet are not policy thresholds.
