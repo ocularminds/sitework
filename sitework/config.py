@@ -32,8 +32,12 @@ class Settings(BaseSettings):
     # Exact IDs from Token Factory `GET /models`, verified 2026-10-29 in us-central1.
     # Super is served publicly; Nemotron VL and Omni need dedicated endpoints.
     # Empty means no callable model has been verified for that role.
-    nebius_vlm_model: str = ""
+    # Listed on the global endpoint (not on us-central1) and verified to accept images, 29 Oct 2026.
+    nebius_vlm_model: str = "nvidia/Nemotron-3.5-Super-VL"
+    nebius_vlm_thinking: bool = False  # with thinking on it reasons past any practical token budget
+    nebius_vlm_constrained: bool = True  # response_format json_schema; without it the reply is prose
     nebius_agent_model: str = "nvidia/nemotron-3-super-120b-a12b"
+    # Empty on purpose: Token Factory rejects `input_audio` (HTTP 422) for every model it lists.
     nebius_audio_model: str = ""
 
     # Tavily.

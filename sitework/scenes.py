@@ -175,7 +175,9 @@ class Inspection:
         if self.vision is not None:
             return self.vision
         try:
-            return VisionModel(TokenFactory(self.settings).client, self.settings.nebius_vlm_model)
+            s = self.settings
+            return VisionModel(TokenFactory(s).client, s.nebius_vlm_model, thinking=s.nebius_vlm_thinking,
+                               constrained=s.nebius_vlm_constrained)
         except (MissingCredential, VisionError) as exc:
             ev.error("vision", exc)
             return None
@@ -281,5 +283,6 @@ class PlumbingInspection(Inspection):
         try:
             return AudioModel(TokenFactory(self.settings).client, self.settings.nebius_audio_model)
         except (MissingCredential, AudioError) as exc:
-            ev.error("audio model", exc)
+            ev.error("audio model", f"{exc}; Token Factory rejects input_audio, so a self-hosted audio model "
+                                    "is needed (see TODO_HUMAN.md)")
             return None

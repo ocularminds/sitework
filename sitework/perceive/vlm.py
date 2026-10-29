@@ -23,8 +23,11 @@ class VisionError(RuntimeError):
 class StrictJson:
     """One chat request that must come back as JSON in a given schema; one retry with the reason."""
 
-    def __init__(self, client: OpenAI, model: str, max_tokens: int, error: type[Exception]):
+    def __init__(self, client: OpenAI, model: str, max_tokens: int, error: type[Exception],
+                 extra: dict | None = None, constrained: bool = False):
         self.client, self.model, self.max_tokens, self.error = client, model, max_tokens, error
+        self.extra = extra or {}
+        self.constrained = constrained  # ask the server to decode against the schema (json_schema)
 
     def ask(self, content: list[dict], schema: type[T], check: Callable[[T], str] = lambda _v: "") -> T:
         """`check` returns "" for an acceptable reply, or the reason to reject it."""
@@ -37,7 +40,8 @@ class StrictJson:
                     "in exactly the requested shape.")}]
             try:
                 reply = self.client.chat.completions.create(
-                    model=self.model, messages=messages, max_tokens=self.max_tokens, temperature=0)
+                    model=self.model, messages=messages, max_tokens=self.max_tokens, temperature=0,
+                    **self._request_options(schema))
             except OpenAIError as exc:
                 raise self.error(f"{type(exc).__name__}: {exc}") from exc
             text = reply.choices[0].message.content or ""
@@ -51,15 +55,24 @@ class StrictJson:
                 return value
         raise self.error(f"invalid reply after retry: {problem}")
 
+    def _request_options(self, schema: type[BaseModel]) -> dict:
+        options = dict(self.extra)
+        if self.constrained:
+            options["response_format"] = {"type": "json_schema", "json_schema": {
+                "name": schema.__name__.lower(), "schema": schema.model_json_schema(), "strict": True}}
+        return options
+
 
 class VisionModel:
     """Asks for JSON coordinates, validates them strictly, and retries once on a bad reply."""
 
-    def __init__(self, client: OpenAI, model: str, max_tokens: int = 800):
+    def __init__(self, client: OpenAI, model: str, max_tokens: int = 800, thinking: bool = False,
+                 constrained: bool = True):
         if not model:
             raise VisionError("no vision model ID configured (nebius_vlm_model)")
         self.model = model
-        self.json = StrictJson(client, model, max_tokens, VisionError)
+        extra = {} if thinking else {"extra_body": {"chat_template_kwargs": {"enable_thinking": False}}}
+        self.json = StrictJson(client, model, max_tokens, VisionError, extra, constrained)
 
     def locate(self, frame: Frame, schema: type[V]) -> V:
         width, height = frame.size

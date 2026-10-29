@@ -129,6 +129,7 @@ physical capture has been completed by this setup work.
 |---|---|
 | `NEBIUS_API_KEY`, `NEBIUS_BASE_URL` | Nebius Token Factory (OpenAI-compatible) |
 | `NEBIUS_VLM_MODEL`, `NEBIUS_AGENT_MODEL`, `NEBIUS_AUDIO_MODEL` | Optional overrides of the model IDs recorded in `sitework/config.py` |
+| `NEBIUS_VLM_THINKING`, `NEBIUS_VLM_CONSTRAINED` | Vision request options (default off / on): without constrained decoding Nemotron VL answers in prose |
 | `TAVILY_API_KEY` | Tavily search / extract / map / crawl / research |
 | `DECIONIS_API_KEY`, `DECIONIS_ORG_ID` | Decionis read/SHADOW credential and workspace; also used for dossier retrieval |
 | `DECIONIS_ENFORCE_API_KEY` | Separate `decision:enforce` key for ENFORCEMENT/PARALLEL evaluations and grant claims |
@@ -204,8 +205,8 @@ The planned Nemotron VL and Omni models are absent from that public endpoint; th
 
 | Role | Model | Runs on | Exact ID |
 |---|---|---|---|
-| Vision: points for boards, trench walls, pipe and fitting axes | NVIDIA Nemotron VL | Nebius Token Factory | ⟦from `make check`⟧ |
-| Audio: joint seating (`input_audio`) | NVIDIA Nemotron Omni, if Token Factory accepts audio; else the fallback below | Nebius Token Factory | ⟦from `make check`⟧ |
+| Vision: points for boards, trench walls, pipe and fitting axes | NVIDIA Nemotron 3.5 Super VL (thinking off, schema-constrained JSON) | Nebius Token Factory, global endpoint | `nvidia/Nemotron-3.5-Super-VL` |
+| Audio: joint seating | ⟦decision pending⟧: Token Factory rejects `input_audio` for every model it lists (HTTP 422, 29 Oct 2026) | ⟦self-hosted⟧ | ⟦—⟧ |
 | Weather and light variants for the stress test | NVIDIA Cosmos-Transfer2.5-2B (edge control) | ⟦Nebius AI Cloud GPU or AWS fallback⟧ | commit `2ff49d0` of `nvidia-cosmos/cosmos-transfer2.5` |
 
 Not built, so not claimed: Cosmos Reason 2 and a Nemotron 3 Super grounding agent. Requirement thresholds are approved by a named person instead.
