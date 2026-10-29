@@ -40,7 +40,7 @@ SiteWork currently uses `https://dci.decionisedge.com`, explicitly selected on 2
 
 ```
 sitework/   config, clients, perception, measurement, grounding, gate
-scripts/    check.py (credentials), later eval and pack builders
+scripts/    check.py (credentials), cosmos/ (Cosmos Transfer stress-test clips on a GPU VM)
 static/     dashboard (single page, no build step)
 policies/   SiteWork policies in Decionis format
 eval/       labelled clips and results

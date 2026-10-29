@@ -38,7 +38,16 @@ Sources: [Tavily pricing](https://tavily.com/pricing), [Builders Program](https:
   - It also exposes `POST /v1/protocol/evaluate-decision`, which returns `outcome: APPROVE | ESCALATE | REJECT | REVIEW`.
   - SiteWork's `Verdict` uses ALLOW/ESCALATE/BLOCK verbatim and never shows green for anything except ALLOW. Confirm how `REVIEW_REQUIRED` and `ERROR` should appear, and which `tenant_id`/`org_id` to send.
 - [ ] **SiteWork policy in Decionis.** The workspace key has `policy:read` but no write scope. Create the SiteWork policy (§4 rules: citation required, per-condition confidence floors, thresholds, errors → ESCALATE, named human resolution) in the console, or issue a key that can write it. The policy file format for `policies/` is also still unknown.
-- [ ] **Cosmos Transfer GPU.** Nebius AI Cloud billing is not active (see above). File the AWS GPU quota request now as the fallback; new accounts often start at zero GPU quota.
+- [ ] **Cosmos Transfer run (you run it on a GPU).** The scripts and full instructions are in `scripts/cosmos/README.md`. Steps:
+  1. Record 3–5 clean clips, 6–10 s each, into `data/clips/clean/`. Use a fixed camera, keep the ArUco marker in frame, and set the work up beforehand: decking at known angles, trench at known slopes.
+  2. Activate Nebius AI Cloud billing (see above). Create a preemptible `gpu-h100-sxm` VM (`eu-north1`) or a `gpu-h200-sxm` VM, preset `1gpu-16vcpu-200gb`, using image family `ubuntu24.04-cuda12` and a 200 GiB `network_ssd` boot disk.
+  3. **In parallel, file the AWS fallback quota now:**
+     - Running On-Demand P instances `L-417A185B` ≥ 16 vCPU, for `p5.4xlarge`.
+     - Or Running On-Demand G and VT instances `L-DB2E81BA` ≥ 8 vCPU, for `g7e.2xlarge`.
+     - New accounts start at 0.
+  4. Create a Hugging Face Read token and accept the NVIDIA Open Model License at huggingface.co/nvidia/Cosmos-Guardrail1.
+  5. On the VM, run `setup.sh`, then `hf auth login`, then `run.py --cloud nebius --instance "<platform> <preset>" --distilled`.
+  6. Copy `data/clips/` back. `RUN_INFO.md` records which cloud ran the job, plus per-variant wall times.
 - [ ] **Bench rig.**
   - Print an ArUco `DICT_4X4_50` marker at exactly 40 mm.
   - Set decking boards at known angles with a protractor.
