@@ -59,6 +59,8 @@ class Source(ABC):
 class FileSource(Source):
     """Replays a recorded clip (bench, phone or Cosmos variant), looping for the live view."""
 
+    BACKTRACK = 5  # frames to step back when the decoder cannot seek to a sampled frame
+
     def __init__(self, path: Path):
         self.path = Path(path)
         self.label = f"file:{self.path.name}"
@@ -79,16 +81,26 @@ class FileSource(Source):
             return Frame(image, int(self._cap.get(cv2.CAP_PROP_POS_FRAMES)) - 1)
 
     def sample(self, count: int) -> list[Frame]:
-        """Evenly spaced frames across the clip, so the result does not depend on playback."""
+        """Evenly spaced frames across the clip, so the result does not depend on playback.
+
+        Some phone clips decode their last frame in playback but not after a seek, so a sampled
+        frame that will not read is replaced by the nearest earlier one that does. A frame that
+        still will not read is an error, never a silently shorter sample."""
         with self._lock:
             indices = np.linspace(0, max(self._count - 1, 0), num=max(count, 1)).astype(int)
             frames = []
             for i in dict.fromkeys(indices.tolist()):
-                self._cap.set(cv2.CAP_PROP_POS_FRAMES, i)
-                ok, image = self._cap.read()
-                if ok:
-                    frames.append(Frame(image, i))
+                floor = max(i - self.BACKTRACK, frames[-1].index + 1 if frames else 0)
+                frame = next((f for j in range(i, floor - 1, -1) if (f := self._read(j))), None)
+                if frame is None:
+                    raise ValueError(f"cannot read frame {i} of {self.path.name} (tried back to frame {floor})")
+                frames.append(frame)
             return frames
+
+    def _read(self, index: int) -> Frame | None:
+        self._cap.set(cv2.CAP_PROP_POS_FRAMES, index)
+        ok, image = self._cap.read()
+        return Frame(image, index) if ok else None
 
     def close(self) -> None:
         self._cap.release()

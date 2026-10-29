@@ -77,6 +77,7 @@ class Settings(BaseSettings):
     audio_centroid_hz: float = 1500.0
     sitework_jurisdiction: str = "US"
     fiducial_mm: float = 40.0  # printed ArUco DICT_4X4_50 side length
+    fiducial_id: int = 0  # the printed marker's ID; any other ID (a stray marker, texture decoded as one) is ignored
     data_dir: Path = ROOT / "data"
 
 

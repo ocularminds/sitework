@@ -80,7 +80,7 @@ class Inspection:
         self.store = store
         self.packs = packs
         self.vision = vision
-        self.fiducial = fiducial or Fiducial(settings.fiducial_mm)
+        self.fiducial = fiducial or Fiducial(settings.fiducial_mm, settings.fiducial_id)
         snapper = EdgeSnapper(reach_frac=settings.snap_reach_frac) if settings.snap_edges else None
         self.measurer = self.make_measurer(snapper)
 

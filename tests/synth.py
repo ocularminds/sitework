@@ -18,7 +18,7 @@ def to_px(points_mm) -> np.ndarray:
 def scene_with_marker(marker_mm: float = 40.0) -> np.ndarray:
     """A white image with a 4x4_50 marker covering [0, marker_mm]^2 on the plane."""
     img = np.full((900, 1400, 3), 255, np.uint8)
-    marker = cv2.aruco.generateImageMarker(cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_4X4_50), 3, 400)
+    marker = cv2.aruco.generateImageMarker(cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_4X4_50), 0, 400)
     src = np.float32([[0, 0], [400, 0], [400, 400], [0, 400]])
     dst = to_px([[0, 0], [marker_mm, 0], [marker_mm, marker_mm], [0, marker_mm]]).astype(np.float32)
     warp = cv2.getPerspectiveTransform(src, dst)

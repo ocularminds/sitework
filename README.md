@@ -146,7 +146,7 @@ physical capture has been completed by this setup work.
 | `DECIONIS_GATE_MODE` | `ENFORCEMENT` (default), `SHADOW` or `PARALLEL` |
 | `DECIONIS_DECISION_TYPE` | Optional: sets the intent's `policy_projection.decision_type` |
 | `SITEWORK_SOURCE` | Webcam index (default `0`) or a video file to replay |
-| `SITEWORK_SAMPLES`, `SITEWORK_JURISDICTION`, `FIDUCIAL_MM` | Frames per inspection (3), pack to read (`US`), marker side in mm (40) |
+| `SITEWORK_SAMPLES`, `SITEWORK_JURISDICTION`, `FIDUCIAL_MM`, `FIDUCIAL_ID` | Frames per inspection (3), pack to read (`US`), marker side in mm (40), the printed marker's ID (0); any other `DICT_4X4_50` ID in the frame is ignored |
 | `SITEWORK_AUDIO_SOURCE`, `SITEWORK_AUDIO_SECONDS` | Plumbing audio: `mic`, `mic:<n>` or a file (default: the replayed clip's track, else the default mic); seconds recorded (3) |
 | `AUDIO_MODE` | `dsp` (default): the DSP decides. `model+dsp`: an audio model must agree with it |
 | `AUDIO_ONSET_RATIO`, `AUDIO_CENTROID_HZ` | DSP seat-click thresholds (8, 1500 Hz); calibrate on bench recordings |
