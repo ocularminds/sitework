@@ -1,4 +1,4 @@
-"""Decionis HTTP client. P0 covers reachability and credentials; gate calls arrive in P1."""
+"""Decionis HTTP transport: reachability, credentials and authenticated gateway calls."""
 
 import httpx
 from pydantic import BaseModel
@@ -72,6 +72,20 @@ class DecionisClient:
         if not self.has_tenant_key:
             return Probe(url=url, error="AGENTSAFE_TENANT_KEY is not set")
         return self._request("GET", url, headers={"AgentSafe-Tenant-Key": self._tenant_key})
+
+    def post(self, route: str, body: dict, idempotency_key: str | None = None) -> Probe:
+        """POST through the selected gateway with both the ingress key and the workspace key.
+
+        Authority intents carry their retry identity in `context.idempotency_key`, inside the
+        hash, so they are sent without an `Idempotency-Key` header.
+        """
+        url = f"{self._settings.decionis_gateway_url.rstrip('/')}{route}"
+        if not (self.has_key and self.has_tenant_key):
+            return Probe(url=url, error="DECIONIS_API_KEY and AGENTSAFE_TENANT_KEY are required")
+        headers = {"Authorization": f"Bearer {self._key}", "AgentSafe-Tenant-Key": self._tenant_key}
+        if idempotency_key:
+            headers["Idempotency-Key"] = idempotency_key
+        return self._request("POST", url, headers=headers, json=body)
 
     def key_accepted(self, probe: Probe) -> bool:
         body = probe.body

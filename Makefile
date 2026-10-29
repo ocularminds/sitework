@@ -1,4 +1,4 @@
-.PHONY: setup check test
+.PHONY: setup check test demo
 
 setup:
 	uv sync --frozen
@@ -8,3 +8,6 @@ check:
 
 test:
 	uv run --frozen pytest
+
+demo:
+	uv run --frozen uvicorn sitework.app:create_app --factory --host 127.0.0.1 --port 8000

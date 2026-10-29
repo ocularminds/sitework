@@ -5,9 +5,11 @@ from abc import ABC, abstractmethod
 from pydantic import BaseModel, Field
 
 from sitework.config import MissingCredential, Settings
+from sitework.gate.authority import Gate, GateFailure
 from sitework.gate.decionis import DecionisClient
 from sitework.ground.web import WebClient
 from sitework.nebius import ROLES, TokenFactory
+from sitework.schema import EvidenceBundle
 
 
 class CheckResult(BaseModel):
@@ -155,6 +157,40 @@ class DecionisCheck(Check):
         if isinstance(probe.body, dict) and "version" in probe.body:
             return f"(version={probe.body['version']} git_sha={probe.body.get('git_sha')})"
         return ""
+
+
+class GateCheck(Check):
+    """One SHADOW-mode authority call, labelled as an integration check, to confirm the
+    request shape is accepted. Opt-in (`check.py --gate`): it writes to the Decionis ledger."""
+
+    name = "Decionis gate (SHADOW)"
+
+    def __init__(self, settings: Settings, gate: Gate | None = None):
+        super().__init__(settings)
+        shadow = settings.model_copy(update={"decionis_gate_mode": "SHADOW"})
+        self.gate = gate or Gate(shadow)
+
+    def probe(self) -> CheckResult:
+        bundle = EvidenceBundle(
+            scene="decking", action="inspection.release_hold", condition="clean",
+            measurements=[], citations=[], frame_sha256=[], models={},
+            errors=["integration check from scripts/check.py --gate: not an inspection"],
+        )
+        exchange = self.gate.propose(bundle)
+        result = CheckResult(name=self.name)
+        r = exchange.result
+        route = f"{self.settings.decionis_gateway_url}{self.settings.decionis_gate_route}"
+        if isinstance(r, GateFailure):
+            result.blockers.append(f"{route}: {r.error}")
+            if exchange.response:
+                result.detail.append(f"response keys: {sorted(exchange.response)}")
+            return result
+        result.detail.append(f"{route} -> {r.decision} in {r.latency_ms} ms (reason: {r.reason})")
+        result.detail.append(f"should_execute={r.should_execute} grant_claimed={r.grant_claimed} "
+                             f"{r.grant_error}".rstrip())
+        result.detail.append(f"dossier {r.dossier_id or '(none)'}; decision {r.decision_id or '(none)'}")
+        result.detail.append(f"response keys: {sorted(exchange.response or {})}")
+        return result
 
 
 class Doctor:

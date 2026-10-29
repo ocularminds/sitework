@@ -1,0 +1,8 @@
+{
+  "jurisdiction": "US",
+  "allowlist": {
+    "decking": ["trex.com", "timbertech.com", "awc.org"],
+    "trench": ["osha.gov", "ecfr.gov"]
+  },
+  "requirements": []
+}

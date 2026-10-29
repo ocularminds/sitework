@@ -1,0 +1,175 @@
+import json
+from datetime import datetime, timezone
+
+import httpx
+import pytest
+
+from sitework.config import Settings
+from sitework.gate.authority import Gate, GateFailure, MockGate
+from sitework.gate.decionis import DecionisClient, Probe
+from sitework.gate.evidence import Facts, bundle_sha256
+from sitework.gate.intent import intent_hash
+from sitework.light import LightState
+from sitework.schema import Citation, EvidenceBundle, Measurement, Verdict
+
+
+def settings(**over) -> Settings:
+    return Settings(_env_file=None, **{
+        "decionis_api_key": "test-workspace-key", "agentsafe_tenant_key": "test-tenant-key",
+        "decionis_gateway_url": "https://dci.decionisedge.com", "decionis_org_id": "org-test", **over})
+
+
+def bundle(**over) -> EvidenceBundle:
+    data = {
+        "scene": "decking", "action": "inspection.release_hold", "condition": "clean",
+        "measurements": [Measurement(kind="gap_mm", value=4.1, confidence=0.9, method="t"),
+                         Measurement(kind="gap_mm", value=7.0, confidence=0.9, method="t"),
+                         Measurement(kind="angle_deg", value=2.0, confidence=0.8, method="t")],
+        "citations": [Citation(jurisdiction="US", requirement="1/8 to 1/4 in side gap",
+                               threshold={"gap_mm": {"min": 3.17, "max": 6.35}}, url="https://www.timbertech.com/x",
+                               retrieved_at=datetime(2026, 10, 29, tzinfo=timezone.utc), content_sha256="a" * 64,
+                               source_domain="www.timbertech.com")],
+        "frame_sha256": ["f" * 64], "models": {"vlm": "acme/vl"}, **over,
+    }
+    return EvidenceBundle(**data)
+
+
+def test_facts_compare_measurements_with_cited_thresholds():
+    facts = Facts(bundle())
+    assert [(c["value"], c["within"]) for c in facts.checks()] == [(4.1, True), (7.0, False)]
+    s = facts.summary()
+    assert s["checks_outside"] == 1 and s["unchecked_kinds"] == ["angle_deg"] and s["min_confidence"] == 0.8
+
+
+ORG = "124e5022-6eee-4717-ab65-a03899db6237"
+
+
+def gate_with(respond, **over):
+    cfg = settings(decionis_org_id=ORG, **over)
+    return Gate(cfg, DecionisClient(cfg, transport=httpx.MockTransport(respond)))
+
+
+def allow(**extra):
+    return {"status": "ALLOW", "should_execute": True, "reason_codes": ["POLICY_ACTION_AUTO_APPROVE"],
+            "dossier_id": "dos_1", "dossier_url": "https://api.decionis.com/v1/x?sig=1", "decision_id": "dec_1",
+            "execution_token": "tok_secret", "policy_version": "dci-v3", **extra}
+
+
+def test_request_is_an_agent_safe_intent_with_a_matching_hash():
+    sent = []
+
+    def respond(request):
+        sent.append(request)
+        return httpx.Response(200, json={"status": "BLOCK", "should_execute": False, "reason_codes": ["GAP_OUTSIDE"],
+                                         "dossier_id": "dos_1", "decision_id": "dec_1"})
+
+    b = bundle()
+    exchange = gate_with(respond).propose(b)
+    req = sent[0]
+    body = json.loads(req.content)
+    assert str(req.url) == "https://dci.decionisedge.com/v1/authority/enforce-and-bind"
+    assert req.headers["agentsafe-tenant-key"] == "test-tenant-key"
+    assert req.headers["authorization"] == "Bearer test-workspace-key"
+    assert "idempotency-key" not in req.headers
+    binding = {k: v for k, v in body.items() if k not in ("intent_hash", "mode")}
+    assert body["intent_hash"] == intent_hash(binding) and body["mode"] == "ENFORCEMENT"
+    assert body["protocol_version"] == "agent-safe.intent/1" and body["tenant_id"] == ORG
+    assert body["context"]["idempotency_key"] == exchange.correlation_id
+    assert body["action"] == {"type": "inspection.release_hold", "resource": "sitework/decking",
+                              "parameters": {"scene": "decking", "condition": "clean",
+                                             "evidence_sha256": bundle_sha256(b)}}
+    assert body["context"]["sitework"]["summary"]["checks_outside"] == 1
+    assert "policy_projection" not in body
+    v = exchange.result
+    assert isinstance(v, Verdict) and v.decision == "BLOCK" and v.reason == "GAP_OUTSIDE" and not v.green
+    assert len(sent) == 1  # no claim for a BLOCK
+
+
+def test_allow_is_green_only_after_the_grant_is_claimed():
+    sent = []
+
+    def respond(request):
+        sent.append(request)
+        if request.url.path.endswith("/consume-token"):
+            return httpx.Response(200, json={"valid": True, "claims": {"decision_id": "dec_1"}})
+        return httpx.Response(200, json=allow())
+
+    exchange = gate_with(respond).propose(bundle(errors=[]))
+    claim = json.loads(sent[1].content)
+    first = json.loads(sent[0].content)
+    assert claim["execution_token"] == "tok_secret" and claim["intent_hash"] == first["intent_hash"]
+    assert claim["intent"]["intent_id"] == first["intent_id"]
+    assert exchange.result.grant_claimed and exchange.result.green
+    assert exchange.response["execution_token"] == "<redacted>"
+
+
+def test_a_refused_claim_keeps_the_light_off_green():
+    def respond(request):
+        if request.url.path.endswith("/consume-token"):
+            return httpx.Response(409, json={"valid": False, "reason_codes": ["TOKEN_ALREADY_CONSUMED"]})
+        return httpx.Response(200, json=allow())
+
+    v = gate_with(respond).propose(bundle()).result
+    assert v.decision == "ALLOW" and not v.green and "TOKEN_ALREADY_CONSUMED" in v.grant_error
+    assert LightState.of(v).color == "red"
+
+
+def test_allow_on_evidence_with_errors_is_never_claimed():
+    sent = []
+
+    def respond(request):
+        sent.append(request)
+        return httpx.Response(200, json=allow())
+
+    v = gate_with(respond).propose(bundle(errors=["vision[0]: invalid reply after retry"])).result
+    assert len(sent) == 1 and v.decision == "ALLOW" and not v.green and "error" in v.grant_error
+
+
+def test_missing_org_id_refuses_the_intent_without_a_request():
+    def unexpected(request):
+        pytest.fail("no request expected")
+
+    cfg = settings(decionis_org_id="")
+    result = Gate(cfg, DecionisClient(cfg, transport=httpx.MockTransport(unexpected))).propose(bundle()).result
+    assert isinstance(result, GateFailure) and "DECIONIS_ORG_ID" in result.error
+
+
+@pytest.mark.parametrize("probe,expected", [
+    (Probe(url="u", error="ConnectError: refused"), "ConnectError"),
+    (Probe(url="u", status=401, body={"code": "TENANT_KEY_MISSING"}), "HTTP 401"),
+    (Probe(url="u", status=200, body={"status": "APPROVE", "dossier_id": "d"}), "unexpected status"),
+    (Probe(url="u", status=200, body={"status": "ALLOW", "should_execute": True}), "ALLOW without a dossier_id"),
+])
+def test_anything_but_a_well_formed_decision_is_a_failure(probe, expected):
+    result = Gate.interpret(probe, 12.0)
+    assert isinstance(result, GateFailure) and expected in result.error
+    assert LightState.of(result).color == "red"
+
+
+@pytest.mark.parametrize("status,execute,color", [
+    ("ALLOW", True, "red"), ("ALLOW", False, "red"), ("ESCALATE", False, "amber"),
+    ("REVIEW_REQUIRED", False, "amber"), ("BLOCK", False, "red"), ("ERROR", False, "red"),
+])
+def test_light_is_green_only_for_allow_with_execute(status, execute, color):
+    v = Gate.interpret(Probe(url="u", status=200, body={"status": status, "should_execute": execute,
+                                                        "dossier_id": "d"}), 1.0)
+    assert LightState.of(v).color == color  # ALLOW alone is red until its grant is claimed
+
+
+def test_missing_credentials_make_no_request():
+    cfg = settings(agentsafe_tenant_key=None, decionis_org_id=ORG)
+
+    def unexpected(request):
+        pytest.fail("no request expected")
+
+    gate = Gate(cfg, DecionisClient(cfg, transport=httpx.MockTransport(unexpected)))
+    assert isinstance(gate.propose(bundle()).result, GateFailure)
+
+
+def test_decision_type_sets_the_policy_projection_inside_the_hash():
+    gate = MockGate(settings(decionis_org_id=ORG, decionis_decision_type="SITEWORK_RELEASE_HOLD"))
+    body = gate.propose(bundle()).request
+    assert body["policy_projection"] == {"decision_type": "SITEWORK_RELEASE_HOLD", "transaction_type": None,
+                                         "workflow_key": None, "channel": None}
+    assert body["intent_hash"] == intent_hash({k: v for k, v in body.items() if k not in ("intent_hash", "mode")})
+    assert gate.mode == "mock"

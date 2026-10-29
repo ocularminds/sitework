@@ -41,9 +41,25 @@ class EvidenceBundle(BaseModel):
     errors: list[str] = Field(default_factory=list)
 
 
+Decision = Literal["ALLOW", "BLOCK", "ESCALATE", "REVIEW_REQUIRED", "ERROR"]
+
+
 class Verdict(BaseModel):
-    decision: Literal["ALLOW", "ESCALATE", "BLOCK"]
+    """A Decionis authority decision, with its status used verbatim."""
+
+    decision: Decision
     reason: str
-    policy_version: str
+    policy_version: str = ""
     dossier_id: str
     latency_ms: float
+    should_execute: bool = False
+    reason_codes: list[str] = Field(default_factory=list)
+    decision_id: str = ""
+    dossier_url: str = ""
+    grant_claimed: bool = False  # the single-use execution grant was consumed for this intent
+    grant_error: str = ""
+
+    @property
+    def green(self) -> bool:
+        """The only state that releases a hold: ALLOW, execute, and the grant claimed."""
+        return self.decision == "ALLOW" and self.should_execute and self.grant_claimed
