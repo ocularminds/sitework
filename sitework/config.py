@@ -40,6 +40,8 @@ class Settings(BaseSettings):
 
     # Decionis: base API plus the hosted AgentSafe gateway for gate calls.
     decionis_api_key: SecretStr | None = None
+    # Narrow decision:enforce key for ENFORCEMENT/PARALLEL evaluations and grants.
+    decionis_enforce_api_key: SecretStr | None = None
     # Policy authoring only. Never use this credential as the gateway runtime key.
     decionis_policy_api_key: SecretStr | None = None
     agentsafe_tenant_key: SecretStr | None = None

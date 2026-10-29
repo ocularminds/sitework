@@ -43,10 +43,10 @@ Sources: [Tavily pricing](https://tavily.com/pricing), [Builders Program](https:
   - It keeps all 10 starter rules verbatim and adds 7 rules scoped to SiteWork action types (`policies/sitework.json`). It became active immediately.
   - The same errored SHADOW intent that got ALLOW before now gets **ESCALATE** (`POLICY_ACTION_ESCALATE`, `should_execute=false`, dossier `4f0ecb44-eccf-44dd-ba23-1af62b9df591`).
   - Not yet seen live: the ALLOW and BLOCK rules matching on `context.sitework_*` facts. That needs a real clean inspection.
-- [ ] **ENFORCEMENT intents are refused with 403.** The runtime key (`DECIONIS_API_KEY`) has `decision:run`, which is enough for SHADOW, but an ENFORCEMENT intent returns "missing required scope. Need one of: decision:write, decision:*, org:*, decision:enforce".
-  - SiteWork's default mode is ENFORCEMENT, so live inspections currently end in NO DECISION, with the hold closed.
-  - Either add `decision:enforce` to the runtime key, or set `DECIONIS_GATE_MODE=SHADOW` until it has the scope.
-  - Together with the SHADOW cap below, this decides whether the demo can ever turn green.
+- [x] **ENFORCEMENT scope fixed.** Issued `DECIONIS_ENFORCE_API_KEY` with exactly `decision:enforce`, role MEMBER. SiteWork selects it for ENFORCEMENT/PARALLEL evaluations and grant claims. `DECIONIS_API_KEY` remains the read/SHADOW credential, so dossier retrieval continues to work.
+  - The old key's enforced probe reproduced the missing-scope 403. The new key passed that check, exposing the separate provisional-workspace restriction; the approved owner claim below resolved it.
+  - `check.py` now checks scopes and workspace mode. `--gate` tests the configured mode, with deliberately incomplete evidence; it no longer forces SHADOW.
+  - A live request and response both reported ENFORCEMENT and returned **ESCALATE** for missing evidence, `should_execute=false`, with dossier `b4bdc118-5394-43ce-8a77-e94ec5affe82`. Its signature and required artifact coverage verified offline; verification against Decionis's official JWKS also confirmed the issuer. A clean inspection and an ALLOW grant claim remain separate validation work.
 - [ ] **Resolve the first policy update.** Tavily Research found AFS 2025:6 and AFS 2025:8, amendments to AFS 2023:13 published on av.se.
   - The `policy.update` proposal `b07aff06-f2fa-422c-aaa1-f5a482cd9b47` went through the gate in SHADOW mode and came back **ESCALATE** (dossier `14332762-ce65-4cf8-a7ce-0041fb3000b9`, which verifies offline).
   - Approve or reject it with your name on the dashboard, or with `uv run python scripts/watch.py resolve <id> --approve --approver "Your Name"`.
@@ -54,7 +54,7 @@ Sources: [Tavily pricing](https://tavily.com/pricing), [Builders Program](https:
   - US: OSHA Appendix B, e.g. "maximum allowable slope of 1½:1" (Type C soil).
   - SE: AFS 2023:13 is qualitative, with no fixed slope; candidates come from `scripts/pack.py --jurisdiction SE build trench --qualitative --cached`.
   - Choose how a qualitative Swedish rule should be represented, for example no numeric threshold, so the policy escalates.
-- [ ] **The dci workspace is SHADOW-only.** The active bundle is issued with `max_mode: SHADOW`, `max_mode_reason: PROVISIONAL_WORKSPACE_SHADOW_ONLY`. If that caps enforcement, a clean ALLOW will come back with `should_execute=false` and the light cannot turn green in the demo. Lifting the provisional cap is a workspace setting on your side.
+- [x] **dci owner claim completed.** With the user's explicit approval, claimed the existing `decionisedge dci Agent Workspace` under the verified `mail.festus@gmail.com` account through Decionis's claim page. The workspace, gateway, policies and ledger were retained. Its mode now reports `max_mode: ENFORCEMENT`; the provisional cap no longer blocks requests.
 - [ ] **Approve the decking requirement.** Run `uv run python scripts/pack.py search decking "deck board spacing gap between deck boards"`, read the candidates, then approve one with your name and the threshold you accept, in mm. For example, TimberTech states "1/8” to 1/4” side-to-side spacing" (3.17–6.35 mm):
   `uv run python scripts/pack.py approve decking <index> --requirement "..." --threshold '{"gap_mm": {"min": 3.17, "max": 6.35}}' --approver "Your Name"`
   No source found so far states an angle limit, so `angle_deg` stays unchecked unless you approve one.
