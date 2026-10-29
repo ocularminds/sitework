@@ -30,12 +30,13 @@ SiteWork uses the `https://dci.decionisedge.com` gateway, explicitly selected on
 
 1. **Capture.** `SITEWORK_SOURCE` is a webcam index, or a clip to replay; three frames are sampled.
 2. **Scale.** The printed ArUco `DICT_4X4_50` marker gives millimetres and a homography onto its plane. Keep the marker flat and close to the joint: one 40 mm marker extrapolates, about 1.4 % error at 250 mm in the synthetic tests.
-3. **Perceive.** Nemotron VL on Token Factory returns board-edge endpoints as strict JSON. An invalid reply is retried once.
-4. **Measure.** Code computes the narrowest and widest joint gap (mm) and the largest angle between adjacent boards (°). Confidence = model confidence × marker quality × agreement across frames.
-5. **Ground.** Decisions read `data/packs/<jurisdiction>.json`, never the live web. `scripts/pack.py search` proposes clauses from allowlisted pages via Tavily search and extract. `scripts/pack.py approve` adds one only with a named approver and a threshold.
-6. **Decide.** An [Agent-Safe Intent v1](https://github.com/decionis/agent-safe-pipeline/blob/master/spec/intent/v1/README.md) goes to `POST /v1/authority/enforce-and-bind` through dci. The verdict (`ALLOW`, `BLOCK`, `ESCALATE`, `ERROR`) is shown verbatim. The rules the policy should apply are drafted in `policies/sitework.md`.
-7. **Act.** The light turns green only for `ALLOW` with `should_execute`, and only after SiteWork claims the single-use grant (`/v1/execution/consume-token`). SiteWork never claims a grant when its own evidence carries errors.
-8. **Record.** Evidence, request, response and verdict are written to `data/dossiers/<dossier_id>.json`, with the execution token redacted.
+3. **Perceive.** Nemotron VL on Token Factory returns roughly where each board's four corners are, as strict JSON on its 0–1000 grid; code converts that to pixels and takes the two long sides as the board's edges. (Asked for edges directly, the model returned box diagonals.) An invalid reply is retried once.
+4. **Snap.** Code moves each proposed edge onto the strongest straight image edge within reach (4 % of the longer image side either side), using gradient profiles across the line and a robust line fit. The fit quality (share of the line the image supports × how straight that edge is) is the point quality. A line with no clear edge under it is an error, so the inspection escalates instead of measuring a guess. `SNAP_EDGES=false` measures the model's lines as given, with its self-reported confidence.
+5. **Measure.** Code computes the narrowest and widest joint gap (mm) and the largest angle between adjacent boards (°) on the snapped lines. Confidence = point quality × marker quality × agreement across frames.
+6. **Ground.** Decisions read `data/packs/<jurisdiction>.json`, never the live web. `scripts/pack.py search` proposes clauses from allowlisted pages via Tavily search and extract. `scripts/pack.py approve` adds one only with a named approver and a threshold.
+7. **Decide.** An [Agent-Safe Intent v1](https://github.com/decionis/agent-safe-pipeline/blob/master/spec/intent/v1/README.md) goes to `POST /v1/authority/enforce-and-bind` through dci. The verdict (`ALLOW`, `BLOCK`, `ESCALATE`, `ERROR`) is shown verbatim. The rules the policy should apply are drafted in `policies/sitework.md`.
+8. **Act.** The light turns green only for `ALLOW` with `should_execute`, and only after SiteWork claims the single-use grant (`/v1/execution/consume-token`). SiteWork never claims a grant when its own evidence carries errors.
+9. **Record.** Evidence, request, response and verdict are written to `data/dossiers/<dossier_id>.json`, with the execution token redacted.
 
 Nothing is faked: errors (no marker, model failure, missing key, no approved requirement) are sent to Decionis as facts. `DECIONIS_MODE=mock` exists for tests only and puts a red MOCK GATE banner on every page.
 
@@ -81,13 +82,13 @@ Where a condition has false ALLOWs, the report suggests the lowest confidence fl
   - Token Factory rejects audio input (`input_audio`, HTTP 422) for every model it lists, so no audio model is used by default.
   - `AUDIO_MODE=model+dsp` switches to an audio model that must agree with the DSP, for a self-hosted model. A disagreement, a missing recording or a model failure is then an error, which escalates.
 - The DSP thresholds (`AUDIO_ONSET_RATIO`=8, `AUDIO_CENTROID_HZ`=1500) are starting values to calibrate on bench recordings of seated and unseated joints. In synthetic tests they hear a 4 kHz click and reject faint noise and an 80 Hz thud.
-- **By eye.** Nemotron VL returns the pipe's and the fitting's centre lines; code measures the angle between them on the marker plane.
+- **By eye.** Nemotron VL returns the pipe's and the fitting's centre lines. Code snaps each to the same-side border of that body and measures the angle between them on the marker plane.
 - **Both required.** A plumbing requirement must set a threshold for `seat_audio` (e.g. `{"min": 1}`) and for `angle_deg`, or the inspection records a grounding error and escalates. The approved requirement decides what "seated" and "aligned" mean.
 - **Sources.** US: SharkBite push-to-connect guides ("the pipe pushes the green indicator ring into the viewing windows, confirming that the pipe is fully inserted"). SE: Branschregler Säker Vatteninstallation 2026 ("fixerade vinkelrätt").
 
 ## Trench, jurisdiction switch and human release
 
-- **Trench entry** (`trench.authorize_entry`). Use a side view of the trench cross-section, with the marker standing upright in that plane and its bottom edge level. Nemotron VL returns each wall's top and toe point. Code then measures the steepest wall's slope (degrees from horizontal) and its depth. Steep walls are the sensitive case: with little horizontal run, 0.2 mm of corner error is about 0.4°.
+- **Trench entry** (`trench.authorize_entry`). Use a side view of the trench cross-section, with the marker standing upright in that plane and its bottom edge level. Nemotron VL returns each wall's top and toe point. Code snaps the line between them to the wall's image edge, then measures the steepest wall's slope (degrees from horizontal) and its depth. Snapping fixes the wall's line, not where it ends, so depth still rests on where the model puts the top and toe. Steep walls are the sensitive case: with little horizontal run, 0.2 mm of corner error is about 0.4°.
 - **Jurisdiction switch.** Choosing another jurisdiction on the dashboard re-decides the last inspection's evidence against that pack's approved requirements, without re-running perception. A new gate call produces a new dossier that names the record it was re-grounded from. US trench cites OSHA's maximum allowable slopes. Sweden's AFS 2023:13 sets no fixed slope, so an approved SE requirement carries no numeric threshold and the policy escalates to a person.
 - **Named release.** An ESCALATE or REVIEW_REQUIRED shows a name field with Release hold and Keep hold. The record keeps who decided, when, any note, and Decionis's `approval_request_id`. A release turns the light **blue** ("RELEASED BY …"), never green, because green is reserved for a Decionis ALLOW with a claimed grant.
 
@@ -145,6 +146,7 @@ physical capture has been completed by this setup work.
 | `SITEWORK_AUDIO_SOURCE`, `SITEWORK_AUDIO_SECONDS` | Plumbing audio: `mic`, `mic:<n>` or a file (default: the replayed clip's track, else the default mic); seconds recorded (3) |
 | `AUDIO_MODE` | `dsp` (default): the DSP decides. `model+dsp`: an audio model must agree with it |
 | `AUDIO_ONSET_RATIO`, `AUDIO_CENTROID_HZ` | DSP seat-click thresholds (8, 1500 Hz); calibrate on bench recordings |
+| `SNAP_EDGES`, `SNAP_REACH_FRAC` | Snap model lines to image edges (on); search reach either side as a share of the longer image side (0.04) |
 
 ## Layout
 
@@ -171,6 +173,7 @@ flowchart LR
     dsp[DSP: onset + spectral centroid = seated?]
   end
   subgraph Measure["Measure (code)"]
+    snap[Edge snap: model lines onto image edges,<br/>fit quality = point quality]
     fid[ArUco 40 mm: mm and homography]
     geo[gap, angle, slope, depth, alignment]
   end
@@ -179,7 +182,8 @@ flowchart LR
     watch[Research: amendments and recalls]
   end
   frames --> fid --> geo
-  frames --> vlm --> geo
+  frames --> vlm --> snap --> geo
+  frames --> snap
   audio --> dsp
   geo --> ev[Evidence bundle + facts]
   dsp --> ev
@@ -198,9 +202,9 @@ Tavily is never in the decision's hot path. Packs are built and approved beforeh
 
 ## Models
 
-Exact IDs come from Token Factory `GET /models` via `make check` and are recorded in `sitework/config.py`. On 29 October 2026, the configured `us-central1` endpoint authenticated successfully, listed 18 models, and served a test completion on `nvidia/nemotron-3-super-120b-a12b`.
+Exact IDs come from Token Factory `GET /models` via `make check` and are recorded in `sitework/config.py`. On 29 October 2026 the `us-central1` endpoint listed 18 models and no vision model; the global endpoint listed 30, including Nemotron VL, so SiteWork uses the global endpoint. A missing or failing model is recorded as an error, which escalates.
 
-The planned Nemotron VL and Omni models are absent from that public endpoint; their Nebius detail pages offer dedicated endpoints only. Vision and audio IDs remain unset until callable endpoints are verified. Every inspection records a missing model as an error, which escalates. Credential setup is complete; model availability remains open in `TODO_HUMAN.md`.
+Nemotron VL answers on a 0–1000 grid whatever image size the prompt states, so SiteWork asks for that grid and converts it. Its points are a starting place, not a measurement: code snaps them to image edges (step 4 above).
 
 | Role | Model | Runs on | Exact ID |
 |---|---|---|---|

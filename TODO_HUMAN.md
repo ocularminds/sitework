@@ -20,7 +20,7 @@ Updated 29 October 2026, Europe/Stockholm.
 - AI Cloud billing is not activated. Its setup form requires a card and says submission will charge $25 to top up the balance. No billing details were submitted or GPU instance created.
 - The hackathon publishes $25 in Token Factory credit through the direct form and another $25 through the Builders Program. Its FAQ does not publish a separate AI Cloud credit grant. The compute-grant application is a separate reviewed program.
 - **`NEBIUS_API_KEY` configured and verified (29 October).** Created the approved `SiteWork` key in `Decionis, Inc.-g65 / default-project` and saved it in ignored `.env`, mode 0600. The configured `us-central1` endpoint returned HTTP 200 and 18 models; the same catalog request without a key returned 401. A live OpenAI SDK completion on `nvidia/nemotron-3-super-120b-a12b` returned HTTP 200 and `OK`. That exact ID is now recorded in `sitework/config.py`.
-- **Vision and audio availability remain open.** Nemotron VL and Omni are absent from this endpoint's `/models`. Nebius's detail pages for `nvidia/Nemotron-Nano-V2-12b` and `nvidia/Nemotron-3-Nano-Omni` say **Public endpoint: Not available; Dedicated endpoint: Available**. No dedicated endpoint was deployed, and the vision/audio settings remain empty until callable models are verified. `make check` now passes Tavily and Decionis ENFORCEMENT but reports the missing VLM configuration.
+- **Vision and audio resolved (29 October).** `us-central1` lists no vision model, but the global endpoint serves `nvidia/Nemotron-3.5-Super-VL`; SiteWork now uses the global endpoint and records that ID. Token Factory rejects `input_audio` for every model (HTTP 422), so the DSP check decides seating alone.
 
 Sources: [hackathon resources](https://nebiusglobalaihackathon.devpost.com/resources), [hackathon FAQ](https://nebiusglobalaihackathon.devpost.com/details/faqs), [Builders Program](https://dev.nebius.com/builders).
 
@@ -35,7 +35,7 @@ Sources: [Tavily pricing](https://tavily.com/pricing), [Builders Program](https:
 ## Still needed from you
 
 - [x] **`NEBIUS_API_KEY` saved and tested.** Catalog authentication and a Nemotron Super completion succeeded. Tavily and Decionis ENFORCEMENT checks also pass.
-- [ ] **Callable vision/audio models.** The account's public endpoint does not serve the planned Nemotron VL or Omni models. Obtain the required dedicated endpoints or select an approved fallback, then verify the exact IDs and image/audio input before setting `NEBIUS_VLM_MODEL` and `NEBIUS_AUDIO_MODEL`.
+- [x] **Callable vision/audio models.** Vision: `nvidia/Nemotron-3.5-Super-VL` on the global endpoint, verified with image input. Audio: none callable; the DSP decides (see below).
 - [x] **Decionis gate route** (your call, 29 Oct): dci gateway with verdicts ALLOW / BLOCK / ESCALATE / ERROR.
   - The SDK's `/v1/authority/evaluate` and `/enforce` return 404 on the live API.
   - SiteWork therefore sends an Agent-Safe Intent v1 to `/v1/authority/enforce-and-bind`, with `tenant_id` = the org UUID, then claims the grant at `/v1/execution/consume-token`.
@@ -66,7 +66,9 @@ Sources: [Tavily pricing](https://tavily.com/pricing), [Builders Program](https:
   - Without both thresholds the inspection escalates.
 - [x] **Plumbing audio, decided 29 Oct:** the DSP check decides alone (`AUDIO_MODE=dsp`), because Token Factory rejects `input_audio` for every model.
 - [ ] **Calibrate the DSP** (`AUDIO_ONSET_RATIO`, `AUDIO_CENTROID_HZ`) on a few bench recordings of a seated and an unseated joint.
-- [ ] **Vision precision.** Live single calls on synthetic renders gave coarse points at 0.90–0.95 self-reported confidence; thinking mode was 5–25× slower and no better. Decide whether to add deterministic edge snapping before eval (see NOTES_FEEDBACK.md).
+- [x] **Vision precision, decided 29 Oct:** edge snapping added. Model lines are snapped to image edges and the fit quality is the confidence; no clear edge escalates. On synthetic renders it fixed trench and plumbing angles to within 0.25° (NOTES_FEEDBACK.md).
+- [x] **Decking locate step, fixed 29 Oct.** Asked for edges, Nemotron VL returned box diagonals, so every decking inspection escalated. It now returns each board's four corners and code takes the long sides; all five synthetic decking renders measure after snapping. Still to confirm on real bench frames, where wood grain and shadows add competing edges.
+- [ ] **Calibrate snapping with eval.** `EdgeSnapper.MAX_RESIDUAL_PX` (4 px) and `SNAP_REACH_FRAC` (0.04) are starting values; check them, and the policy's confidence floor, against bench and Cosmos clips.
 - [ ] **Label the clips and run eval (P5).**
   - For every bench, Cosmos and outdoor clip, add a row to `eval/labels.csv` with the truth you set and the verdict you expect (see README, Evaluation).
   - Then run `uv run python scripts/eval.py --run-label "run 1"`.

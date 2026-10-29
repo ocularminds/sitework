@@ -36,6 +36,8 @@ class Settings(BaseSettings):
     nebius_vlm_model: str = "nvidia/Nemotron-3.5-Super-VL"
     nebius_vlm_thinking: bool = False  # with thinking on it reasons past any practical token budget
     nebius_vlm_constrained: bool = True  # response_format json_schema; without it the reply is prose
+    snap_edges: bool = True  # refine model lines to image edges; fit quality becomes the point quality
+    snap_reach_frac: float = 0.04  # search distance either side of a model line, share of the longer side
     nebius_agent_model: str = "nvidia/nemotron-3-super-120b-a12b"
     # Empty on purpose: Token Factory rejects `input_audio` (HTTP 422) for every model it lists.
     nebius_audio_model: str = ""
