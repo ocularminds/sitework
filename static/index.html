@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SiteWork</title>
+<style>
+  :root {
+    --bg: #f4f4f1; --panel: #ffffff; --ink: #1d1f21; --muted: #6b6f73; --line: #dcdcd6;
+    --green: #1e8e3e; --amber: #c77700; --red: #c5221f; --off: #8a8f94; --accent: #24527a;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #121416; --panel: #1b1e21; --ink: #e8eaed; --muted: #9aa0a6; --line: #2e3236;
+            --green: #34a853; --amber: #f29900; --red: #ea4335; --off: #5f6368; --accent: #8ab4f8; }
+  }
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.4 system-ui, sans-serif; }
+  header { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; padding: 10px 16px;
+           border-bottom: 1px solid var(--line); background: var(--panel); }
+  header h1 { font-size: 18px; margin: 0 8px 0 0; letter-spacing: .02em; }
+  .tabs button, header select, header button, .actions button {
+    font: inherit; padding: 6px 12px; border: 1px solid var(--line); border-radius: 6px;
+    background: var(--panel); color: var(--ink); cursor: pointer; }
+  .tabs button[aria-selected="true"] { background: var(--accent); color: var(--panel); border-color: var(--accent); }
+  .tabs button:disabled, button:disabled { opacity: .45; cursor: not-allowed; }
+  .badge { padding: 3px 8px; border-radius: 999px; font-size: 12px; border: 1px solid var(--line); color: var(--muted); }
+  .spacer { flex: 1; }
+  #mock { display: none; background: var(--red); color: #fff; text-align: center; font-weight: 700;
+          padding: 8px; letter-spacing: .08em; }
+  main { display: grid; grid-template-columns: minmax(0, 3fr) minmax(300px, 2fr); gap: 16px; padding: 16px; }
+  @media (max-width: 900px) { main { grid-template-columns: 1fr; } }
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px; }
+  .feed { position: relative; }
+  .feed img, .feed canvas { width: 100%; display: block; border-radius: 6px; background: #000; }
+  .feed .view { display: flex; gap: 8px; margin-bottom: 8px; }
+  .side { display: grid; gap: 16px; align-content: start; }
+  .verdict { border-left: 10px solid var(--off); }
+  .verdict .decision { font-size: 40px; font-weight: 800; letter-spacing: .04em; }
+  .verdict.green { border-color: var(--green); } .verdict.green .decision { color: var(--green); }
+  .verdict.amber { border-color: var(--amber); } .verdict.amber .decision { color: var(--amber); }
+  .verdict.red { border-color: var(--red); } .verdict.red .decision { color: var(--red); }
+  h2 { font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin: 0 0 8px; }
+  .muted { color: var(--muted); font-size: 13px; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  td { padding: 4px 0; border-bottom: 1px solid var(--line); vertical-align: top; }
+  td.num { text-align: right; font-variant-numeric: tabular-nums; }
+  .ok { color: var(--green); } .bad { color: var(--red); }
+  ul.errors { margin: 6px 0 0; padding-left: 18px; color: var(--amber); font-size: 13px; }
+  code { font-size: 12px; word-break: break-all; }
+  .actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+  #inspect { background: var(--accent); color: var(--panel); border-color: var(--accent); font-weight: 600; }
+</style>
+</head>
+<body>
+<div id="mock">MOCK GATE · decisions below are not from Decionis</div>
+<header>
+  <h1>SiteWork</h1>
+  <div class="tabs" role="tablist">
+    <button role="tab" aria-selected="true" data-scene="decking">Decking</button>
+    <button role="tab" disabled title="arrives in P3">Trench</button>
+    <button role="tab" disabled title="arrives in P4">Plumbing</button>
+  </div>
+  <label class="muted">Condition
+    <select id="condition">
+      <option>clean</option><option>rain</option><option>mud</option><option>dusk_glare</option><option>outdoor</option>
+    </select>
+  </label>
+  <span class="badge" id="jurisdiction">—</span>
+  <span class="badge" id="gate">gate —</span>
+  <span class="badge" id="source">source —</span>
+  <span class="spacer"></span>
+  <button id="inspect">Inspect</button>
+  <button id="lightBtn" title="Full-screen stack light for a phone at the work face">Light</button>
+</header>
+<main>
+  <section class="panel feed">
+    <div class="view">
+      <button id="showLive">Live</button><button id="showInspected" disabled>Inspected frame</button>
+      <span class="muted" id="feedNote"></span>
+    </div>
+    <img id="live" alt="Live feed" src="/api/stream">
+    <canvas id="overlay" hidden></canvas>
+    <h2 style="margin-top:14px">Measurements</h2>
+    <table id="measurements"><tr><td class="muted">No inspection yet.</td></tr></table>
+    <ul class="errors" id="errors"></ul>
+  </section>
+  <section class="side">
+    <div class="panel verdict" id="verdictCard">
+      <h2>Decionis verdict</h2>
+      <div class="decision" id="decision">—</div>
+      <div id="reason" class="muted">Press Inspect to propose releasing the hold.</div>
+      <div class="muted" id="verdictMeta"></div>
+    </div>
+    <div class="panel">
+      <h2>Cited requirement</h2>
+      <div id="citation" class="muted">No citation.</div>
+    </div>
+    <div class="panel">
+      <h2>Dossier</h2>
+      <div><code id="dossier">—</code></div>
+      <div class="actions">
+        <a id="dossierLink" class="muted" href="#" target="_blank" hidden>Open record JSON</a>
+        <button disabled title="offline verification arrives in P2">Verify</button>
+        <button disabled title="tamper demo arrives in P2">Tamper one byte</button>
+      </div>
+    </div>
+  </section>
+</main>
+<script>
+const $ = (id) => document.getElementById(id);
+let last = null;
+
+function esc(s) { return String(s ?? "").replace(/[&<>"]/g, (c) => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
+
+function applyState(st) {
+  $("mock").style.display = st.gate_mode === "mock" ? "block" : "none";
+  $("gate").textContent = st.gate_mode === "mock" ? "MOCK GATE" : `gate ${new URL(st.gateway).host}`;
+  $("jurisdiction").textContent = `jurisdiction ${st.jurisdiction}`;
+  $("source").textContent = st.source ? `source ${st.source}` : `no source: ${st.source_error}`;
+  if (st.last) render(st.last);
+}
+
+function render(r) {
+  last = r;
+  const card = $("verdictCard");
+  card.className = `panel verdict ${r.light.color}`;
+  if (r.verdict) {
+    $("decision").textContent = r.verdict.decision;
+    $("reason").textContent = r.verdict.reason;
+    $("verdictMeta").textContent = `policy ${r.verdict.policy_version || "—"} · ${r.verdict.latency_ms} ms · ${r.gate_mode}`;
+  } else {
+    $("decision").textContent = r.light.label;
+    $("reason").textContent = r.failure ? r.failure.error : "";
+    $("verdictMeta").textContent = r.failure ? `${r.failure.latency_ms} ms · hold stays closed` : "";
+  }
+  const checks = Object.fromEntries((r.checks || []).map((c) => [c.kind + c.value, c]));
+  $("measurements").innerHTML = r.measurements.length ? r.measurements.map((m) => {
+    const c = checks[m.kind + m.value];
+    const bound = c ? `<span class="${c.within ? "ok" : "bad"}">${c.within ? "within" : "outside"} ${c.min ?? "–"}…${c.max ?? "–"}</span>` : `<span class="muted">no threshold</span>`;
+    return `<tr><td>${esc(m.kind)}<div class="muted">${esc(m.method)}</div></td><td class="num">${m.value}</td><td class="num">${bound}</td><td class="num muted">conf ${m.confidence}</td></tr>`;
+  }).join("") : `<tr><td class="muted">No measurements.</td></tr>`;
+  $("errors").innerHTML = r.errors.map((e) => `<li>${esc(e)}</li>`).join("");
+  const c = r.citations[0];
+  $("citation").innerHTML = c ? `<div>${esc(c.requirement)}</div>
+    <div class="muted">${esc(c.source_domain)} · retrieved ${new Date(c.retrieved_at).toLocaleString()}</div>
+    <div class="muted">sha256 <code>${esc(c.content_sha256.slice(0, 16))}…</code> · <a href="${esc(c.url)}" target="_blank" rel="noopener">source</a></div>`
+    : `<span class="bad">No approved requirement in the ${esc(r.jurisdiction)} pack: the gate is told there is no citation.</span>`;
+  $("dossier").textContent = r.record_id;
+  $("dossierLink").hidden = false;
+  $("dossierLink").href = `/api/dossiers/${encodeURIComponent(r.record_id)}`;
+  $("showInspected").disabled = !r.overlay;
+  if (r.overlay) drawOverlay(r);
+}
+
+function drawOverlay(r) {
+  const o = r.overlay, cv = $("overlay"), img = new Image();
+  img.onload = () => {
+    cv.width = o.width; cv.height = o.height;
+    const g = cv.getContext("2d");
+    g.drawImage(img, 0, 0);
+    g.lineWidth = Math.max(2, o.width / 400);
+    if (o.marker.length) {
+      g.strokeStyle = "#00e5ff"; g.beginPath();
+      o.marker.forEach(([x, y], i) => (i ? g.lineTo(x, y) : g.moveTo(x, y))); g.closePath(); g.stroke();
+    }
+    g.strokeStyle = "#ffd400";
+    o.boards.forEach((b) => b.forEach(([[x1, y1], [x2, y2]]) => { g.beginPath(); g.moveTo(x1, y1); g.lineTo(x2, y2); g.stroke(); }));
+    g.font = `${Math.max(16, o.width / 40)}px system-ui`; g.fillStyle = "#ffd400";
+    r.measurements.forEach((m, i) => g.fillText(`${m.kind} ${m.value}`, 12, 30 + i * Math.max(20, o.width / 32)));
+    show("inspected");
+  };
+  img.src = `data:image/jpeg;base64,${o.frame_jpeg}`;
+}
+
+function show(which) {
+  $("live").hidden = which !== "live";
+  $("overlay").hidden = which !== "inspected";
+  $("feedNote").textContent = which === "inspected" && last ? `frame inspected ${new Date(last.created_at).toLocaleTimeString()}` : "";
+}
+
+$("showLive").onclick = () => show("live");
+$("showInspected").onclick = () => last && last.overlay && show("inspected");
+$("lightBtn").onclick = () => window.open("/light", "sitework-light");
+$("inspect").onclick = async () => {
+  const btn = $("inspect");
+  btn.disabled = true; btn.textContent = "Inspecting…";
+  try {
+    const res = await fetch("/api/inspect", { method: "POST", headers: { "content-type": "application/json" },
+      body: JSON.stringify({ scene: "decking", condition: $("condition").value }) });
+    const body = await res.json();
+    if (!res.ok) throw new Error(body.detail || res.statusText);
+    render(body);
+  } catch (e) {
+    $("reason").textContent = `Inspection request failed: ${e.message}`;
+  } finally {
+    btn.disabled = false; btn.textContent = "Inspect";
+  }
+};
+
+fetch("/api/state").then((r) => r.json()).then(applyState);
+(function connect() {
+  const ws = new WebSocket(`${location.protocol === "https:" ? "wss" : "ws"}://${location.host}/ws`);
+  ws.onmessage = (ev) => {
+    const msg = JSON.parse(ev.data);
+    if (msg.type === "state") applyState(msg.state);
+    if (msg.type === "result") render(msg.result);
+  };
+  ws.onclose = () => setTimeout(connect, 2000);
+})();
+</script>
+</body>
+</html>

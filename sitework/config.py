@@ -40,6 +40,8 @@ class Settings(BaseSettings):
 
     # Decionis: base API plus the hosted AgentSafe gateway for gate calls.
     decionis_api_key: SecretStr | None = None
+    # Policy authoring only. Never use this credential as the gateway runtime key.
+    decionis_policy_api_key: SecretStr | None = None
     agentsafe_tenant_key: SecretStr | None = None
     decionis_org_id: str = ""
     decionis_api_base: str = "https://api.decionis.com"
@@ -47,6 +49,21 @@ class Settings(BaseSettings):
     # A different tenant needs its own ingress key; never switch automatically.
     decionis_gateway_fallback: str = ""
     decionis_mode: Literal["live", "mock"] = "live"
+    # Gate calls: Agent-Safe Intent v1 through the dci gateway. The intent's tenant_id is
+    # the organization UUID (DECIONIS_ORG_ID); a granted ALLOW is claimed before going green.
+    decionis_gate_route: str = "/v1/authority/enforce-and-bind"
+    decionis_claim_route: str = "/v1/execution/consume-token"
+    decionis_gate_mode: Literal["SHADOW", "PARALLEL", "ENFORCEMENT"] = "ENFORCEMENT"
+    decionis_decision_type: str = ""  # sets the intent's policy_projection when non-empty
+    decionis_actor_id: str = "sitework-inspector"
+    decionis_intent_ttl_s: int = 120
+
+    # SiteWork runtime.
+    sitework_source: str = "0"  # camera index, or a video file to replay
+    sitework_samples: int = 3  # frames measured per inspection
+    sitework_jurisdiction: str = "US"
+    fiducial_mm: float = 40.0  # printed ArUco DICT_4X4_50 side length
+    data_dir: Path = ROOT / "data"
 
     # Optional Cosmos Reason 2 served by vLLM on the Nebius AI Cloud GPU VM.
     cosmos_reason_url: str = ""

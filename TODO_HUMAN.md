@@ -33,11 +33,19 @@ Sources: [Tavily pricing](https://tavily.com/pricing), [Builders Program](https:
 ## Still needed from you
 
 - [ ] `NEBIUS_API_KEY` (Token Factory) in `.env`, then run `make check`. It lists the Nemotron candidates from `GET /models` and probes whether the Omni model accepts `input_audio`. The exact IDs then go into `sitework/config.py`. Tavily and Decionis credentials are already configured and verified.
-- [ ] **Decionis gate call for P1.** Which route should SiteWork call through dci?
-  - `@decionis/sdk-node` exposes `POST /v1/authority/evaluate`, which returns `status: ALLOW | BLOCK | ESCALATE | REVIEW_REQUIRED | ERROR` plus `dossier_id` and `dossier_url`.
-  - It also exposes `POST /v1/protocol/evaluate-decision`, which returns `outcome: APPROVE | ESCALATE | REJECT | REVIEW`.
-  - SiteWork's `Verdict` uses ALLOW/ESCALATE/BLOCK verbatim and never shows green for anything except ALLOW. Confirm how `REVIEW_REQUIRED` and `ERROR` should appear, and which `tenant_id`/`org_id` to send.
-- [ ] **SiteWork policy in Decionis.** The workspace key has `policy:read` but no write scope. Create the SiteWork policy (§4 rules: citation required, per-condition confidence floors, thresholds, errors → ESCALATE, named human resolution) in the console, or issue a key that can write it. The policy file format for `policies/` is also still unknown.
+- [x] **Decionis gate route** (your call, 29 Oct): dci gateway with verdicts ALLOW / BLOCK / ESCALATE / ERROR.
+  - The SDK's `/v1/authority/evaluate` and `/enforce` return 404 on the live API.
+  - SiteWork therefore sends an Agent-Safe Intent v1 to `/v1/authority/enforce-and-bind`, with `tenant_id` = the org UUID, then claims the grant at `/v1/execution/consume-token`.
+  - One SHADOW integration intent returned ALLOW with dossier `e81018f7-2a9b-40ea-8e4f-6141afa91d1e`.
+  - Not exercised live yet: claiming a real grant. That needs a clean ALLOW.
+- [ ] **Load the SiteWork policy into Decionis. Urgent.** The `dci` tenant currently auto-approves SiteWork intents (`POLICY_ACTION_AUTO_APPROVE`), including one with no measurements, no citations and an error in its evidence.
+  - SiteWork's interlock keeps the light off green when evidence has errors, but the verdicts are not the SiteWork rules until `policies/sitework.md` is active.
+  - That file lists the rules and every context field they read.
+  - Tell me the `policy_version` or `decision_type` to send if it should be pinned (`DECIONIS_DECISION_TYPE`).
+- [ ] **Approve the decking requirement.** Run `uv run python scripts/pack.py search decking "deck board spacing gap between deck boards"`, read the candidates, then approve one with your name and the threshold you accept, in mm. For example, TimberTech states "1/8” to 1/4” side-to-side spacing" (3.17–6.35 mm):
+  `uv run python scripts/pack.py approve decking <index> --requirement "..." --threshold '{"gap_mm": {"min": 3.17, "max": 6.35}}' --approver "Your Name"`
+  No source found so far states an angle limit, so `angle_deg` stays unchecked unless you approve one.
+- [ ] **One accidental decision to know about.** While probing routes on 29 Oct, an empty-body `POST /v1/protocol/evaluate-decision` returned 200 `verdict: ALLOW` (`authority_classification: OBSERVATIONAL`) instead of a validation error. It may have recorded one decision, with idempotency key `probe-empty-body`. It was not repeated.
 - [ ] **Cosmos Transfer run (you run it on a GPU).** The scripts and full instructions are in `scripts/cosmos/README.md`. Steps:
   1. Record 3–5 clean clips, 6–10 s each, into `data/clips/clean/`. Use a fixed camera, keep the ArUco marker in frame, and set the work up beforehand: decking at known angles, trench at known slopes.
   2. Activate Nebius AI Cloud billing (see above). Create a preemptible `gpu-h100-sxm` VM (`eu-north1`) or a `gpu-h200-sxm` VM, preset `1gpu-16vcpu-200gb`, using image family `ubuntu24.04-cuda12` and a 200 GiB `network_ssd` boot disk.

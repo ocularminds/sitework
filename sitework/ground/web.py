@@ -1,5 +1,7 @@
 """Tavily wrapper. Retrieved text is data: callers keep only structured fields."""
 
+import hashlib
+from datetime import datetime, timezone
 from urllib.parse import urlparse
 
 from pydantic import BaseModel
@@ -17,6 +19,22 @@ class WebResult(BaseModel):
     @property
     def domain(self) -> str:
         return urlparse(self.url).netloc.lower()
+
+
+class Page(BaseModel):
+    """Extracted page text as read at `retrieved_at`; its hash pins what was read."""
+
+    url: str
+    text: str
+    retrieved_at: datetime
+
+    @property
+    def domain(self) -> str:
+        return urlparse(self.url).netloc.lower()
+
+    @property
+    def sha256(self) -> str:
+        return hashlib.sha256(self.text.encode()).hexdigest()
 
 
 class WebClient:
@@ -37,6 +55,16 @@ class WebClient:
             for r in raw.get("results", [])
         ]
         return [r for r in results if allowed(r.domain, domains)]
+
+    def extract(self, urls: list[str], domains: list[str]) -> list[Page]:
+        """Full text of allowlisted pages. URLs outside the allowlist are never fetched."""
+        keep = [u for u in urls if allowed(urlparse(u).netloc.lower(), domains)]
+        if not keep:
+            return []
+        raw = self._client.extract(urls=keep, format="text")
+        retrieved = datetime.now(timezone.utc)
+        return [Page(url=r["url"], text=r.get("raw_content") or "", retrieved_at=retrieved)
+                for r in raw.get("results", []) if r.get("raw_content")]
 
 
 def allowed(domain: str, allowlist: list[str]) -> bool:

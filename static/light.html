@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SiteWork Light</title>
+<style>
+  :root { --green: #1e8e3e; --amber: #f29900; --red: #d93025; --off: #202124; }
+  html, body { margin: 0; height: 100%; }
+  body { display: flex; align-items: center; justify-content: center; background: var(--off);
+         color: #fff; font: 800 12vw/1 system-ui, sans-serif; transition: background .2s; }
+  body.green { background: var(--green); } body.amber { background: var(--amber); } body.red { background: var(--red); }
+  #label { text-align: center; letter-spacing: .04em; }
+  #sub { font-size: 3vw; font-weight: 500; opacity: .85; margin-top: 2vw; }
+</style>
+</head>
+<body class="off">
+<div><div id="label">—</div><div id="sub">waiting for an inspection</div></div>
+<script>
+function set(light, mode) {
+  document.body.className = light.color;
+  document.getElementById("label").textContent = light.label;
+  document.getElementById("sub").textContent = mode === "mock" ? "MOCK GATE · not a Decionis decision" : "Decionis";
+}
+let mode = "live";
+fetch("/api/state").then((r) => r.json()).then((st) => { mode = st.gate_mode; set(st.light, mode); });
+(function connect() {
+  const ws = new WebSocket(`${location.protocol === "https:" ? "wss" : "ws"}://${location.host}/ws`);
+  ws.onmessage = (ev) => {
+    const msg = JSON.parse(ev.data);
+    if (msg.type === "state") { mode = msg.state.gate_mode; set(msg.state.light, mode); }
+    if (msg.type === "result") set(msg.light, mode);
+  };
+  ws.onclose = () => setTimeout(connect, 2000);
+})();
+</script>
+</body>
+</html>

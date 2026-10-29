@@ -33,3 +33,4 @@ packages = ["sitework"]
 testpaths = ["tests"]
 python_files = ["*.py"]
 addopts = "--import-mode=importlib"
+pythonpath = ["tests"]
