@@ -20,7 +20,7 @@ from sitework.ground.packs import PackStore
 from sitework.ground.watch import PolicyUpdate, ProposalStore
 from sitework.light import LightState
 from sitework.proof import ProofError, Proofs
-from sitework.scenes import DeckingInspection, InspectionResult
+from sitework.scenes import DeckingInspection, InspectionResult, TrenchInspection
 from sitework.schema import Action, Condition
 
 STATIC = ROOT / "static"
@@ -29,7 +29,7 @@ STATIC = ROOT / "static"
 class InspectRequest(BaseModel):
     scene: str = "decking"
     condition: Condition = "clean"
-    action: Action = "inspection.release_hold"
+    action: Action | None = None  # None: the scene's own gated action
 
 
 class SourceRequest(BaseModel):
@@ -39,6 +39,17 @@ class SourceRequest(BaseModel):
 class ResolveRequest(BaseModel):
     approve: bool
     approver: str
+    note: str = ""
+
+
+class JurisdictionRequest(BaseModel):
+    jurisdiction: str
+    reground: bool = True
+
+
+class HoldRequest(BaseModel):
+    approver: str
+    release: bool
     note: str = ""
 
 
@@ -64,7 +75,8 @@ class Runtime:
         self.gate = make_gate(settings)
         self.store = DossierStore(settings.data_dir / "dossiers")
         self.packs = PackStore(settings.data_dir / "packs")
-        self.scenes = {"decking": DeckingInspection(settings, self.gate, self.store, self.packs)}
+        self.scenes = {cls.scene: cls(settings, self.gate, self.store, self.packs)
+                       for cls in (DeckingInspection, TrenchInspection)}
         self.proofs = Proofs(settings)
         self.proposals = ProposalStore(settings.data_dir / "proposals")
         self.updates = PolicyUpdate(self.gate, self.proposals)
@@ -96,6 +108,39 @@ class Runtime:
         finally:
             self._busy.release()
 
+    def jurisdictions(self) -> list[str]:
+        return sorted(p.stem for p in self.packs.directory.glob("*.json"))
+
+    def switch(self, req: JurisdictionRequest) -> InspectionResult | None:
+        """Change the job's jurisdiction; by default re-decide the last inspection under it."""
+        if req.jurisdiction not in self.jurisdictions():
+            raise HTTPException(404, f"no {req.jurisdiction} pack in {self.packs.directory}")
+        self.jurisdiction = req.jurisdiction
+        record = self.store.get(self.last.record_id) if (req.reground and self.last) else None
+        if record is None:
+            return None
+        if not self._busy.acquire(blocking=False):
+            raise HTTPException(409, "an inspection is already running")
+        try:
+            self.last = self.scenes[record.evidence.scene].reground(record, req.jurisdiction)
+            return self.last
+        finally:
+            self._busy.release()
+
+    def hold(self, record_id: str, req: HoldRequest) -> dict:
+        """A named person releases or keeps an escalated hold; recorded in the dossier record."""
+        try:
+            record = self.store.resolve(record_id, req.approver, req.release, req.note)
+        except LookupError as exc:
+            raise HTTPException(404, str(exc)) from exc
+        except ValueError as exc:
+            raise HTTPException(409, str(exc)) from exc
+        light = LightState.resolved(record.resolution.approver, req.release)
+        if self.last and self.last.record_id == record_id:
+            self.last = self.last.model_copy(update={"light": light, "resolution": record.resolution})
+        return {"record_id": record_id, "resolution": record.resolution.model_dump(mode="json"),
+                "light": light.model_dump()}
+
     @staticmethod
     def dossier_id(record_id: str) -> str:
         """Records named after a Decionis dossier can be verified; mock and no-decision records cannot."""
@@ -111,6 +156,7 @@ class Runtime:
             "gateway": self.settings.decionis_gateway_url,
             "gate_route": self.settings.decionis_gate_route,
             "jurisdiction": self.jurisdiction,
+            "jurisdictions": self.jurisdictions(),
             "scenes": list(self.scenes),
             "vlm_model": self.settings.nebius_vlm_model,
             "light": (self.last.light if self.last else LightState.idle()).model_dump(),
@@ -153,6 +199,20 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         if record is None:
             raise HTTPException(404, "no such record")
         return record.model_dump(mode="json")
+
+    @app.post("/api/jurisdiction")
+    async def jurisdiction(req: JurisdictionRequest):
+        result = await run_in_threadpool(rt.switch, req)
+        if result is not None:
+            payload = result.model_dump(mode="json")
+            await rt.hub.send({"type": "result", "result": payload, "light": payload["light"]})
+        return rt.state()
+
+    @app.post("/api/dossiers/{record_id}/resolve")
+    async def hold(record_id: str, req: HoldRequest):
+        outcome = rt.hold(record_id, req)
+        await rt.hub.send({"type": "resolution", **outcome})
+        return outcome
 
     @app.get("/dossier")
     def dossier_page():

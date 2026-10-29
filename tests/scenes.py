@@ -71,7 +71,7 @@ def test_clean_flow_measures_cites_and_stores_a_record(tmp_path):
     assert r.citations[0].requirement == "Side gap 1/8 to 1/4 in"
     assert {c["kind"] for c in r.checks} == {"gap_mm"}
     assert r.light.color == "green" and r.gate_mode == "mock"
-    assert r.overlay and len(r.overlay.marker) == 4 and len(r.overlay.boards) == 2
+    assert r.overlay and len(r.overlay.marker) == 4 and len(r.overlay.segments) == 4
     record = flow.store.get(r.record_id)
     assert record.evidence.models == {"vlm": "acme/vl-test"} and len(record.evidence.frame_sha256) == 3
 

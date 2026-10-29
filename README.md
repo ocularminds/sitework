@@ -6,7 +6,7 @@ Physical AI that inspects construction work at the hold point, before it disappe
 
 > Models observe → code measures → policy decides → humans sign when the AI isn't sure → everything is provable.
 
-Status: **P2, proof and grounding depth.** The decking slice is gated live. Dossiers verify offline, jurisdiction packs are built with Tavily map and crawl, and amendments become gated policy updates. Trench, plumbing and eval arrive in later phases (see `IMPLEMENT.md`).
+Status: **P3, trench.** Decking and trench entry are gated live. A jurisdiction switch re-decides the same evidence under the other pack, and an escalated hold is resolved by a named person. Plumbing audio and eval arrive in later phases (see `IMPLEMENT.md`).
 
 ## Setup
 
@@ -38,6 +38,12 @@ SiteWork uses the `https://dci.decionisedge.com` gateway, explicitly selected on
 8. **Record.** Evidence, request, response and verdict are written to `data/dossiers/<dossier_id>.json`, with the execution token redacted.
 
 Nothing is faked: errors (no marker, model failure, missing key, no approved requirement) are sent to Decionis as facts. `DECIONIS_MODE=mock` exists for tests only and puts a red MOCK GATE banner on every page.
+
+## Trench, jurisdiction switch and human release
+
+- **Trench entry** (`trench.authorize_entry`). Use a side view of the trench cross-section, with the marker standing upright in that plane and its bottom edge level. Nemotron VL returns each wall's top and toe point. Code then measures the steepest wall's slope (degrees from horizontal) and its depth. Steep walls are the sensitive case: with little horizontal run, 0.2 mm of corner error is about 0.4°.
+- **Jurisdiction switch.** Choosing another jurisdiction on the dashboard re-decides the last inspection's evidence against that pack's approved requirements, without re-running perception. A new gate call produces a new dossier that names the record it was re-grounded from. US trench cites OSHA's maximum allowable slopes. Sweden's AFS 2023:13 sets no fixed slope, so an approved SE requirement carries no numeric threshold and the policy escalates to a person.
+- **Named release.** An ESCALATE or REVIEW_REQUIRED shows a name field with Release hold and Keep hold. The record keeps who decided, when, any note, and Decionis's `approval_request_id`. A release turns the light **blue** ("RELEASED BY …"), never green, because green is reserved for a Decionis ALLOW with a claimed grant.
 
 ## Proof, packs and policy updates
 

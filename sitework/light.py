@@ -1,4 +1,7 @@
-"""Stack light at the work face. Green only when Decionis returned ALLOW with should_execute."""
+"""Stack light at the work face. Green only when Decionis returned ALLOW with should_execute.
+
+A named person's release of an escalated hold shows blue: released by a human, not by the gate.
+"""
 
 from typing import Literal
 
@@ -7,7 +10,7 @@ from pydantic import BaseModel
 from sitework.gate.authority import GateFailure
 from sitework.schema import Verdict
 
-Color = Literal["green", "amber", "red", "off"]
+Color = Literal["green", "amber", "red", "blue", "off"]
 
 
 class LightState(BaseModel):
@@ -29,3 +32,9 @@ class LightState(BaseModel):
         if result.decision in ("ESCALATE", "REVIEW_REQUIRED"):
             return cls(color="amber", label=result.decision)
         return cls(color="red", label=result.decision)  # BLOCK, ERROR, or ALLOW without execute
+
+    @classmethod
+    def resolved(cls, approver: str, release: bool) -> "LightState":
+        if release:
+            return cls(color="blue", label=f"RELEASED BY {approver.upper()}")
+        return cls(color="red", label=f"HELD BY {approver.upper()}")
