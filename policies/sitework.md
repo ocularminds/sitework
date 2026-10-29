@@ -1,10 +1,9 @@
 # SiteWork policy (draft for Decionis)
 
-**Status:** draft. These rules still have to be created in the Decionis workspace, by someone with policy write access; the SiteWork workspace key only has `policy:read`.
-
-**This matters now.** On 29 Oct 2026 a SHADOW integration intent with no measurements, no citations and an error in its evidence came back **ALLOW** from the `dci` tenant, with `POLICY_MATCHED, POLICY_ACTION_AUTO_APPROVE`, dossier `e81018f7-2a9b-40ea-8e4f-6141afa91d1e`. Until this policy is active:
-- SiteWork's own interlock still refuses to claim the grant for evidence that carries errors, so the light cannot turn green.
-- The verdicts themselves are not yet the SiteWork rules.
+**Status: active** in the dci workspace since 29 Oct 2026 as bundle `decionis-starter-v2+sitework-1` (artifact `c8cd1370-04db-4fb5-9582-fd0faf062d82`).
+- The machine-readable rules are in [`sitework.json`](sitework.json). `scripts/policy.py` loads them with `DECIONIS_POLICY_API_KEY`: `plan`, `submit --yes`, `current`.
+- Every non-SiteWork rule of the active bundle is kept verbatim. Only `sitework_*` rules are replaced.
+- Before loading, the starter policy auto-approved a SiteWork intent with no evidence (dossier `e81018f7-…`). After loading, the same intent escalates (dossier `4f0ecb44-eccf-44dd-ba23-1af62b9df591`).
 
 SiteWork never decides. It sends evidence and deterministic measurement facts. Decionis applies the rules below and returns `ALLOW`, `BLOCK`, `ESCALATE` or `ERROR`, which SiteWork shows verbatim. On `ALLOW` with `should_execute`, SiteWork claims the single-use execution grant (`POST /v1/execution/consume-token`). The light turns green only when that claim is valid.
 
@@ -46,7 +45,45 @@ The request is an [Agent-Safe Intent v1](https://github.com/decionis/agent-safe-
 | `summary.unchecked_kinds` | Measurement kinds with no cited threshold |
 | `checks[]` | `{kind, value, min, max, within, confidence, source}` per measurement and cited threshold |
 
-## Rules, in priority order
+## Facts the rules read
+
+`context` also carries flat copies of the summary, because the rule grammar addresses `context.<key>`:
+
+| Field | Meaning |
+|---|---|
+| `sitework_scene`, `sitework_condition` | Same as in the evidence |
+| `sitework_error_count` | Number of errors |
+| `sitework_citation_count` | Number of citations |
+| `sitework_measurement_count` | Number of measurements |
+| `sitework_min_confidence` | Lowest measurement confidence, or `null` |
+| `sitework_checks_total` | Number of measurement-vs-threshold checks |
+| `sitework_checks_outside` | Checks outside their bounds |
+
+## Rules as loaded (higher priority wins)
+
+All rules apply only when `decision_type` (= `action.type`) is a SiteWork action. Starter rules have priority 300 or less, so these outrank them for SiteWork actions and leave all other decision types as they were.
+
+| Priority | Rule | Action |
+|---|---|---|
+| 460 | Release action, no errors, at least one citation, `checks_outside > 0` | **AUTO_REJECT** (BLOCK) |
+| 450 | Release action, no errors, at least one citation, measurements present, `checks_total > 0`, `checks_outside == 0`, `min_confidence` ≥ the condition's floor (one rule per condition) | **AUTO_APPROVE** (ALLOW) |
+| 400 | Any SiteWork action (including `policy.update`) not matched above | **ESCALATE** |
+
+Release actions are `inspection.release_hold`, `trench.authorize_entry` and `work.cover_up`. `policy.update` always escalates.
+
+Confidence floors, to be tuned from `eval/results.md`:
+
+| Condition | Floor |
+|---|---|
+| clean | 0.70 |
+| outdoor | 0.75 |
+| rain | 0.85 |
+| mud | 0.85 |
+| dusk_glare | 0.85 |
+
+These floors implement the intent of the original draft below: errors, a missing citation, no measurements, low confidence or nothing checkable all reach a person, never a default ALLOW.
+
+## Original draft rules
 
 1. `summary.error_count > 0` → **ESCALATE**. Any missing input, model failure or missing citation needs a person.
 2. `summary.citation_count == 0` → **ESCALATE**. No citation, no ALLOW. Rule 1 already covers this, because a missing citation is also an error; the rule is kept so that holds even if that changes.

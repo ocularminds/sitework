@@ -39,11 +39,11 @@ Sources: [Tavily pricing](https://tavily.com/pricing), [Builders Program](https:
   - SiteWork therefore sends an Agent-Safe Intent v1 to `/v1/authority/enforce-and-bind`, with `tenant_id` = the org UUID, then claims the grant at `/v1/execution/consume-token`.
   - One SHADOW integration intent returned ALLOW with dossier `e81018f7-2a9b-40ea-8e4f-6141afa91d1e`.
   - Not exercised live yet: claiming a real grant. That needs a clean ALLOW.
-- [ ] **Load the SiteWork policy into Decionis. Urgent.** The `dci` tenant currently auto-approves SiteWork intents (`POLICY_ACTION_AUTO_APPROVE`), including one with no measurements, no citations and an error in its evidence.
-  - Policy authoring is now unblocked: use `DECIONIS_POLICY_API_KEY` directly with `DECIONIS_API_BASE`. Creating the key did not create or activate the SiteWork policy.
-  - SiteWork's interlock keeps the light off green when evidence has errors, but the verdicts are not the SiteWork rules until `policies/sitework.md` is active.
-  - That file lists the rules and every context field they read.
-  - Tell me the `policy_version` or `decision_type` to send if it should be pinned (`DECIONIS_DECISION_TYPE`).
+- [x] **SiteWork policy loaded** (29 Oct, 04:05 Stockholm, on your go-ahead). `scripts/policy.py submit` sent bundle `decionis-starter-v2+sitework-1` (artifact `c8cd1370-04db-4fb5-9582-fd0faf062d82`) with `DECIONIS_POLICY_API_KEY`.
+  - It keeps all 10 starter rules verbatim and adds 7 rules scoped to SiteWork action types (`policies/sitework.json`). It became active immediately.
+  - The same errored SHADOW intent that got ALLOW before now gets **ESCALATE** (`POLICY_ACTION_ESCALATE`, `should_execute=false`, dossier `4f0ecb44-eccf-44dd-ba23-1af62b9df591`).
+  - Not yet seen live: the ALLOW and BLOCK rules matching on `context.sitework_*` facts. That needs a real clean inspection.
+- [ ] **The dci workspace is SHADOW-only.** The active bundle is issued with `max_mode: SHADOW`, `max_mode_reason: PROVISIONAL_WORKSPACE_SHADOW_ONLY`. If that caps enforcement, a clean ALLOW will come back with `should_execute=false` and the light cannot turn green in the demo. Lifting the provisional cap is a workspace setting on your side.
 - [ ] **Approve the decking requirement.** Run `uv run python scripts/pack.py search decking "deck board spacing gap between deck boards"`, read the candidates, then approve one with your name and the threshold you accept, in mm. For example, TimberTech states "1/8” to 1/4” side-to-side spacing" (3.17–6.35 mm):
   `uv run python scripts/pack.py approve decking <index> --requirement "..." --threshold '{"gap_mm": {"min": 3.17, "max": 6.35}}' --approver "Your Name"`
   No source found so far states an angle limit, so `angle_deg` stays unchecked unless you approve one.
