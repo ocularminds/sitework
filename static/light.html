@@ -11,8 +11,8 @@
          color: #fff; font: 800 12vw/1 system-ui, sans-serif; transition: background .2s; }
   body.green { background: var(--green); } body.amber { background: var(--amber); } body.red { background: var(--red); }
   body.blue { background: var(--blue); }
-  #label { text-align: center; letter-spacing: .04em; }
-  #sub { font-size: 3vw; font-weight: 500; opacity: .85; margin-top: 2vw; }
+  #label { text-align: center; letter-spacing: .04em; padding: 0 4vw; overflow-wrap: anywhere; }
+  #sub { font-size: 3vw; font-weight: 500; opacity: .85; margin-top: 2vw; text-align: center; }
 </style>
 </head>
 <body class="off">
@@ -20,7 +20,7 @@
 <script>
 function set(light, mode) {
   document.body.className = light.color;
-  document.getElementById("label").textContent = light.label;
+  document.getElementById("label").textContent = light.label.replace(/_/g, " ");
   document.getElementById("sub").textContent = mode === "mock" ? "MOCK GATE · not a Decionis decision"
     : light.color === "blue" ? "Released by a named person, not by the gate" : "Decionis";
 }

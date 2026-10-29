@@ -31,7 +31,9 @@ class LightState(BaseModel):
             return cls(color="green", label="ALLOW")
         if result.decision in ("ESCALATE", "REVIEW_REQUIRED"):
             return cls(color="amber", label=result.decision)
-        return cls(color="red", label=result.decision)  # BLOCK, ERROR, or ALLOW without execute
+        if result.decision == "ALLOW":
+            return cls(color="red", label="NOT RELEASED")  # no execute, or the grant was not claimed and finalized
+        return cls(color="red", label=result.decision)  # BLOCK or ERROR
 
     @classmethod
     def resolved(cls, approver: str, release: bool) -> "LightState":

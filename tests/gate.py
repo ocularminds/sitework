@@ -122,7 +122,7 @@ def test_a_release_that_is_not_finalized_keeps_the_light_off_green():
     v = gate_with(claim_then(refused, [])).propose(bundle(errors=[])).result
     assert v.grant_claimed and not v.grant_finalized and not v.green
     assert "CLAIM_LEASE_EXPIRED" in v.grant_error and "reconcil" in v.grant_error
-    assert LightState.of(v).color == "red"
+    assert LightState.of(v) == LightState(color="red", label="NOT RELEASED")  # never a red "ALLOW" on the phone
 
 
 def test_a_refused_claim_keeps_the_light_off_green_and_finalizes_nothing():
