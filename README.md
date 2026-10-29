@@ -6,7 +6,7 @@ Physical AI that inspects construction work at the hold point, before it disappe
 
 > Models observe → code measures → policy decides → humans sign when the AI isn't sure → everything is provable.
 
-Status: **P4, plumbing with audio.** All three hold points are built: decking, trench entry and plumbing close-in. Eval arrives in P5 (see `IMPLEMENT.md`).
+Status: **P5, evaluation harness.** All three hold points are built, and `scripts/eval.py` scores labelled clips per condition. `eval/results.md` is produced only by running it on real clips (see `IMPLEMENT.md`).
 
 ## Setup
 
@@ -38,6 +38,37 @@ SiteWork uses the `https://dci.decionisedge.com` gateway, explicitly selected on
 8. **Record.** Evidence, request, response and verdict are written to `data/dossiers/<dossier_id>.json`, with the execution token redacted.
 
 Nothing is faked: errors (no marker, model failure, missing key, no approved requirement) are sent to Decionis as facts. `DECIONIS_MODE=mock` exists for tests only and puts a red MOCK GATE banner on every page.
+
+## Evaluation
+
+Label every recorded clip (clean bench, Cosmos variants, outdoor) in `eval/labels.csv`, one row per clip:
+
+| Column | Meaning |
+|---|---|
+| `clip` | Path from the repo root, e.g. `data/clips/rain/deck15.mp4` |
+| `scene` | `decking`, `trench` or `plumbing` |
+| `condition` | `clean`, `rain`, `mud`, `dusk_glare` or `outdoor` |
+| `jurisdiction` | Pack the decision is grounded in (`US` or `SE`) |
+| `gap_min_mm`, `gap_max_mm`, `angle_deg` | Decking truth as set on the bench (`angle_deg` is the joint misalignment for plumbing) |
+| `slope_deg`, `depth_mm` | Trench truth |
+| `seated` | Plumbing truth, `true` or `false` |
+| `expected` | The correct verdict under the approved requirement: `ALLOW`, `BLOCK` or `ESCALATE` |
+| `notes` | Free text |
+
+Leave truth that does not apply blank. A Cosmos variant keeps its clean clip's truth, because edge control keeps the geometry.
+
+```bash
+uv run python scripts/eval.py --run-label "run 1"
+```
+
+The script runs every clip through the full pipeline and the real gate (SHADOW mode, so no grant is claimed). It then:
+- verifies each dossier offline,
+- appends the run to `eval/results.json`,
+- re-renders `eval/results.md` from all runs.
+
+Per condition, the report gives measurement error, correct-verdict rate, the **false-ALLOW rate** (an ALLOW where the label says otherwise), the ESCALATE rate and gate failures, plus gate p95 latency (nearest rank) and dossiers produced and verified.
+
+Where a condition has false ALLOWs, the report suggests the lowest confidence floor that would have escalated them. Changing the floor is a policy change for a person: edit `policies/sitework.json`, run `scripts/policy.py submit --yes`, and re-run eval with a new `--run-label`. Both runs stay in the report. Mock-gate runs are refused for `eval/`.
 
 ## Plumbing: seated by ear, aligned by eye
 
