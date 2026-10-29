@@ -67,7 +67,7 @@ Sources: [Tavily pricing](https://tavily.com/pricing), [Builders Program](https:
 - [x] **Plumbing audio, decided 29 Oct:** the DSP check decides alone (`AUDIO_MODE=dsp`), because Token Factory rejects `input_audio` for every model.
 - [ ] **Calibrate the DSP** (`AUDIO_ONSET_RATIO`, `AUDIO_CENTROID_HZ`) on a few bench recordings of a seated and an unseated joint.
 - [x] **Vision precision, decided 29 Oct:** edge snapping added. Model lines are snapped to image edges and the fit quality is the confidence; no clear edge escalates. On synthetic renders it fixed trench and plumbing angles to within 0.25° (NOTES_FEEDBACK.md).
-- [ ] **Decking locate step.** On all three synthetic decking renders Nemotron VL outlined both boards as one block, so snapping escalates every decking inspection. Check it on real bench frames; if it persists, decide between a sharper prompt and a code step that finds the boards from a rough region.
+- [x] **Decking locate step, fixed 29 Oct.** Asked for edges, Nemotron VL returned box diagonals, so every decking inspection escalated. It now returns each board's four corners and code takes the long sides; all five synthetic decking renders measure after snapping. Still to confirm on real bench frames, where wood grain and shadows add competing edges.
 - [ ] **Calibrate snapping with eval.** `EdgeSnapper.MAX_RESIDUAL_PX` (4 px) and `SNAP_REACH_FRAC` (0.04) are starting values; check them, and the policy's confidence floor, against bench and Cosmos clips.
 - [ ] **Label the clips and run eval (P5).**
   - For every bench, Cosmos and outdoor clip, add a row to `eval/labels.csv` with the truth you set and the verdict you expect (see README, Evaluation).

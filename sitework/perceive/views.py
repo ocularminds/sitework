@@ -1,5 +1,6 @@
 """Strict schemas for what a vision model may return: coordinates and a confidence, nothing else."""
 
+import math
 from typing import Annotated, ClassVar
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -41,27 +42,37 @@ class View(BaseModel):
 
 class Board(BaseModel):
     model_config = ConfigDict(extra="forbid")
-    edges: Annotated[list[Segment], Field(min_length=2, max_length=2)]
+    corners: Annotated[list[Point], Field(min_length=4, max_length=4)]
+
+    @property
+    def edges(self) -> list[Segment]:
+        """The two long sides, running the same way. The corners may come in any order: asked for
+        edges, Nemotron VL answered with box diagonals (top-left to bottom-right) instead."""
+        cx, cy = (sum(p[i] for p in self.corners) / 4 for i in (0, 1))
+        c = sorted(self.corners, key=lambda p: math.atan2(p[1] - cy, p[0] - cx))
+        side = [math.dist(c[i], c[(i + 1) % 4]) for i in range(4)]
+        i = 0 if side[0] + side[2] >= side[1] + side[3] else 1
+        return [[c[i], c[i + 1]], [c[(i + 3) % 4], c[i + 2]]]
 
 
 class DeckingView(View):
-    """Each visible deck board as its two long edges, each edge as two endpoints in pixels."""
+    """Each visible deck board as its four corners in pixels; its edges are the two long sides."""
 
     boards: Annotated[list[Board], Field(min_length=2)]
 
     def points(self) -> list[Point]:
-        return [p for b in self.boards for edge in b.edges for p in edge]
+        return [p for b in self.boards for p in b.corners]
 
     def segments(self) -> list[Segment]:
         return [edge for b in self.boards for edge in b.edges]
 
     PROMPT: ClassVar[str] = (
         "You locate deck boards for a measurement program. The image is {width}x{height} pixels, "
-        "origin top-left. For every deck board that is fully visible, return its two long edges. "
-        "Give each edge as its two endpoints [x, y] in pixels, placed where the edge meets the "
-        "board's ends. Ignore the black-and-white square marker. Reply with JSON only, exactly: "
-        '{{"boards": [{{"edges": [[[x, y], [x, y]], [[x, y], [x, y]]]}}], "confidence": c}} '
-        "where c is 0 to 1: how sure you are that every edge is placed on the true board edge."
+        "origin top-left. Each deck board is a long rectangle; neighbouring boards are separated by a "
+        "narrow gap. For every deck board that is fully visible, return its four corners [x, y] in "
+        "pixels, in order around the board. Ignore the black-and-white square marker. Reply with JSON "
+        'only, exactly: {{"boards": [{{"corners": [[x, y], [x, y], [x, y], [x, y]]}}], "confidence": c}} '
+        "where c is 0 to 1: how sure you are that every corner is on the true board corner."
     )
 
 

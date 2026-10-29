@@ -34,14 +34,19 @@ def rotate(p, deg, origin):
     return [origin[0] + x * math.cos(a) - y * math.sin(a), origin[1] + x * math.sin(a) + y * math.cos(a)]
 
 
-def deck_view(angle_deg: float, gap_mm: float, confidence: float = 0.9) -> DeckingView:
-    """Two 30 mm boards, 200 mm long; the second is rotated about its near-left corner."""
-    b1 = [[[60, 60], [260, 60]], [[60, 90], [260, 90]]]
+def deck_boards(angle_deg: float, gap_mm: float) -> list[list]:
+    """Two 30 mm boards, 200 mm long, as corners (mm); the second is rotated about its near-left corner."""
+    b1 = [[60, 60], [260, 60], [260, 90], [60, 90]]
     origin = (60, 90 + gap_mm)
-    b2 = [[rotate(p, angle_deg, origin) for p in edge]
-          for edge in ([[60, 90 + gap_mm], [260, 90 + gap_mm]], [[60, 120 + gap_mm], [260, 120 + gap_mm]])]
+    b2 = [rotate(p, angle_deg, origin) for p in [[60, 90 + gap_mm], [260, 90 + gap_mm], [260, 120 + gap_mm], [60, 120 + gap_mm]]]
+    return [b1, b2]
+
+
+def deck_view(angle_deg: float, gap_mm: float, confidence: float = 0.9) -> DeckingView:
+    """deck_boards() in pixels, boards unordered and corners starting mid-way round, on purpose."""
+    b1, b2 = deck_boards(angle_deg, gap_mm)
     return DeckingView(confidence=confidence, boards=[
-        {"edges": [to_px(edge).tolist() for edge in board]} for board in (b2, b1)])  # unordered on purpose
+        {"corners": to_px(board[2:] + board[:2]).tolist()} for board in (b2, b1)])
 
 
 def trench_view(slope_deg: float, depth_mm: float, confidence: float = 0.9):
@@ -107,10 +112,7 @@ BOARD = (60, 110, 170)
 
 def deck_scene(angle_deg: float, gap_mm: float):
     """An image with two boards drawn exactly where deck_view() says they are, and that view."""
-    b1 = [[60, 60], [260, 60], [260, 90], [60, 90]]
-    origin = (60, 90 + gap_mm)
-    b2 = [rotate(p, angle_deg, origin) for p in [[60, 90 + gap_mm], [260, 90 + gap_mm], [260, 120 + gap_mm], [60, 120 + gap_mm]]]
-    return render([(b1, BOARD), (b2, BOARD)]), deck_view(angle_deg, gap_mm)
+    return render([(board, BOARD) for board in deck_boards(angle_deg, gap_mm)]), deck_view(angle_deg, gap_mm)
 
 
 def trench_scene(slope_deg: float, depth_mm: float):
