@@ -120,8 +120,6 @@ class Inspection:
             samples.append(sample)
             if not overlay or not overlay.segments:
                 overlay = Overlay.of(f, scales[f.index], sample.segments)
-        if vision is not None:
-            ev.models["vlm"] = vision.model
         ev.measurements = self.measurer.combine(samples, self.measured_by) + heard
         ev.citations = self._ground(jurisdiction, ev.errors)
         return self._decide(ev.build(), jurisdiction, overlay)
@@ -192,6 +190,7 @@ class Inspection:
     def _locate(self, vision: VisionModel | None, frames: list[Frame], ev: EvidenceBuilder) -> dict[int, View]:
         if vision is None or not frames:
             return {}
+        ev.models["vlm"] = vision.model
         views = {}
         with ThreadPoolExecutor(max_workers=len(frames)) as pool:
             futures = {f.index: pool.submit(vision.locate, f, self.view) for f in frames}

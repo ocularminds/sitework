@@ -32,8 +32,10 @@ class FakeVision:
 
     def __init__(self, view=None, fail=False):
         self.view, self.fail = view, fail
+        self.calls = []
 
     def locate(self, frame, schema):
+        self.calls.append(frame.index)
         if self.fail:
             raise VisionError("invalid reply after retry: boards: too short")
         return self.view
@@ -94,6 +96,15 @@ def test_missing_marker_and_missing_citation_reach_the_gate_as_errors(tmp_path):
     assert any(e.startswith("grounding:") for e in r.errors)
     sent = flow.store.get(r.record_id).exchange.request["context"]["sitework"]
     assert sent["summary"]["error_count"] == len(r.errors) and sent["citations"] == []
+
+
+def test_uncalibrated_input_does_not_claim_an_unused_vision_model(tmp_path):
+    vision = FakeVision(deck_view(0.0, 5.0))
+    flow = inspection(tmp_path, vision)
+    r = flow.run(StillSource(np.full((480, 640, 3), 255, np.uint8)), "outdoor", "US")
+    assert vision.calls == []
+    assert flow.store.get(r.record_id).evidence.models == {}
+    assert sum(e.startswith("fiducial[") for e in r.errors) == 3
 
 
 def test_vision_failure_and_missing_key_are_recorded_not_raised(tmp_path):
