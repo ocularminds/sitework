@@ -1,6 +1,7 @@
 """Tavily wrapper. Retrieved text is data: callers keep only structured fields."""
 
 import hashlib
+import re
 from datetime import datetime, timezone
 from urllib.parse import urlparse
 
@@ -65,6 +66,34 @@ class WebClient:
         retrieved = datetime.now(timezone.utc)
         return [Page(url=r["url"], text=r.get("raw_content") or "", retrieved_at=retrieved)
                 for r in raw.get("results", []) if r.get("raw_content")]
+
+    def map(self, seed: str, domains: list[str], instructions: str, limit: int = 30) -> list[str]:
+        """URLs under an allowlisted seed that match the topic (no page content)."""
+        raw = self._client.map(url=seed, max_depth=2, limit=limit, instructions=instructions,
+                               select_domains=_domain_patterns(domains), allow_external=False)
+        return [u for u in raw.get("results", []) if allowed(urlparse(u).netloc.lower(), domains)]
+
+    def crawl(self, seed: str, domains: list[str], instructions: str, limit: int = 10) -> list[Page]:
+        """Text of allowlisted pages reached from a seed, guided by the topic."""
+        raw = self._client.crawl(url=seed, max_depth=2, limit=limit, instructions=instructions,
+                                 select_domains=_domain_patterns(domains), allow_external=False,
+                                 extract_depth="basic", format="text")
+        retrieved = datetime.now(timezone.utc)
+        pages = [Page(url=r["url"], text=r.get("raw_content") or "", retrieved_at=retrieved)
+                 for r in raw.get("results", []) if r.get("raw_content")]
+        return [p for p in pages if allowed(p.domain, domains)]
+
+    def research(self, question: str, schema: dict) -> str:
+        """Start a Tavily Research task with a structured output schema; returns its request id."""
+        return self._client.research(input=question, model="mini", output_schema=schema)["request_id"]
+
+    def research_result(self, request_id: str) -> dict:
+        return self._client.get_research(request_id)
+
+
+def _domain_patterns(domains: list[str]) -> list[str]:
+    """Tavily select_domains takes regexes: each domain and its subdomains."""
+    return [rf"^(.+\.)?{re.escape(d)}$" for d in domains]
 
 
 def allowed(domain: str, allowlist: list[str]) -> bool:

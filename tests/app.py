@@ -45,3 +45,11 @@ def test_unbuilt_scene_and_unknown_record_are_404(client):
 
 def test_pages_are_served(client):
     assert "SiteWork" in client.get("/").text and "SiteWork Light" in client.get("/light").text
+
+
+def test_mock_records_cannot_be_verified_and_proposals_list(client):
+    r = client.post("/api/inspect", json={"scene": "decking", "condition": "clean"}).json()
+    assert client.post(f"/api/dossiers/{r['record_id']}/verify").status_code == 409
+    assert client.get("/api/proposals").json() == []
+    assert client.post("/api/proposals/nope/resolve", json={"approve": True, "approver": "A"}).status_code == 409
+    assert "Decision dossier" in client.get("/dossier").text

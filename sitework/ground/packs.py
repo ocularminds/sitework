@@ -27,10 +27,27 @@ class Requirement(BaseModel):
                         source_domain=c.source_domain)
 
 
+class Source(BaseModel):
+    """A page the pack was built from: where, when, how, and the hash of the text as read."""
+
+    scene: str
+    url: str
+    content_sha256: str
+    retrieved_at: datetime
+    via: str  # "crawl", "map+extract" or "extract"
+
+
 class Pack(BaseModel):
     jurisdiction: str
+    authority: str = ""
     allowlist: dict[str, list[str]] = Field(default_factory=dict)  # scene -> domains
+    seeds: dict[str, list[str]] = Field(default_factory=dict)  # scene -> start URLs on the allowlist
+    sources: list[Source] = Field(default_factory=list)
     requirements: list[Requirement] = Field(default_factory=list)
+
+    def record(self, source: Source) -> None:
+        """Keep one entry per (scene, url): the latest read wins."""
+        self.sources = [s for s in self.sources if (s.scene, s.url) != (source.scene, source.url)] + [source]
 
     def citations(self, scene: str) -> list[Citation]:
         return [r.citation(self.jurisdiction) for r in self.requirements if r.scene == scene]
