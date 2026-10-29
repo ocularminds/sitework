@@ -14,7 +14,14 @@ data/clips/RUN_INFO.md             which cloud, instance and GPU produced each v
 data/clips/.work/                  ledger, prepared clips, Cosmos specs, raw outputs and logs
 ```
 
-Edge control is computed from each clean clip, so board edges, trench walls and the fiducial keep their geometry while the prompt changes the conditions. The ground-truth labels of a clean clip therefore carry over to its variants. Check that the ArUco marker is still detectable in each variant before you trust it. If it isn't, SiteWork's pipeline records a fiducial error and the gate escalates, which is the behaviour the stress test is meant to show.
+Edge control guides generation toward each clean clip's geometry, but generated
+board edges, trench slopes or marker modules can still change. Review the
+geometry and marker in every variant before carrying over source labels. Record
+changed or unmeasurable geometry explicitly. The generated videos have no audio;
+keep original recordings for the plumbing audio evaluation.
+
+The [current handoff](../cosmos_transfer/README.md) records the AWS quota requests
+and links the printable bench worksheet. No SiteWork GPU inference has run yet.
 
 ## Requirements
 
@@ -63,7 +70,7 @@ Cosmos keeps the input's frame rate and generates in 93-frame chunks, so `run.py
 2. **Nebius AI Cloud:**
    - Activate billing.
    - Make sure the project has quota for one GPU of the platform you pick.
-3. **AWS fallback:** in parallel, file the GPU quota request now (see below), because new accounts usually start at 0.
+3. **AWS fallback:** the 16-vCPU On-Demand P and P Spot requests in `eu-north-1` are already filed, both `CASE_OPENED`. Check approval using the [handoff commands](../cosmos_transfer/README.md); do not submit duplicates.
 4. **Hugging Face:**
    - Create a Read token.
    - Accept the license linked above.
@@ -164,6 +171,12 @@ To resume after a preemption or a dropped SSH session, rerun the same command:
 - Finished variants are kept.
 - Partial ones are cleared and regenerated.
 - A variant that fails twice is marked `failed`. Raise `--max-attempts` to retry it, and check the log first; for example, the Cosmos guardrail can reject an output.
+
+Resume only with the same source clips, captions, settings and Cosmos revision.
+The current ledger identifies work by clip name and condition, so it does not
+detect changed inputs or a deleted/corrupted delivered video. Use a separate
+`--work` and `--output` directory for a changed batch, keep a batch's work on the
+same cloud, and check the delivered files before using them in evaluation.
 
 ## Copy results back
 
