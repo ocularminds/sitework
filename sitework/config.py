@@ -59,9 +59,11 @@ class Settings(BaseSettings):
     decionis_gateway_fallback: str = ""
     decionis_mode: Literal["live", "mock"] = "live"
     # Gate calls: Agent-Safe Intent v1 through the dci gateway. The intent's tenant_id is
-    # the organization UUID (DECIONIS_ORG_ID); a granted ALLOW is claimed before going green.
+    # the organization UUID (DECIONIS_ORG_ID); a granted ALLOW is claimed, and the release
+    # finalized inside the claim lease, before going green.
     decionis_gate_route: str = "/v1/authority/enforce-and-bind"
-    decionis_claim_route: str = "/v1/execution/consume-token"
+    decionis_claim_route: str = "/v1/execution/claim-token"
+    decionis_finalize_route: str = "/v1/execution/finalize-token"
     decionis_gate_mode: Literal["SHADOW", "PARALLEL", "ENFORCEMENT"] = "ENFORCEMENT"
     decionis_decision_type: str = ""  # sets the intent's policy_projection when non-empty
     decionis_actor_id: str = "sitework-inspector"
@@ -77,6 +79,7 @@ class Settings(BaseSettings):
     audio_centroid_hz: float = 1500.0
     sitework_jurisdiction: str = "US"
     fiducial_mm: float = 40.0  # printed ArUco DICT_4X4_50 side length
+    fiducial_id: int = 0  # the printed marker's ID; any other ID (a stray marker, texture decoded as one) is ignored
     data_dir: Path = ROOT / "data"
 
 

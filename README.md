@@ -35,7 +35,7 @@ SiteWork uses the `https://dci.decionisedge.com` gateway, explicitly selected on
 5. **Measure.** Code computes the narrowest and widest joint gap (mm) and the largest angle between adjacent boards (°) on the snapped lines. Confidence = point quality × marker quality × agreement across frames.
 6. **Ground.** Decisions read `data/packs/<jurisdiction>.json`, never the live web. `scripts/pack.py search` proposes clauses from allowlisted pages via Tavily search and extract. `scripts/pack.py approve` adds one only with a named approver and a threshold.
 7. **Decide.** An [Agent-Safe Intent v1](https://github.com/decionis/agent-safe-pipeline/blob/master/spec/intent/v1/README.md) goes to `POST /v1/authority/enforce-and-bind` through dci. The verdict (`ALLOW`, `BLOCK`, `ESCALATE`, `ERROR`) is shown verbatim. The rules the policy should apply are drafted in `policies/sitework.md`.
-8. **Act.** The light turns green only for `ALLOW` with `should_execute`, and only after SiteWork claims the single-use grant (`/v1/execution/consume-token`). SiteWork never claims a grant when its own evidence carries errors.
+8. **Act.** The light turns green only for `ALLOW` with `should_execute`, and only after SiteWork claims the single-use grant (`/v1/execution/claim-token`) and reports the release `COMMITTED` (`/v1/execution/finalize-token`) inside the claim's 30-second lease. A claim left unfinalized goes `INDETERMINATE`, and Decionis then refuses every later claim on that target (`CURRENT_STATE_UNRESOLVED`) until it is reconciled. SiteWork never claims a grant when its own evidence carries errors.
 9. **Record.** Evidence, request, response and verdict are written to `data/dossiers/<dossier_id>.json`, with the execution token redacted.
 
 Nothing is faked: errors (no marker, model failure, missing key, no approved requirement) are sent to Decionis as facts. `DECIONIS_MODE=mock` exists for tests only and puts a red MOCK GATE banner on every page.
@@ -146,7 +146,7 @@ physical capture has been completed by this setup work.
 | `DECIONIS_GATE_MODE` | `ENFORCEMENT` (default), `SHADOW` or `PARALLEL` |
 | `DECIONIS_DECISION_TYPE` | Optional: sets the intent's `policy_projection.decision_type` |
 | `SITEWORK_SOURCE` | Webcam index (default `0`) or a video file to replay |
-| `SITEWORK_SAMPLES`, `SITEWORK_JURISDICTION`, `FIDUCIAL_MM` | Frames per inspection (3), pack to read (`US`), marker side in mm (40) |
+| `SITEWORK_SAMPLES`, `SITEWORK_JURISDICTION`, `FIDUCIAL_MM`, `FIDUCIAL_ID` | Frames per inspection (3), pack to read (`US`), marker side in mm (40), the printed marker's ID (0); any other `DICT_4X4_50` ID in the frame is ignored |
 | `SITEWORK_AUDIO_SOURCE`, `SITEWORK_AUDIO_SECONDS` | Plumbing audio: `mic`, `mic:<n>` or a file (default: the replayed clip's track, else the default mic); seconds recorded (3) |
 | `AUDIO_MODE` | `dsp` (default): the DSP decides. `model+dsp`: an audio model must agree with it |
 | `AUDIO_ONSET_RATIO`, `AUDIO_CENTROID_HZ` | DSP seat-click thresholds (8, 1500 Hz); calibrate on bench recordings |
@@ -196,7 +196,7 @@ flowchart LR
   watch --> upd[policy.update intent]
   intent --> gate{Decionis via dci:<br/>enforce-and-bind}
   upd --> gate
-  gate -->|ALLOW + grant claimed| green[Light green]
+  gate -->|ALLOW + grant claimed and finalized| green[Light green]
   gate -->|ESCALATE| person[Named person: release = blue, keep = red]
   gate -->|BLOCK / ERROR / no decision| red[Light red]
   gate --> dossier[(Ed25519 dossier, verified offline)]

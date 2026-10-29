@@ -85,33 +85,58 @@ def test_request_is_an_agent_safe_intent_with_a_matching_hash():
     assert len(sent) == 1  # no claim for a BLOCK
 
 
-def test_allow_is_green_only_after_the_grant_is_claimed():
+CLAIM_TOKEN = "c" * 43
+
+
+def claim_then(finalize: httpx.Response, sent: list):
+    def respond(request):
+        sent.append(request)
+        if request.url.path.endswith("/claim-token"):
+            return httpx.Response(200, json={"valid": True, "claims": {"decision_id": "dec_1"},
+                                             "claim_token": CLAIM_TOKEN})
+        if request.url.path.endswith("/finalize-token"):
+            return finalize
+        return httpx.Response(200, json=allow())
+    return respond
+
+
+def test_allow_is_green_only_after_the_grant_is_claimed_and_the_release_finalized():
+    sent = []
+    finalized = httpx.Response(200, json={"finalized": True, "outcome": "COMMITTED"})
+    exchange = gate_with(claim_then(finalized, sent)).propose(bundle(errors=[]))
+    first, claim, final = (json.loads(r.content) for r in sent)
+    assert [r.url.path for r in sent[1:]] == ["/v1/execution/claim-token", "/v1/execution/finalize-token"]
+    assert claim["execution_token"] == "tok_secret" and claim["intent_hash"] == first["intent_hash"]
+    assert claim["intent"]["intent_id"] == first["intent_id"]
+    assert claim["consumed_by"] == "sitework-inspector" and claim["commit_correlation_id"] == first["intent_id"]
+    assert final == {"execution_token": "tok_secret", "claim_token": CLAIM_TOKEN, "outcome": "COMMITTED",
+                     "commit_correlation_id": first["intent_id"]}
+    assert exchange.result.grant_claimed and exchange.result.grant_finalized and exchange.result.green
+    assert exchange.finalize_response["finalized"] is True
+    assert exchange.response["execution_token"] == "<redacted>"
+
+
+def test_a_release_that_is_not_finalized_keeps_the_light_off_green():
+    """An unfinalized claim goes INDETERMINATE and blocks the target's next claim, so say so."""
+    refused = httpx.Response(409, json={"finalized": False, "reason_codes": ["CLAIM_LEASE_EXPIRED"]})
+    v = gate_with(claim_then(refused, [])).propose(bundle(errors=[])).result
+    assert v.grant_claimed and not v.grant_finalized and not v.green
+    assert "CLAIM_LEASE_EXPIRED" in v.grant_error and "reconcil" in v.grant_error
+    assert LightState.of(v).color == "red"
+
+
+def test_a_refused_claim_keeps_the_light_off_green_and_finalizes_nothing():
     sent = []
 
     def respond(request):
         sent.append(request)
-        if request.url.path.endswith("/consume-token"):
-            return httpx.Response(200, json={"valid": True, "claims": {"decision_id": "dec_1"}})
-        return httpx.Response(200, json=allow())
-
-    exchange = gate_with(respond).propose(bundle(errors=[]))
-    claim = json.loads(sent[1].content)
-    first = json.loads(sent[0].content)
-    assert claim["execution_token"] == "tok_secret" and claim["intent_hash"] == first["intent_hash"]
-    assert claim["intent"]["intent_id"] == first["intent_id"]
-    assert exchange.result.grant_claimed and exchange.result.green
-    assert exchange.response["execution_token"] == "<redacted>"
-
-
-def test_a_refused_claim_keeps_the_light_off_green():
-    def respond(request):
-        if request.url.path.endswith("/consume-token"):
-            return httpx.Response(409, json={"valid": False, "reason_codes": ["TOKEN_ALREADY_CONSUMED"]})
+        if request.url.path.endswith("/claim-token"):
+            return httpx.Response(409, json={"valid": False, "reason_codes": ["CURRENT_STATE_UNRESOLVED"]})
         return httpx.Response(200, json=allow())
 
     v = gate_with(respond).propose(bundle()).result
-    assert v.decision == "ALLOW" and not v.green and "TOKEN_ALREADY_CONSUMED" in v.grant_error
-    assert LightState.of(v).color == "red"
+    assert v.decision == "ALLOW" and not v.green and "CURRENT_STATE_UNRESOLVED" in v.grant_error
+    assert LightState.of(v).color == "red" and len(sent) == 2
 
 
 def test_allow_on_evidence_with_errors_is_never_claimed():

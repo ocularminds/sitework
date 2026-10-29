@@ -1,5 +1,6 @@
 import math
 
+import cv2
 import numpy as np
 import pytest
 
@@ -26,6 +27,17 @@ def test_fiducial_recovers_millimetres_through_perspective(scale):
 
 def test_missing_marker_returns_none():
     assert Fiducial().detect(np.full((480, 640, 3), 255, np.uint8)) is None
+
+
+def test_only_the_printed_marker_id_gives_a_scale():
+    """Ground texture can decode as some 4x4 marker (an outdoor clip gave ID 17 on asphalt), so
+    the inspection only accepts the printed marker's ID."""
+    img = np.full((480, 640, 3), 255, np.uint8)
+    stray = cv2.aruco.generateImageMarker(cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_4X4_50), 17, 200)
+    img[140:340, 220:420] = stray[..., None]
+    assert Fiducial(40.0, 0).detect(img) is None
+    assert Fiducial(40.0).detect(img).marker_id == 17
+    assert Fiducial(40.0, 0).detect(scene_with_marker()).marker_id == 0
 
 
 @pytest.mark.parametrize("angle,gap", [(0.0, 5.0), (3.0, 5.0), (8.0, 3.0)])

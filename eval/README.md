@@ -37,8 +37,9 @@ step is skipped when no frame has a calibration marker; the dossier must not
 claim that an unused vision model ran.
 
 `sw-rig04.mp4` reports an unreadable final frame (index 570). The review used the
-preceding readable frame for its contact sheet; the existing file-replay pipeline
-returns only its two readable samples. The originals were not trimmed, repaired
+preceding readable frame for its contact sheet; the file-replay pipeline used in the
+completed run returned only its two readable samples (it now steps back to a frame
+that reads; see the every-frame check below). The originals were not trimmed, repaired
 or transcoded. The three selected clips yield eight readable pipeline samples
 per jurisdiction, all without a detected marker.
 
@@ -66,3 +67,28 @@ Measurement errors and seating accuracy are unavailable because their ground
 truth fields are blank. The DSP processed audio; no Nemotron vision inference
 ran because no sampled frame had a calibration marker. These rates apply only
 to the six paired refusal cases and do not estimate accuracy on valid inspections.
+
+## Every-frame check (29 October)
+
+A second pass over all ten files, after the run above:
+
+- **Markers.** Every second decoded frame of each file, and every frame of
+  `sw-rig09.mp4`, was searched for `DICT_4X4_50` markers. None contains the printed
+  marker. In `sw-rig09.mp4`, asphalt texture decoded as **ID 17** twice: frame 35
+  (31 × 5 px) and frame 184 (about 15 px), with scale quality 0.05 and 0.17.
+  SiteWork used to accept any ID; it now accepts only the printed marker's
+  (`FIDUCIAL_ID`, 0), so these are ignored.
+- **Sampling.** Seeking to frames 569 and 570 of `sw-rig04.mp4` fails, although
+  playback decodes them. Replay now steps back to the nearest frame that reads
+  (568) and raises an error if none within five frames does. Frame 568 has no
+  marker either.
+- **Seat-click DSP.** On the first 10 s of each file's audio, the starting
+  thresholds (onset ratio 8, centroid 1500 Hz) read seated on three files:
+  `sw-rig02` (ratio 8.17, 1612 Hz, confidence 0.04), `sw-rig04` (8.82, 2457 Hz,
+  0.21) and `sw-rig07` (9.45, 2254 Hz, 0.36). They read not seated on the other
+  seven. No seating event is established in these files, so these readings cannot
+  be scored. They show that outdoor sounds can cross the starting thresholds.
+  Every such reading is below the policy floors, which start at 0.70.
+
+These findings change no recorded result. The six labelled rows still have no
+marker, so their ESCALATE verdicts stand.
