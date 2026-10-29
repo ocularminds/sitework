@@ -42,21 +42,26 @@ class AuthorityRequest:
         self.settings = settings
 
     def build(self, bundle: EvidenceBundle, correlation_id: str) -> tuple[dict, dict]:
-        s = self.settings
-        producer = IntentProducer(
-            s.decionis_org_id, {"id": s.decionis_actor_id, "type": "AI_AGENT", "runtime": "sitework"},
-            s.decionis_intent_ttl_s)
+        """An inspection: the evidence bundle, its flat facts and their checks."""
         facts = Facts(bundle)
-        binding = producer.bind(
+        return self.intent(
             action={"type": bundle.action, "resource": f"sitework/{bundle.scene}",
                     "parameters": {"scene": bundle.scene, "condition": bundle.condition,
                                    "evidence_sha256": bundle_sha256(bundle)}},
             context={**facts.flat(),
                      "sitework": {**bundle.model_dump(mode="json"), "summary": facts.summary(),
                                   "checks": facts.checks()}},
-            target={"system": "sitework", "operation": bundle.action, "endpoint": "stack-light"},
-            idempotency_key=correlation_id,
+            endpoint="stack-light", correlation_id=correlation_id,
         )
+
+    def intent(self, action: dict, context: dict, endpoint: str, correlation_id: str) -> tuple[dict, dict]:
+        """Any SiteWork action as an Agent-Safe Intent v1 binding plus the request body."""
+        s = self.settings
+        producer = IntentProducer(
+            s.decionis_org_id, {"id": s.decionis_actor_id, "type": "AI_AGENT", "runtime": "sitework"},
+            s.decionis_intent_ttl_s)
+        binding = producer.bind(action=action, context=context, idempotency_key=correlation_id,
+                                target={"system": "sitework", "operation": action["type"], "endpoint": endpoint})
         if s.decionis_decision_type:
             binding["policy_projection"] = {"decision_type": s.decionis_decision_type,
                                             "transaction_type": None, "workflow_key": None, "channel": None}
@@ -74,11 +79,19 @@ class Gate:
         self.requests = AuthorityRequest(settings)
 
     def propose(self, bundle: EvidenceBundle) -> Exchange:
-        correlation_id = str(uuid.uuid4())
+        cid = str(uuid.uuid4())
+        return self._send(cid, lambda: self.requests.build(bundle, cid), bundle.errors)
+
+    def propose_intent(self, action: dict, context: dict, endpoint: str, errors: list[str] = ()) -> Exchange:
+        """A non-inspection action such as `policy.update`."""
+        cid = str(uuid.uuid4())
+        return self._send(cid, lambda: self.requests.intent(action, context, endpoint, cid), list(errors))
+
+    def _send(self, cid: str, build, errors: list[str]) -> Exchange:
         try:
-            binding, body = self.requests.build(bundle, correlation_id)
+            binding, body = build()
         except IntentError as exc:
-            return Exchange(correlation_id=correlation_id, request={},
+            return Exchange(correlation_id=cid, request={},
                             result=GateFailure(error=f"intent refused: {exc}", latency_ms=0.0))
         start = time.perf_counter()
         probe = self.client.post(self.settings.decionis_gate_route, body)
@@ -87,13 +100,13 @@ class Gate:
         result = self.interpret(probe, latency)
         claim = None
         if isinstance(result, Verdict) and result.decision == "ALLOW" and result.should_execute:
-            if bundle.errors:
+            if errors:
                 # Interlock: the verdict stays ALLOW verbatim, but SiteWork will not execute an
                 # action whose own evidence it knows is incomplete. The grant expires unused.
-                result.grant_error = f"not claimed: evidence carries {len(bundle.errors)} error(s)"
+                result.grant_error = f"not claimed: evidence carries {len(errors)} error(s)"
             else:
                 claim = self._claim(result, response or {}, binding, body["intent_hash"])
-        return Exchange(correlation_id=correlation_id, request=body, response=_redact(response),
+        return Exchange(correlation_id=cid, request=body, response=_redact(response),
                         claim_response=claim, result=result)
 
     def _claim(self, verdict: Verdict, response: dict, binding: dict, digest: str) -> dict | None:
@@ -143,15 +156,22 @@ class MockGate:
         self.decision = decision
 
     def propose(self, bundle: EvidenceBundle) -> Exchange:
-        correlation_id = str(uuid.uuid4())
+        cid = str(uuid.uuid4())
+        return self._answer(cid, lambda: self.requests.build(bundle, cid))
+
+    def propose_intent(self, action: dict, context: dict, endpoint: str, errors: list[str] = ()) -> Exchange:
+        cid = str(uuid.uuid4())
+        return self._answer(cid, lambda: self.requests.intent(action, context, endpoint, cid))
+
+    def _answer(self, cid: str, build) -> Exchange:
         allow = self.decision == "ALLOW"
-        verdict = Verdict(decision=self.decision, reason="MOCK GATE", dossier_id=f"mock-{correlation_id}",
+        verdict = Verdict(decision=self.decision, reason="MOCK GATE", dossier_id=f"mock-{cid}",
                           should_execute=allow, grant_claimed=allow, latency_ms=0.0)
         try:
-            request = self.requests.build(bundle, correlation_id)[1]
+            request = build()[1]
         except IntentError as exc:
             request = {"refused": str(exc)}
-        return Exchange(correlation_id=correlation_id, request=request, result=verdict)
+        return Exchange(correlation_id=cid, request=request, result=verdict)
 
 
 def _redact(response: dict | None) -> dict | None:

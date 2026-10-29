@@ -1,0 +1,151 @@
+{
+  "jurisdiction": "SE",
+  "authority": "Arbetsmilj\u00f6verket AFS 2023:13 (schaktning); Svenskt Tr\u00e4 installation guidance (trall)",
+  "allowlist": {
+    "decking": [
+      "svenskttra.se",
+      "traguiden.se"
+    ],
+    "trench": [
+      "av.se"
+    ]
+  },
+  "seeds": {
+    "decking": [
+      "https://www.svenskttra.se/siteassets/5-publikationer/pdfer/montering-av-trall-2021-publikation.pdf"
+    ],
+    "trench": [
+      "https://www.av.se/halsa-och-sakerhet/skydd-mot-skada-genom-ras",
+      "https://www.av.se/arbetsmiljoarbete-och-inspektioner/publikationer/foreskrifter/afs-202313"
+    ]
+  },
+  "sources": [
+    {
+      "scene": "trench",
+      "url": "https://www.av.se/arbetsmiljoarbete-och-inspektioner/publikationer/foreskrifter",
+      "content_sha256": "7280492a4e465c31dcdc40cabe734c302b7d727454d6e27756cde9cd6ff08114",
+      "retrieved_at": "2026-10-29T03:17:22.276367Z",
+      "via": "crawl"
+    },
+    {
+      "scene": "trench",
+      "url": "https://www.av.se/arbetsmiljoarbete-och-inspektioner/publikationer/foreskrifter/afs-202312",
+      "content_sha256": "18b48639984059299d3381b6d9219839f805e1e332dcb1a84f1775c30110acbe",
+      "retrieved_at": "2026-10-29T03:17:22.276367Z",
+      "via": "crawl"
+    },
+    {
+      "scene": "trench",
+      "url": "https://www.av.se/halsa-och-sakerhet/skydd-mot-skada-genom-ras",
+      "content_sha256": "23c93e78e73722a8ca68d367f5d7c60fbab83271a0dc3f5939f49bf5d7f65ed7",
+      "retrieved_at": "2026-10-29T03:17:22.276367Z",
+      "via": "crawl"
+    },
+    {
+      "scene": "trench",
+      "url": "https://www.av.se/produktion-industri-och-logistik/bygg",
+      "content_sha256": "9bfa4ac9b4cdfaf797eeaf941d915c18fbd2d566efdec8ccbdcaa3353db75ded",
+      "retrieved_at": "2026-10-29T03:17:22.797516Z",
+      "via": "map+extract"
+    },
+    {
+      "scene": "trench",
+      "url": "https://www.av.se/produktion-industri-och-logistik/bygg/planera-och-ordna-byggarbetsplatsen-och-arbetet",
+      "content_sha256": "cdb24b3936e5393bfa7e90aad87b05342b0916665ac893082e8a12f1e9bf3115",
+      "retrieved_at": "2026-10-29T03:17:22.797516Z",
+      "via": "map+extract"
+    },
+    {
+      "scene": "trench",
+      "url": "https://www.av.se/arbetsmiljoarbete-och-inspektioner/publikationer/foreskrifter/afs-202310",
+      "content_sha256": "7fb1c5f1c5eea107b5aec58c3a88c86ec92969dd97b4aec21ec35a553412026f",
+      "retrieved_at": "2026-10-29T03:17:49.765190Z",
+      "via": "crawl"
+    },
+    {
+      "scene": "trench",
+      "url": "https://www.av.se/arbetsmiljoarbete-och-inspektioner/publikationer/foreskrifter/afs-202311",
+      "content_sha256": "bba8737775b176f316d372e6d578aae8b68f62017cf6d6b794f0626d8d8f172d",
+      "retrieved_at": "2026-10-29T03:17:49.765190Z",
+      "via": "crawl"
+    },
+    {
+      "scene": "trench",
+      "url": "https://www.av.se/arbetsmiljoarbete-och-inspektioner/publikationer/foreskrifter/afs-202313",
+      "content_sha256": "9a80a12adf811d373a9b0844c9b04a44cb40eb01e01d0507a38055bc1568cc77",
+      "retrieved_at": "2026-10-29T03:17:49.765190Z",
+      "via": "crawl"
+    },
+    {
+      "scene": "trench",
+      "url": "https://www.av.se/arbetsmiljoarbete-och-inspektioner/publikationer/foreskrifter/afs-20233",
+      "content_sha256": "77865a91a9aecec326f2288961f8b3c9ca77a68789f95c6ab21564830eb93905",
+      "retrieved_at": "2026-10-29T03:17:49.765190Z",
+      "via": "crawl"
+    },
+    {
+      "scene": "trench",
+      "url": "https://www.av.se/globalassets/filer/checklistor/av_checklista_projektering_a3_formular_webb.pdf",
+      "content_sha256": "22e3602e9f171629a7c13eab68c95b2493498eaf9c318e0f3c8d93d3a417ceda",
+      "retrieved_at": "2026-10-29T03:17:49.765190Z",
+      "via": "crawl"
+    },
+    {
+      "scene": "trench",
+      "url": "https://www.av.se/globalassets/filer/publikationer/foreskrifter/andringsforeskrift/projektering-och-byggarbetsmiljosamordning-grundlaggande-skyldigheter-andring-i-afs2023-3-afs2024-1.pdf",
+      "content_sha256": "4edd8b2fe9d3d96fcf1791aaa5f956f3b557eea77e66e3854597dd68d14d52c8",
+      "retrieved_at": "2026-10-29T03:17:49.765190Z",
+      "via": "crawl"
+    },
+    {
+      "scene": "trench",
+      "url": "https://www.av.se/globalassets/filer/publikationer/foreskrifter/andringsforeskrift/risker-i-arbetsmiljon-afs2025-1-andring-i-afs2023-10.pdf",
+      "content_sha256": "c1423448309f370d227f1831fc675abd89b04a5545cc5042c540e9730f6b085d",
+      "retrieved_at": "2026-10-29T03:17:49.765190Z",
+      "via": "crawl"
+    },
+    {
+      "scene": "trench",
+      "url": "https://www.av.se/globalassets/filer/publikationer/foreskrifter/andringsforeskrift/risker-i-arbetsmiljon-andring-i-afs2023-10-afs2024-3.pdf",
+      "content_sha256": "b84ba689124dc1b4c669c0af71394c105ba92ccff185c28c280ff328fd9aad59",
+      "retrieved_at": "2026-10-29T03:17:49.765190Z",
+      "via": "crawl"
+    },
+    {
+      "scene": "trench",
+      "url": "https://www.av.se/globalassets/filer/publikationer/foreskrifter/andringsforeskrift/risker-vid-vissa-typer-av-arbeten-afs2025-6-andring-i-afs2023-13.pdf",
+      "content_sha256": "a376986b992d22099e302b08d7b966fa8d777dbec3289233459ddaf6fa3970a2",
+      "retrieved_at": "2026-10-29T03:17:49.765190Z",
+      "via": "crawl"
+    },
+    {
+      "scene": "trench",
+      "url": "https://www.av.se/globalassets/filer/publikationer/foreskrifter/andringsforeskrift/risker-vid-vissa-typer-av-arbeten-afs2025-8-andring-i-afs2023-13.pdf",
+      "content_sha256": "3e615574261580c5c593c2ce41a0898ba7c7c717716cba720a0e46067afcdaac",
+      "retrieved_at": "2026-10-29T03:17:49.765190Z",
+      "via": "crawl"
+    },
+    {
+      "scene": "trench",
+      "url": "https://www.av.se/produktion-industri-och-logistik/bygg/arbetsmiljorisker-vid-byggnads--och-anlaggningsarbete",
+      "content_sha256": "88e27792e5fdee9a4e43f39eb093c7617e1d61ef39ab48347aad81f0157f490a",
+      "retrieved_at": "2026-10-29T03:17:49.935212Z",
+      "via": "map+extract"
+    },
+    {
+      "scene": "trench",
+      "url": "https://www.av.se/produktion-industri-och-logistik/bygg/arbetsmiljorisker-vid-byggnads--och-anlaggningsarbete/markarbete-och-schaktning",
+      "content_sha256": "250cb1bfca539d150b9aab23e5e97268adcc0705563921e18fddcb06a536903f",
+      "retrieved_at": "2026-10-29T03:17:49.935212Z",
+      "via": "map+extract"
+    },
+    {
+      "scene": "decking",
+      "url": "https://www.svenskttra.se/siteassets/5-publikationer/pdfer/montering-av-trall-2021-publikation.pdf",
+      "content_sha256": "2858a6554e9a3d383e8173cd1f70c10016e1a31678e73881be65232c3dce395f",
+      "retrieved_at": "2026-10-29T03:17:51.108426Z",
+      "via": "extract"
+    }
+  ],
+  "requirements": []
+}

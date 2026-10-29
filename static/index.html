@@ -15,6 +15,9 @@
   }
   * { box-sizing: border-box; }
   [hidden] { display: none !important; }
+  a { color: var(--accent); }
+  input { font: inherit; padding: 6px 8px; border: 1px solid var(--line); border-radius: 6px;
+          background: var(--bg); color: var(--ink); }
   body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.4 system-ui, sans-serif; }
   header { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; padding: 10px 16px;
            border-bottom: 1px solid var(--line); background: var(--panel); }
@@ -100,10 +103,15 @@
       <h2>Dossier</h2>
       <div><code id="dossier">—</code></div>
       <div class="actions">
-        <a id="dossierLink" class="muted" href="#" target="_blank" hidden>Open record JSON</a>
-        <button disabled title="offline verification arrives in P2">Verify</button>
-        <button disabled title="tamper demo arrives in P2">Tamper one byte</button>
+        <a id="dossierLink" class="muted" href="#" target="_blank" hidden>Open dossier</a>
+        <button id="verify" disabled title="Verify the Decionis dossier offline with @decionis/verify">Verify</button>
+        <button id="tamper" disabled title="Change one byte of a signed artifact, then verify again">Tamper one byte</button>
       </div>
+      <div id="proof" class="muted"></div>
+    </div>
+    <div class="panel">
+      <h2>Policy updates</h2>
+      <div id="proposals" class="muted">No proposals.</div>
     </div>
   </section>
 </main>
@@ -148,7 +156,10 @@ function render(r) {
     : `<span class="bad">No approved requirement in the ${esc(r.jurisdiction)} pack: the gate is told there is no citation.</span>`;
   $("dossier").textContent = r.record_id;
   $("dossierLink").hidden = false;
-  $("dossierLink").href = `/api/dossiers/${encodeURIComponent(r.record_id)}`;
+  $("dossierLink").href = `/dossier?id=${encodeURIComponent(r.record_id)}`;
+  const verifiable = !!(r.verdict && r.gate_mode === "live" && r.verdict.dossier_id);
+  $("verify").disabled = $("tamper").disabled = !verifiable;
+  $("proof").textContent = verifiable ? "" : "No Decionis dossier to verify for this record.";
   $("showInspected").disabled = !r.overlay;
   if (r.overlay) drawOverlay(r);
 }
@@ -179,6 +190,61 @@ function show(which) {
   $("feedNote").textContent = which === "inspected" && last ? `frame inspected ${new Date(last.created_at).toLocaleTimeString()}` : "";
 }
 
+function proofLine(v) {
+  const status = v.verified ? "VALID" : "INVALID";
+  return `${status} (${v.mode}) · signed artifacts ${v.artifact_paths.join(", ") || "none"} · trust ${v.trust}`;
+}
+
+async function post(url, body) {
+  const res = await fetch(url, { method: "POST", headers: { "content-type": "application/json" },
+    body: body ? JSON.stringify(body) : undefined });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.detail || res.statusText);
+  return data;
+}
+
+$("verify").onclick = async () => {
+  $("proof").textContent = "Verifying offline…";
+  try {
+    const v = await post(`/api/dossiers/${encodeURIComponent(last.record_id)}/verify`);
+    $("proof").innerHTML = `<span class="${v.verified ? "ok" : "bad"}">${esc(proofLine(v))}</span>`;
+  } catch (e) { $("proof").textContent = `Verify failed: ${e.message}`; }
+};
+
+$("tamper").onclick = async () => {
+  $("proof").textContent = "Changing one byte, verifying again…";
+  try {
+    const t = await post(`/api/dossiers/${encodeURIComponent(last.record_id)}/tamper`);
+    $("proof").innerHTML = `${esc(t.pointer)}: “${esc(t.before)}” → “${esc(t.after)}” (${t.bytes_changed} byte)<br>
+      <span class="${t.result.verified ? "ok" : "bad"}">${esc(proofLine(t.result))}</span>`;
+  } catch (e) { $("proof").textContent = `Tamper failed: ${e.message}`; }
+};
+
+async function loadProposals() {
+  const list = await (await fetch("/api/proposals")).json();
+  if (!list.length) { $("proposals").textContent = "No proposals."; return; }
+  $("proposals").innerHTML = list.map((p) => {
+    const v = (p.exchange || {}).result || {};
+    const gate = v.decision || "NO DECISION";
+    const findings = p.findings.map((f) => `<li>${esc(f.kind)} · ${esc(f.scene)} · ${esc(f.title)}${f.allowlisted ? "" : " <span class=\"bad\">(source not on allowlist)</span>"}</li>`).join("");
+    const action = p.status === "pending" ? `<div class="actions">
+        <input id="who-${p.id}" placeholder="Your full name" style="flex:1;min-width:120px">
+        <button onclick="resolveProposal('${p.id}', true)">Approve</button>
+        <button onclick="resolveProposal('${p.id}', false)">Reject</button></div>`
+      : `<div>${esc(p.status)} by ${esc(p.resolved_by)}</div>`;
+    return `<div style="margin-bottom:10px"><div><b>${esc(p.jurisdiction)}</b> · Decionis ${esc(gate)}
+      ${v.dossier_id ? `· <a href="/dossier?id=${encodeURIComponent(v.dossier_id)}" target="_blank">dossier</a>` : ""}</div>
+      <ul style="margin:4px 0;padding-left:18px">${findings}</ul>${action}</div>`;
+  }).join("");
+}
+
+async function resolveProposal(id, approve) {
+  const approver = $(`who-${id}`).value.trim();
+  if (!approver) { alert("A named approver is required."); return; }
+  try { await post(`/api/proposals/${id}/resolve`, { approve, approver }); } catch (e) { alert(e.message); }
+  loadProposals();
+}
+
 $("showLive").onclick = () => show("live");
 $("showInspected").onclick = () => last && last.overlay && show("inspected");
 $("lightBtn").onclick = () => window.open("/light", "sitework-light");
@@ -199,6 +265,7 @@ $("inspect").onclick = async () => {
 };
 
 fetch("/api/state").then((r) => r.json()).then(applyState);
+loadProposals();
 (function connect() {
   const ws = new WebSocket(`${location.protocol === "https:" ? "wss" : "ws"}://${location.host}/ws`);
   ws.onmessage = (ev) => {

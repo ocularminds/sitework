@@ -1,8 +1,280 @@
 {
   "jurisdiction": "US",
+  "authority": "OSHA 29 CFR 1926 Subpart P (trench); manufacturer installation guides (decking)",
   "allowlist": {
-    "decking": ["trex.com", "timbertech.com", "awc.org"],
-    "trench": ["osha.gov", "ecfr.gov"]
+    "decking": [
+      "trex.com",
+      "timbertech.com",
+      "awc.org"
+    ],
+    "trench": [
+      "osha.gov",
+      "ecfr.gov"
+    ]
   },
+  "seeds": {
+    "decking": [
+      "https://www.timbertech.com/ideas/deck-board-spacing",
+      "https://www.trex.com/deck-ideas/how-to-space-deck-boards"
+    ],
+    "trench": [
+      "https://www.osha.gov/laws-regs/regulations/standardnumber/1926/1926SubpartPAppB",
+      "https://www.ecfr.gov/current/title-29/subtitle-B/chapter-XVII/part-1926/subpart-P"
+    ]
+  },
+  "sources": [
+    {
+      "scene": "trench",
+      "url": "https://www.osha.gov/laws-regs/regulations/standardnumber/1926/1926.651",
+      "content_sha256": "e8627cf1d6dfc7b02fbb127872bb2b34bdfe9b54c9e1cc186c31a6ffe45a4c02",
+      "retrieved_at": "2026-10-29T03:16:01.760876Z",
+      "via": "map+extract"
+    },
+    {
+      "scene": "trench",
+      "url": "https://www.osha.gov/laws-regs/regulations/standardnumber/1926/1926SubpartPAppB",
+      "content_sha256": "c35d6320e152ea238b4dd3ec03004a5c132f206b065670e2ffce4733ef206add",
+      "retrieved_at": "2026-10-29T03:16:01.760876Z",
+      "via": "map+extract"
+    },
+    {
+      "scene": "trench",
+      "url": "https://www.osha.gov/laws-regs/regulations/standardnumber/1926/1926SubpartPAppF",
+      "content_sha256": "235a54676d90315edfd385e3b888117c54a70da04d2c1f5395ce962a84078789",
+      "retrieved_at": "2026-10-29T03:16:01.760876Z",
+      "via": "map+extract"
+    },
+    {
+      "scene": "trench",
+      "url": "https://www.osha.gov/laws-regs/regulations/standardnumber/1926/1926SubpartPAppA",
+      "content_sha256": "f8ef0edfd215d30dbe7e48d850635c0ec9999af3f534ac505f92b308eb71fc9a",
+      "retrieved_at": "2026-10-29T03:16:01.760876Z",
+      "via": "map+extract"
+    },
+    {
+      "scene": "trench",
+      "url": "https://www.osha.gov/enforcement/directives/cpl-02-00-165",
+      "content_sha256": "94b37ee3d808a07710e4e99dc20f620b58174e25d65c5d741bacc4d317014ec7",
+      "retrieved_at": "2026-10-29T03:16:01.760876Z",
+      "via": "map+extract"
+    },
+    {
+      "scene": "trench",
+      "url": "https://www.ecfr.gov/current/title-29/subtitle-B/chapter-XVII/part-1926/subpart-P/appendix-Appendix%20C%20to%20Subpart%20P%20of%20Part%201926",
+      "content_sha256": "ac2ef2201c3e7a103a01118895cbf7d76e71b9a82057aaf552ec4f3e3e0a6db8",
+      "retrieved_at": "2026-10-29T03:16:29.848233Z",
+      "via": "crawl"
+    },
+    {
+      "scene": "trench",
+      "url": "https://www.ecfr.gov/current/title-29/subtitle-B/chapter-XVII/part-1926/subpart-P/appendix-Appendix%20F%20to%20Subpart%20P%20of%20Part%201926",
+      "content_sha256": "0cdc66d59d6d6d0f6a1e9b49e33713c89e6ccb9a6d15b3da30762df40648aa8d",
+      "retrieved_at": "2026-10-29T03:16:29.848233Z",
+      "via": "crawl"
+    },
+    {
+      "scene": "trench",
+      "url": "https://www.ecfr.gov/current/title-29/subtitle-B/chapter-XVII/part-1926/subpart-P/section-1926.651",
+      "content_sha256": "21edc2365506e7502ab4e0976221daa42ee3b019fac5315d5ebdf73e874ccdaf",
+      "retrieved_at": "2026-10-29T03:16:29.848233Z",
+      "via": "crawl"
+    },
+    {
+      "scene": "trench",
+      "url": "https://www.ecfr.gov/current/title-29/subtitle-B/chapter-XVII/part-1926/subpart-P/appendix-Appendix%20E%20to%20Subpart%20P%20of%20Part%201926",
+      "content_sha256": "f244adc230d4615b0fef1096b57f5b776b821b6c29a194651952603017446efa",
+      "retrieved_at": "2026-10-29T03:16:29.848233Z",
+      "via": "crawl"
+    },
+    {
+      "scene": "trench",
+      "url": "https://www.ecfr.gov/current/title-29/subtitle-B/chapter-XVII/part-1926/subpart-P/appendix-Appendix%20B%20to%20Subpart%20P%20of%20Part%201926",
+      "content_sha256": "da61ee5c7067dc8bf46634021d30d4c5d0b30d3e97dd2bc47e562472138e7185",
+      "retrieved_at": "2026-10-29T03:16:29.848233Z",
+      "via": "crawl"
+    },
+    {
+      "scene": "trench",
+      "url": "https://www.ecfr.gov/current/title-29/subtitle-B/chapter-XVII/part-1926/subpart-P/section-1926.652",
+      "content_sha256": "24553634eaf0a493cede9712a18d4f1a269be9ebdd661143e4f08efa8885e058",
+      "retrieved_at": "2026-10-29T03:16:29.848233Z",
+      "via": "crawl"
+    },
+    {
+      "scene": "trench",
+      "url": "https://www.ecfr.gov/current/title-29/subtitle-B/chapter-XVII/part-1926/subpart-P/appendix-Appendix%20D%20to%20Subpart%20P%20of%20Part%201926",
+      "content_sha256": "bbe79c4546d238172524485a29fbb6254ae75a76453c4774335a7f0130872569",
+      "retrieved_at": "2026-10-29T03:16:29.848233Z",
+      "via": "crawl"
+    },
+    {
+      "scene": "decking",
+      "url": "https://www.timbertech.com/ideas/deck-board-spacing",
+      "content_sha256": "24d7a59517c07d830967e544f5eb4185607157dd47daf5271451a1fee98d13a1",
+      "retrieved_at": "2026-10-29T03:18:52.617282Z",
+      "via": "crawl"
+    },
+    {
+      "scene": "decking",
+      "url": "https://www.timbertech.com/ideas/grooved-composite-deck-boards",
+      "content_sha256": "eb3ceaff4b0547609a699a5f8b5ee4013fb790f4bb7c13f6e275da184dd53236",
+      "retrieved_at": "2026-10-29T03:18:52.617282Z",
+      "via": "crawl"
+    },
+    {
+      "scene": "decking",
+      "url": "https://www.timbertech.com/ideas/installing-composite-decking",
+      "content_sha256": "0f8ee518f2299db28225aa2bca1353958af320da9c119a33e84d8a6cc03ede64",
+      "retrieved_at": "2026-10-29T03:18:52.617282Z",
+      "via": "crawl"
+    },
+    {
+      "scene": "decking",
+      "url": "https://www.timbertech.com/product/concealoc",
+      "content_sha256": "e2282dd0d46c46d4aa60e07fb6ad6537d396534393babd930ed6a8dc38b73452",
+      "retrieved_at": "2026-10-29T03:18:52.617282Z",
+      "via": "crawl"
+    },
+    {
+      "scene": "decking",
+      "url": "https://www.timbertech.com/product/deck-spacer",
+      "content_sha256": "0d50e3c4fb0670e1412ba1dfae27a9364f05df967d98b37e6110934e1b0fa0b9",
+      "retrieved_at": "2026-10-29T03:18:52.617282Z",
+      "via": "crawl"
+    },
+    {
+      "scene": "decking",
+      "url": "https://www.timbertech.com/product/cortex-fastener-pack-azek",
+      "content_sha256": "c113104f6086acf317eca35802340bb6ebc580b6f31be04a11d828d8d3af4582",
+      "retrieved_at": "2026-10-29T03:18:52.617282Z",
+      "via": "crawl"
+    },
+    {
+      "scene": "decking",
+      "url": "https://www.timbertech.com/product/azek-toploc-fastener-pack",
+      "content_sha256": "61b64069dec125203c42e9a6ee44e0c19f1bbd17f6a6c0e4e037112cb0251e29",
+      "retrieved_at": "2026-10-29T03:18:52.617282Z",
+      "via": "crawl"
+    },
+    {
+      "scene": "decking",
+      "url": "https://www.timbertech.com/ideas/azek-decking-installation",
+      "content_sha256": "be2575655e31f89cfee00520cb89e896abdeab98e8f2e61e9e6cd9404289b066",
+      "retrieved_at": "2026-10-29T03:18:52.617282Z",
+      "via": "crawl"
+    },
+    {
+      "scene": "decking",
+      "url": "https://www.timbertech.com/ideas/hidden-deck-fasteners",
+      "content_sha256": "84641088f6a71068598799c16b272102e05415d97eb09c28a029a428991fa601",
+      "retrieved_at": "2026-10-29T03:18:52.617282Z",
+      "via": "crawl"
+    },
+    {
+      "scene": "decking",
+      "url": "https://www.timbertech.com/ideas/composite-decking-fasteners",
+      "content_sha256": "84f2baf942c5cf5f62a98c0b64abdfe8cef5088743f684c30b29009212e6c646",
+      "retrieved_at": "2026-10-29T03:18:52.617282Z",
+      "via": "crawl"
+    },
+    {
+      "scene": "decking",
+      "url": "https://www.trex.com/academy/how-to-guides/all-guides/how-to-fasten-trex-enhance-decking",
+      "content_sha256": "80326035c9bfbace9db20ffc37d3c05be665d82acbad912fa3f96ff6cc414ad7",
+      "retrieved_at": "2026-10-29T03:19:37.074043Z",
+      "via": "crawl"
+    },
+    {
+      "scene": "decking",
+      "url": "https://www.trex.com/academy/how-to-guides/decking-installation-phase",
+      "content_sha256": "d9183dcb3726c446ce60eee765bcda87dba60842fea24909e534d92ae2485fb4",
+      "retrieved_at": "2026-10-29T03:19:37.074043Z",
+      "via": "crawl"
+    },
+    {
+      "scene": "decking",
+      "url": "https://www.trex.com/build-your-deck/diy/how-to",
+      "content_sha256": "65372c94a6183486663dd42869c7cbdb19740aeb1c7cd3b6b41092b996f167a8",
+      "retrieved_at": "2026-10-29T03:19:37.074043Z",
+      "via": "crawl"
+    },
+    {
+      "scene": "decking",
+      "url": "https://www.trex.com/customer-support/trex-owners/downloads",
+      "content_sha256": "9a7e4240ac97e31bffe49f8dc309db5eb2839d7145acddeac54e0eef6e0def6c",
+      "retrieved_at": "2026-10-29T03:19:37.074043Z",
+      "via": "crawl"
+    },
+    {
+      "scene": "decking",
+      "url": "https://trex.com/academy/how-to-guides/all-guides/learn-how-the-trex-universal-fastener-installation-tool-works",
+      "content_sha256": "3b40744ced2f20e397f4d718ba07281fe58b30edf499c97c9a4e2e9252035362",
+      "retrieved_at": "2026-10-29T03:19:37.074043Z",
+      "via": "crawl"
+    },
+    {
+      "scene": "decking",
+      "url": "https://www.trex.com/academy/how-to-guides/all-guides/how-to-install-a-butt-joint-seam-with-the-trex-hideaway-butt-joi",
+      "content_sha256": "a2107a347eeade90d278c085e79d9add256ff383b7064cf218de008c9c68e6fa",
+      "retrieved_at": "2026-10-29T03:19:37.074043Z",
+      "via": "crawl"
+    },
+    {
+      "scene": "decking",
+      "url": "https://www.trex.com/academy/how-to-guides/all-guides/guide-to-installing-trex-enhance-plug-based-decking-fastener-sys",
+      "content_sha256": "1a817d6bf97a3536973640355cebd03092d2237b267c89cd7c147c959957a1e0",
+      "retrieved_at": "2026-10-29T03:19:37.074043Z",
+      "via": "crawl"
+    },
+    {
+      "scene": "decking",
+      "url": "https://www.trex.com/academy/how-to-guides/all-guides/how-to-build-and-frame-a-multi-level-deck",
+      "content_sha256": "71ca3a5b69809467ec81100f85f3d710ee56b54103bfeb473b66cd105206eee5",
+      "retrieved_at": "2026-10-29T03:19:37.074043Z",
+      "via": "crawl"
+    },
+    {
+      "scene": "decking",
+      "url": "https://www.trex.com/academy/how-to-guides/all-guides/how-to-build-a-freestanding-deck",
+      "content_sha256": "54680e8c2b88acc93a24fb48702a8fe4fc5dcbaea9ea55305b20be915b8aa104",
+      "retrieved_at": "2026-10-29T03:19:37.074043Z",
+      "via": "crawl"
+    },
+    {
+      "scene": "decking",
+      "url": "https://www.trex.com/deck-ideas/best-fasteners-for-trex-composite-decking",
+      "content_sha256": "c2d06eaa1010493bbd89a81085d4313ceadb49da88adc82075ca2ac4cbecb68a",
+      "retrieved_at": "2026-10-29T03:19:38.721392Z",
+      "via": "map+extract"
+    },
+    {
+      "scene": "decking",
+      "url": "https://www.trex.com/deck-ideas/how-to-space-deck-boards",
+      "content_sha256": "3c3038779da4795ab4cb7bc12ec738a8a244cca3b522c6a9781913eb0ef570e9",
+      "retrieved_at": "2026-10-29T03:19:38.721392Z",
+      "via": "map+extract"
+    },
+    {
+      "scene": "decking",
+      "url": "https://www.trex.com/academy/how-to-guides/all-guides/learn-how-the-trex-universal-fastener-installation-tool-works",
+      "content_sha256": "cad6ffaf26141dc834e4334fcc840552cc02f4cd01d2fc32c23241d3b4a8a5c1",
+      "retrieved_at": "2026-10-29T03:19:38.721392Z",
+      "via": "map+extract"
+    },
+    {
+      "scene": "decking",
+      "url": "https://www.trex.com/products/accessory-hardware",
+      "content_sha256": "6ba17335355383c5b2b9eba08221e171d36b98b195ad7bb4afdfecb9da2de3ea",
+      "retrieved_at": "2026-10-29T03:19:38.721392Z",
+      "via": "map+extract"
+    },
+    {
+      "scene": "decking",
+      "url": "https://trex.com/academy/how-to-guides",
+      "content_sha256": "837698eefe90ce9c64d349f01f06462551acfd558db4bb26478ca8774952db07",
+      "retrieved_at": "2026-10-29T03:19:38.721392Z",
+      "via": "map+extract"
+    }
+  ],
   "requirements": []
 }

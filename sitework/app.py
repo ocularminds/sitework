@@ -5,6 +5,7 @@ Run with `uvicorn sitework.app:create_app --factory` (or `make demo`).
 
 import threading
 import time
+from typing import Literal
 
 from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.concurrency import run_in_threadpool
@@ -16,7 +17,9 @@ from sitework.config import ROOT, Settings, get_settings
 from sitework.dossier import DossierStore
 from sitework.gate.authority import make_gate
 from sitework.ground.packs import PackStore
+from sitework.ground.watch import PolicyUpdate, ProposalStore
 from sitework.light import LightState
+from sitework.proof import ProofError, Proofs
 from sitework.scenes import DeckingInspection, InspectionResult
 from sitework.schema import Action, Condition
 
@@ -31,6 +34,12 @@ class InspectRequest(BaseModel):
 
 class SourceRequest(BaseModel):
     spec: str
+
+
+class ResolveRequest(BaseModel):
+    approve: bool
+    approver: str
+    note: str = ""
 
 
 class Hub:
@@ -56,6 +65,9 @@ class Runtime:
         self.store = DossierStore(settings.data_dir / "dossiers")
         self.packs = PackStore(settings.data_dir / "packs")
         self.scenes = {"decking": DeckingInspection(settings, self.gate, self.store, self.packs)}
+        self.proofs = Proofs(settings)
+        self.proposals = ProposalStore(settings.data_dir / "proposals")
+        self.updates = PolicyUpdate(self.gate, self.proposals)
         self.jurisdiction = settings.sitework_jurisdiction
         self.source: Source | None = None
         self.source_error = ""
@@ -83,6 +95,13 @@ class Runtime:
             return self.last
         finally:
             self._busy.release()
+
+    @staticmethod
+    def dossier_id(record_id: str) -> str:
+        """Records named after a Decionis dossier can be verified; mock and no-decision records cannot."""
+        if record_id.startswith(("mock-", "no-decision-")):
+            raise HTTPException(409, "this record has no Decionis dossier to verify")
+        return record_id
 
     def state(self) -> dict:
         return {
@@ -134,6 +153,37 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         if record is None:
             raise HTTPException(404, "no such record")
         return record.model_dump(mode="json")
+
+    @app.get("/dossier")
+    def dossier_page():
+        return FileResponse(STATIC / "dossier.html")
+
+    @app.post("/api/dossiers/{record_id}/verify")
+    async def verify(record_id: str, mode: Literal["offline", "pinned"] = "offline"):
+        try:
+            result = await run_in_threadpool(rt.proofs.verify, rt.dossier_id(record_id), mode)
+        except ProofError as exc:
+            raise HTTPException(502, str(exc)) from exc
+        return result.model_dump(mode="json")
+
+    @app.post("/api/dossiers/{record_id}/tamper")
+    async def tamper(record_id: str):
+        try:
+            result = await run_in_threadpool(rt.proofs.tamper, rt.dossier_id(record_id))
+        except ProofError as exc:
+            raise HTTPException(502, str(exc)) from exc
+        return result.model_dump(mode="json")
+
+    @app.get("/api/proposals")
+    def proposals():
+        return [p.model_dump(mode="json") for p in rt.proposals.all()]
+
+    @app.post("/api/proposals/{proposal_id}/resolve")
+    def resolve(proposal_id: str, req: ResolveRequest):
+        try:
+            return rt.updates.resolve(proposal_id, req.approve, req.approver, req.note).model_dump(mode="json")
+        except ValueError as exc:
+            raise HTTPException(409, str(exc)) from exc
 
     @app.get("/api/stream")
     def stream():

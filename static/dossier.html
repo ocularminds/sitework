@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SiteWork Dossier</title>
+<style>
+  :root { --bg: #f4f4f1; --panel: #fff; --ink: #1d1f21; --muted: #6b6f73; --line: #dcdcd6;
+          --green: #1e8e3e; --amber: #c77700; --red: #c5221f; --accent: #24527a; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #121416; --panel: #1b1e21; --ink: #e8eaed; --muted: #9aa0a6; --line: #2e3236;
+            --green: #34a853; --amber: #f29900; --red: #ea4335; --accent: #8ab4f8; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.45 system-ui, sans-serif; }
+  main { max-width: 960px; margin: 0 auto; padding: 16px; display: grid; gap: 16px; }
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px; }
+  h1 { font-size: 20px; margin: 0; } h2 { font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin: 0 0 8px; }
+  code { font-size: 12px; word-break: break-all; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; } td { padding: 4px 6px 4px 0; border-bottom: 1px solid var(--line); vertical-align: top; }
+  .muted { color: var(--muted); } .ok { color: var(--green); } .bad { color: var(--red); } .amber { color: var(--amber); }
+  button { font: inherit; padding: 6px 12px; border: 1px solid var(--line); border-radius: 6px; background: var(--panel); color: var(--ink); cursor: pointer; }
+  .actions { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
+  ul { margin: 4px 0; padding-left: 18px; }
+  a { color: var(--accent); }
+</style>
+</head>
+<body>
+<main>
+  <div class="panel"><h1>Decision dossier</h1><div><code id="id">—</code></div><div id="summary" class="muted"></div></div>
+  <div class="panel">
+    <h2>Independent verification</h2>
+    <div class="actions">
+      <button id="offline">Verify offline</button>
+      <button id="pinned">Verify against Decionis key</button>
+      <button id="tamper">Tamper one byte</button>
+    </div>
+    <div id="proof" class="muted">Uses the published <code>@decionis/verify</code> on the saved signed proof packet.</div>
+  </div>
+  <div class="panel" id="evidencePanel" hidden><h2>Evidence sent to Decionis</h2><div id="evidence"></div></div>
+  <div class="panel" id="factsPanel" hidden><h2>Facts the policy read</h2><table id="facts"></table></div>
+</main>
+<script>
+const $ = (id) => document.getElementById(id);
+const id = new URLSearchParams(location.search).get("id") || "";
+const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+$("id").textContent = id;
+
+function line(v) {
+  return `<span class="${v.verified ? "ok" : "bad"}">${v.verified ? "VALID" : "INVALID"}</span> (${esc(v.mode)}) ·
+    signed artifacts ${esc(v.artifact_paths.join(", ") || "none")} · coverage ${v.coverage} · trust ${esc(v.trust)}
+    · issuer authentic ${v.issuer_authentic}`;
+}
+
+async function call(path) {
+  const res = await fetch(`/api/dossiers/${encodeURIComponent(id)}/${path}`, { method: "POST" });
+  const body = await res.json();
+  if (!res.ok) throw new Error(body.detail || res.statusText);
+  return body;
+}
+
+async function verify(mode) {
+  $("proof").textContent = `Verifying (${mode})…`;
+  try { $("proof").innerHTML = line(await call(`verify?mode=${mode}`)); }
+  catch (e) { $("proof").textContent = `Verify failed: ${e.message}`; }
+}
+
+$("offline").onclick = () => verify("offline");
+$("pinned").onclick = () => verify("pinned");
+$("tamper").onclick = async () => {
+  $("proof").textContent = "Changing one byte, verifying again…";
+  try {
+    const t = await call("tamper");
+    $("proof").innerHTML = `Changed <code>${esc(t.pointer)}</code>: “${esc(t.before)}” → “${esc(t.after)}” (${t.bytes_changed} byte)<br>${line(t.result)}`;
+  } catch (e) { $("proof").textContent = `Tamper failed: ${e.message}`; }
+};
+
+fetch(`/api/dossiers/${encodeURIComponent(id)}`).then(async (res) => {
+  if (!res.ok) { $("summary").textContent = "No SiteWork inspection record (for example a policy.update proposal); the Decionis dossier can still be verified."; return; }
+  const r = await res.json();
+  const v = r.exchange.result;
+  const decision = v.decision ? `<b class="${v.decision === "ALLOW" ? "ok" : v.decision === "ESCALATE" ? "amber" : "bad"}">${esc(v.decision)}</b> · ${esc(v.reason)}` : `<b class="bad">NO DECISION</b> · ${esc(v.error)}`;
+  const e = r.evidence;
+  $("summary").innerHTML = `${decision}<br>${esc(e.action)} · ${esc(e.scene)} · ${esc(e.condition)} · ${esc(r.jurisdiction)} · gate ${esc(r.gate_mode)} · ${new Date(r.created_at).toLocaleString()}
+    ${v.policy_version ? `· policy ${esc(v.policy_version)}` : ""}`;
+  $("evidencePanel").hidden = false;
+  $("evidence").innerHTML = `
+    <table>${e.measurements.map((m) => `<tr><td>${esc(m.kind)}</td><td>${m.value}</td><td class="muted">conf ${m.confidence}</td><td class="muted">${esc(m.method)}</td></tr>`).join("") || "<tr><td class='muted'>No measurements</td></tr>"}</table>
+    <p>${e.citations.map((c) => `${esc(c.requirement)} — <a href="${esc(c.url)}" target="_blank" rel="noopener">${esc(c.source_domain)}</a> <code>${esc(c.content_sha256.slice(0, 16))}…</code>`).join("<br>") || "<span class='bad'>No citation</span>"}</p>
+    ${e.errors.length ? `<ul class="amber">${e.errors.map((x) => `<li>${esc(x)}</li>`).join("")}</ul>` : ""}
+    <div class="muted">frames ${e.frame_sha256.map((h) => `<code>${esc(h.slice(0, 12))}</code>`).join(" ")} · models ${esc(JSON.stringify(e.models))}</div>`;
+  const ctx = (r.exchange.request || {}).context || {};
+  const facts = Object.entries(ctx).filter(([k]) => k.startsWith("sitework_"));
+  if (facts.length) {
+    $("factsPanel").hidden = false;
+    $("facts").innerHTML = facts.map(([k, val]) => `<tr><td><code>context.${esc(k)}</code></td><td>${esc(JSON.stringify(val))}</td></tr>`).join("");
+  }
+});
+</script>
+</body>
+</html>

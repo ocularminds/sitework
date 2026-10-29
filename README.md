@@ -6,7 +6,7 @@ Physical AI that inspects construction work at the hold point, before it disappe
 
 > Models observe → code measures → policy decides → humans sign when the AI isn't sure → everything is provable.
 
-Status: **P1, decking vertical slice.** Trench, plumbing, offline dossier verification and eval arrive in later phases (see `IMPLEMENT.md`).
+Status: **P2, proof and grounding depth.** The decking slice is gated live. Dossiers verify offline, jurisdiction packs are built with Tavily map and crawl, and amendments become gated policy updates. Trench, plumbing and eval arrive in later phases (see `IMPLEMENT.md`).
 
 ## Setup
 
@@ -36,6 +36,29 @@ SiteWork uses the `https://dci.decionisedge.com` gateway, explicitly selected on
 8. **Record.** Evidence, request, response and verdict are written to `data/dossiers/<dossier_id>.json`, with the execution token redacted.
 
 Nothing is faked: errors (no marker, model failure, missing key, no approved requirement) are sent to Decionis as facts. `DECIONIS_MODE=mock` exists for tests only and puts a red MOCK GATE banner on every page.
+
+## Proof, packs and policy updates
+
+**Prove a decision offline.** `uv run python scripts/proof.py <dossier_id> --pinned --tamper` does three things:
+- Fetches the dossier's signed proof packet (`/v1/protocol/dossiers/{id}/proof-packet`) and the Decionis dossier JWKS once.
+- Verifies the packet with the published `@decionis/verify@0.5.0`: offline against the saved JWKS, then against the pinned Decionis JWKS URL.
+- Changes one byte inside a signed artifact and shows that verification fails.
+
+The dashboard's Verify and Tamper buttons and the `/dossier?id=` page do the same.
+
+**Build a jurisdiction pack.** `uv run python scripts/pack.py --jurisdiction SE build trench --qualitative`:
+- Maps and crawls the pack's allowlisted seeds with Tavily; PDF seeds are extracted.
+- Caches each page's text locally (`data/packs/pages/`, git-ignored) and records its URL, SHA-256 and retrieval time in `data/packs/<J>.json`.
+- Proposes requirement sentences.
+
+Lengths are converted to mm, and stated angles are kept in degrees. Slope ratios stay as written: US text is horizontal:vertical, Swedish text is vertical:horizontal. `--cached` regenerates candidates without Tavily calls. A requirement enters the pack only through `pack.py approve` with a named approver.
+
+**Watch for amendments.** `uv run python scripts/watch.py --jurisdiction SE run`:
+- Runs one Tavily Research task with a structured schema.
+- Checks each finding's source against the pack allowlist.
+- Proposes a `policy.update` through the Decionis gate. Only kinds, scenes, URLs, dates and title hashes are sent.
+
+The SiteWork policy escalates every `policy.update`. A named person resolves it on the dashboard or with `scripts/watch.py resolve`.
 
 ## Bench and Cosmos preparation
 
@@ -69,7 +92,7 @@ physical capture has been completed by this setup work.
 
 ```
 sitework/   config, clients, perception, measurement, grounding, gate
-scripts/    check.py (credentials), pack.py (jurisdiction packs), cosmos/ (Cosmos stress-test clips)
+scripts/    check.py, pack.py (jurisdiction packs), proof.py (dossier verify), watch.py (amendments), policy.py, cosmos/
 static/     dashboard (single page, no build step)
 policies/   SiteWork policy draft for Decionis
 eval/       labelled clips and results

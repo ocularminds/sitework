@@ -60,3 +60,47 @@ def test_extract_never_fetches_urls_outside_the_allowlist():
     pages = WebClient(Settings(_env_file=None), client=fake).extract(
         ["https://www.trex.com/a", "https://evil.example.com/b"], ["trex.com"])
     assert fake.urls == ["https://www.trex.com/a"] and [p.domain for p in pages] == ["www.trex.com"]
+
+
+@pytest.mark.parametrize("text,deg,ratio", [
+    ("Type C soil 1½:1 (34 degrees)", [34.0], ["1½:1"]),
+    ("maximum allowable slope of 3⁄4:1.", [], ["3⁄4:1"]),
+    ("dip on a slope of four horizontal to one vertical (4H:1V)", [], ["4H:1V"]),
+    ("släntlutning 1:1,5 vid schaktning", [], ["1:1,5"]),
+    ("meeting at 10:30, ratio 12:1", [], []),
+])
+def test_angles_and_slope_ratios_are_kept_as_written(text, deg, ratio):
+    from sitework.ground.citation import angles_deg, ratios
+    assert angles_deg(text) == deg and ratios(text) == ratio
+
+
+def test_qualitative_mode_keeps_rule_sentences_without_numbers():
+    p = page("Slänt eller vägg kan utföras med lutning eller i avsatser, med stöttning eller spontning.",
+             url="https://www.av.se/x")
+    assert ClauseFinder(["slänt"]).find(p) == []
+    assert len(ClauseFinder(["slänt"], require_value=False).find(p)) == 1
+
+
+def test_builder_maps_crawls_extracts_and_records_sources(tmp_path):
+    from sitework.ground.builder import PackBuilder, PageCache
+
+    class FakeWeb:
+        def map(self, seed, domains, topic, limit=30):
+            return ["https://www.osha.gov/a", "https://www.osha.gov/b"]
+
+        def crawl(self, seed, domains, topic, limit=10):
+            return [page("Maximum allowable slope of 1½:1.", url="https://www.osha.gov/a")]
+
+        def extract(self, urls, domains):
+            return [page(f"Slope of 1:1 at {u}.", url=u) for u in urls]
+
+    pack = Pack(jurisdiction="US", allowlist={"trench": ["osha.gov"]},
+                seeds={"trench": ["https://www.osha.gov/start", "https://www.osha.gov/table.pdf"]})
+    report = PackBuilder(FakeWeb(), pack, PageCache(tmp_path)).build("trench", "slopes", ["slope"])
+    assert report.mapped == 2 and report.pages == 3
+    assert sorted((s.url, s.via) for s in pack.sources) == [
+        ("https://www.osha.gov/a", "crawl"), ("https://www.osha.gov/b", "map+extract"),
+        ("https://www.osha.gov/table.pdf", "extract")]
+    assert len(report.clauses) == 3
+    cached = PackBuilder(None, pack, PageCache(tmp_path)).build("trench", "slopes", ["slope"], cached=True)
+    assert cached.pages == 3 and len(cached.clauses) == 3
