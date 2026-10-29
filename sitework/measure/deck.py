@@ -4,10 +4,10 @@ from dataclasses import dataclass
 
 import numpy as np
 
+from sitework.measure.base import Measurer
 from sitework.measure.fiducial import Scale
 from sitework.measure.geometry import Line, angle_between, gap_range, mean_direction
 from sitework.perceive.views import DeckingView
-from sitework.schema import Measurement
 
 
 @dataclass(frozen=True)
@@ -30,12 +30,8 @@ class DeckSample:
     scale_quality: float
 
 
-class DeckMeasurer:
-    """Turns board edges into gap and angle on the marker plane, then combines frames.
-
-    Confidence = model confidence x fiducial quality x frame agreement, where agreement
-    is 1 / (1 + spread / tolerance) over the sampled frames.
-    """
+class DeckMeasurer(Measurer):
+    """Turns board edges into gap and angle on the marker plane."""
 
     TOLERANCE = {"angle_deg": 0.5, "gap_mm": 0.5}
 
@@ -53,26 +49,12 @@ class DeckMeasurer:
             gaps.extend(gap_range(near.line, far.ends))
         return DeckSample(frame_index, max(angles), min(gaps), max(gaps), view.confidence, scale.quality)
 
-    def combine(self, samples: list[DeckSample], method: str) -> list[Measurement]:
-        if not samples:
-            return []
-        base = float(np.median([s.model_confidence for s in samples])) * float(
-            np.median([s.scale_quality for s in samples]))
-        values = {
+    def series(self, samples: list[DeckSample]) -> dict[tuple[str, str], list[float]]:
+        return {
             ("angle_deg", "largest angle between adjacent boards"): [s.angle_deg for s in samples],
             ("gap_mm", "narrowest point of any joint"): [s.gap_min_mm for s in samples],
             ("gap_mm", "widest point of any joint"): [s.gap_max_mm for s in samples],
         }
-        out = []
-        for (kind, what), vals in values.items():
-            spread = float(np.std(vals))
-            agreement = 1.0 / (1.0 + spread / self.TOLERANCE[kind])
-            out.append(Measurement(
-                kind=kind, value=round(float(np.median(vals)), 2),
-                confidence=round(base * agreement, 3),
-                method=f"{method}; {what}; median of {len(vals)} frames, spread {spread:.2f}",
-            ))
-        return out
 
     @staticmethod
     def _edge(segment: list, scale: Scale) -> Edge:

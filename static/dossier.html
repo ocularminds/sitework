@@ -82,7 +82,9 @@ fetch(`/api/dossiers/${encodeURIComponent(id)}`).then(async (res) => {
   const decision = v.decision ? `<b class="${v.decision === "ALLOW" ? "ok" : v.decision === "ESCALATE" ? "amber" : "bad"}">${esc(v.decision)}</b> · ${esc(v.reason)}` : `<b class="bad">NO DECISION</b> · ${esc(v.error)}`;
   const e = r.evidence;
   $("summary").innerHTML = `${decision}<br>${esc(e.action)} · ${esc(e.scene)} · ${esc(e.condition)} · ${esc(r.jurisdiction)} · gate ${esc(r.gate_mode)} · ${new Date(r.created_at).toLocaleString()}
-    ${v.policy_version ? `· policy ${esc(v.policy_version)}` : ""}`;
+    ${v.policy_version ? `· policy ${esc(v.policy_version)}` : ""}
+    ${r.regrounded_from ? `<br>Re-grounded from <a href="/dossier?id=${encodeURIComponent(r.regrounded_from)}">${esc(r.regrounded_from)}</a>` : ""}
+    ${r.resolution ? `<br><b>${r.resolution.release ? "Released" : "Kept on hold"} by ${esc(r.resolution.approver)}</b> · ${new Date(r.resolution.at).toLocaleString()}${r.resolution.note ? " · " + esc(r.resolution.note) : ""}` : ""}`;
   $("evidencePanel").hidden = false;
   $("evidence").innerHTML = `
     <table>${e.measurements.map((m) => `<tr><td>${esc(m.kind)}</td><td>${m.value}</td><td class="muted">conf ${m.confidence}</td><td class="muted">${esc(m.method)}</td></tr>`).join("") || "<tr><td class='muted'>No measurements</td></tr>"}</table>

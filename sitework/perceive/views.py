@@ -18,6 +18,10 @@ class View(BaseModel):
     def points(self) -> list[Point]:
         raise NotImplementedError
 
+    def segments(self) -> list[Segment]:
+        """Line segments the dashboard draws over the frame."""
+        raise NotImplementedError
+
     def within(self, width: int, height: int) -> bool:
         return all(0 <= x <= width and 0 <= y <= height for x, y in self.points())
 
@@ -35,6 +39,9 @@ class DeckingView(View):
     def points(self) -> list[Point]:
         return [p for b in self.boards for edge in b.edges for p in edge]
 
+    def segments(self) -> list[Segment]:
+        return [edge for b in self.boards for edge in b.edges]
+
     PROMPT: ClassVar[str] = (
         "You locate deck boards for a measurement program. The image is {width}x{height} pixels, "
         "origin top-left. For every deck board that is fully visible, return its two long edges. "
@@ -42,4 +49,31 @@ class DeckingView(View):
         "board's ends. Ignore the black-and-white square marker. Reply with JSON only, exactly: "
         '{{"boards": [{{"edges": [[[x, y], [x, y]], [[x, y], [x, y]]]}}], "confidence": c}} '
         "where c is 0 to 1: how sure you are that every edge is placed on the true board edge."
+    )
+
+
+class Wall(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    top: Point  # where the wall meets the ground surface
+    toe: Point  # where the wall meets the trench floor
+
+
+class TrenchView(View):
+    """A trench seen in cross-section: each wall as its top and toe point in pixels."""
+
+    walls: Annotated[list[Wall], Field(min_length=1, max_length=2)]
+
+    def points(self) -> list[Point]:
+        return [p for w in self.walls for p in (w.top, w.toe)]
+
+    def segments(self) -> list[Segment]:
+        return [[w.top, w.toe] for w in self.walls]
+
+    PROMPT: ClassVar[str] = (
+        "You locate trench walls for a measurement program. The image is {width}x{height} pixels, "
+        "origin top-left, and shows a trench in cross-section from the side. For each trench wall "
+        "you can see (one or two), return the point where the wall meets the ground surface (top) "
+        "and the point where it meets the trench floor (toe), in pixels. Ignore the black-and-white "
+        'square marker. Reply with JSON only, exactly: {{"walls": [{{"top": [x, y], "toe": [x, y]}}], '
+        '"confidence": c}} where c is 0 to 1: how sure you are that each point is on the true wall.'
     )

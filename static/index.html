@@ -7,11 +7,11 @@
 <style>
   :root {
     --bg: #f4f4f1; --panel: #ffffff; --ink: #1d1f21; --muted: #6b6f73; --line: #dcdcd6;
-    --green: #1e8e3e; --amber: #c77700; --red: #c5221f; --off: #8a8f94; --accent: #24527a;
+    --green: #1e8e3e; --amber: #c77700; --red: #c5221f; --blue: #1a5fb4; --off: #8a8f94; --accent: #24527a;
   }
   @media (prefers-color-scheme: dark) {
     :root { --bg: #121416; --panel: #1b1e21; --ink: #e8eaed; --muted: #9aa0a6; --line: #2e3236;
-            --green: #34a853; --amber: #f29900; --red: #ea4335; --off: #5f6368; --accent: #8ab4f8; }
+            --green: #34a853; --amber: #f29900; --red: #ea4335; --blue: #6ea8fe; --off: #5f6368; --accent: #8ab4f8; }
   }
   * { box-sizing: border-box; }
   [hidden] { display: none !important; }
@@ -43,6 +43,7 @@
   .verdict.green { border-color: var(--green); } .verdict.green .decision { color: var(--green); }
   .verdict.amber { border-color: var(--amber); } .verdict.amber .decision { color: var(--amber); }
   .verdict.red { border-color: var(--red); } .verdict.red .decision { color: var(--red); }
+  .verdict.blue { border-color: var(--blue); } .verdict.blue .decision { color: var(--blue); }
   h2 { font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin: 0 0 8px; }
   .muted { color: var(--muted); font-size: 13px; }
   table { width: 100%; border-collapse: collapse; font-size: 14px; }
@@ -61,7 +62,7 @@
   <h1>SiteWork</h1>
   <div class="tabs" role="tablist">
     <button role="tab" aria-selected="true" data-scene="decking">Decking</button>
-    <button role="tab" disabled title="arrives in P3">Trench</button>
+    <button role="tab" aria-selected="false" data-scene="trench">Trench</button>
     <button role="tab" disabled title="arrives in P4">Plumbing</button>
   </div>
   <label class="muted">Condition
@@ -69,7 +70,7 @@
       <option>clean</option><option>rain</option><option>mud</option><option>dusk_glare</option><option>outdoor</option>
     </select>
   </label>
-  <span class="badge" id="jurisdiction">—</span>
+  <label class="muted">Jurisdiction <select id="jurisdiction" title="Switching re-grounds the last inspection against that pack"></select></label>
   <span class="badge" id="gate">gate —</span>
   <span class="badge" id="source">source —</span>
   <span class="spacer"></span>
@@ -94,6 +95,12 @@
       <div class="decision" id="decision">—</div>
       <div id="reason" class="muted">Press Inspect to propose releasing the hold.</div>
       <div class="muted" id="verdictMeta"></div>
+      <div id="hold" class="actions" hidden>
+        <input id="approver" placeholder="Your full name" style="flex:1;min-width:140px">
+        <button id="release">Release hold</button>
+        <button id="keep">Keep hold</button>
+      </div>
+      <div id="resolution" class="muted"></div>
     </div>
     <div class="panel">
       <h2>Cited requirement</h2>
@@ -124,7 +131,8 @@ function esc(s) { return String(s ?? "").replace(/[&<>"]/g, (c) => ({"&":"&amp;"
 function applyState(st) {
   $("mock").style.display = st.gate_mode === "mock" ? "block" : "none";
   $("gate").textContent = st.gate_mode === "mock" ? "MOCK GATE" : `gate ${new URL(st.gateway).host}`;
-  $("jurisdiction").textContent = `jurisdiction ${st.jurisdiction}`;
+  $("jurisdiction").innerHTML = (st.jurisdictions || [st.jurisdiction]).map((j) =>
+    `<option ${j === st.jurisdiction ? "selected" : ""}>${esc(j)}</option>`).join("");
   $("source").textContent = st.source ? `source ${st.source}` : `no source: ${st.source_error}`;
   if (st.last) render(st.last);
 }
@@ -136,12 +144,14 @@ function render(r) {
   if (r.verdict) {
     $("decision").textContent = r.verdict.decision;
     $("reason").textContent = r.verdict.reason;
-    $("verdictMeta").textContent = `policy ${r.verdict.policy_version || "—"} · ${r.verdict.latency_ms} ms · ${r.gate_mode}`;
+    $("verdictMeta").textContent = `${r.action} · ${r.jurisdiction} · policy ${r.verdict.policy_version || "—"} · ${r.verdict.latency_ms} ms · ${r.gate_mode}`
+      + (r.regrounded_from ? ` · re-grounded from ${r.regrounded_from.slice(0, 8)}` : "");
   } else {
     $("decision").textContent = r.light.label;
     $("reason").textContent = r.failure ? r.failure.error : "";
     $("verdictMeta").textContent = r.failure ? `${r.failure.latency_ms} ms · hold stays closed` : "";
   }
+  renderHold(r);
   const checks = Object.fromEntries((r.checks || []).map((c) => [c.kind + c.value, c]));
   $("measurements").innerHTML = r.measurements.length ? r.measurements.map((m) => {
     const c = checks[m.kind + m.value];
@@ -176,7 +186,7 @@ function drawOverlay(r) {
       o.marker.forEach(([x, y], i) => (i ? g.lineTo(x, y) : g.moveTo(x, y))); g.closePath(); g.stroke();
     }
     g.strokeStyle = "#ffd400";
-    o.boards.forEach((b) => b.forEach(([[x1, y1], [x2, y2]]) => { g.beginPath(); g.moveTo(x1, y1); g.lineTo(x2, y2); g.stroke(); }));
+    o.segments.forEach(([[x1, y1], [x2, y2]]) => { g.beginPath(); g.moveTo(x1, y1); g.lineTo(x2, y2); g.stroke(); });
     g.font = `${Math.max(16, o.width / 40)}px system-ui`; g.fillStyle = "#ffd400";
     r.measurements.forEach((m, i) => g.fillText(`${m.kind} ${m.value}`, 12, 30 + i * Math.max(20, o.width / 32)));
     show("inspected");
@@ -189,6 +199,39 @@ function show(which) {
   $("overlay").hidden = which !== "inspected";
   $("feedNote").textContent = which === "inspected" && last ? `frame inspected ${new Date(last.created_at).toLocaleTimeString()}` : "";
 }
+
+function renderHold(r) {
+  const escalated = r.verdict && ["ESCALATE", "REVIEW_REQUIRED"].includes(r.verdict.decision);
+  $("hold").hidden = !escalated || !!r.resolution;
+  const x = r.resolution;
+  // The card keeps Decionis's own decision; the person's resolution is shown beneath it, never as the verdict.
+  $("resolution").innerHTML = x ? `<b style="color:var(--${x.release ? "blue" : "red"})">${x.release ? "Released" : "Kept on hold"} by ${esc(x.approver)}</b> · ${new Date(x.at).toLocaleString()}${x.note ? " · " + esc(x.note) : ""}` : "";
+  if (x) $("verdictCard").className = `panel verdict ${r.light.color}`;
+}
+
+async function holdDecision(release) {
+  const approver = $("approver").value.trim();
+  if (!approver) { alert("A named approver is required."); return; }
+  try {
+    const out = await post(`/api/dossiers/${encodeURIComponent(last.record_id)}/resolve`, { approver, release });
+    render({ ...last, resolution: out.resolution, light: out.light });
+  } catch (e) { alert(e.message); }
+}
+$("release").onclick = () => holdDecision(true);
+$("keep").onclick = () => holdDecision(false);
+
+let scene = "decking";
+document.querySelectorAll('[role="tab"][data-scene]').forEach((tab) => {
+  tab.onclick = () => {
+    scene = tab.dataset.scene;
+    document.querySelectorAll('[role="tab"][data-scene]').forEach((t) => t.setAttribute("aria-selected", String(t === tab)));
+  };
+});
+$("jurisdiction").onchange = async () => {
+  $("reason").textContent = `Re-grounding against the ${$("jurisdiction").value} pack…`;
+  try { applyState(await post("/api/jurisdiction", { jurisdiction: $("jurisdiction").value })); }
+  catch (e) { $("reason").textContent = `Jurisdiction switch failed: ${e.message}`; }
+};
 
 function proofLine(v) {
   const status = v.verified ? "VALID" : "INVALID";
@@ -253,7 +296,7 @@ $("inspect").onclick = async () => {
   btn.disabled = true; btn.textContent = "Inspecting…";
   try {
     const res = await fetch("/api/inspect", { method: "POST", headers: { "content-type": "application/json" },
-      body: JSON.stringify({ scene: "decking", condition: $("condition").value }) });
+      body: JSON.stringify({ scene, condition: $("condition").value }) });
     const body = await res.json();
     if (!res.ok) throw new Error(body.detail || res.statusText);
     render(body);
@@ -272,6 +315,7 @@ loadProposals();
     const msg = JSON.parse(ev.data);
     if (msg.type === "state") applyState(msg.state);
     if (msg.type === "result") render(msg.result);
+    if (msg.type === "resolution" && last && last.record_id === msg.record_id) render({ ...last, resolution: msg.resolution, light: msg.light });
   };
   ws.onclose = () => setTimeout(connect, 2000);
 })();

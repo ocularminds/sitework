@@ -3,22 +3,25 @@
 import base64
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
+from typing import ClassVar
 
 from pydantic import BaseModel
 
 from sitework.capture import Frame, Source
 from sitework.config import MissingCredential, Settings
-from sitework.dossier import DossierRecord, DossierStore
+from sitework.dossier import DossierRecord, DossierStore, Resolution
 from sitework.gate.authority import Gate, GateFailure, MockGate
 from sitework.gate.evidence import EvidenceBuilder, Facts
 from sitework.ground.packs import PackStore
 from sitework.light import LightState
+from sitework.measure.base import Measurer
 from sitework.measure.deck import DeckMeasurer
 from sitework.measure.fiducial import Fiducial, Scale
+from sitework.measure.trench import TrenchMeasurer
 from sitework.nebius import TokenFactory
-from sitework.perceive.views import DeckingView
+from sitework.perceive.views import DeckingView, TrenchView, View
 from sitework.perceive.vlm import VisionError, VisionModel
-from sitework.schema import Action, Citation, Condition, Measurement, Verdict
+from sitework.schema import Action, Citation, Condition, EvidenceBundle, Measurement, Verdict
 
 
 class Overlay(BaseModel):
@@ -28,14 +31,14 @@ class Overlay(BaseModel):
     width: int
     height: int
     marker: list[list[float]] = []
-    boards: list[list[list[list[float]]]] = []
+    segments: list[list[list[float]]] = []
 
     @classmethod
-    def of(cls, frame: Frame, scale: Scale | None = None, view: DeckingView | None = None) -> "Overlay":
+    def of(cls, frame: Frame, scale: Scale | None = None, view: View | None = None) -> "Overlay":
         w, h = frame.size
         return cls(frame_jpeg=base64.b64encode(frame.jpeg).decode(), width=w, height=h,
                    marker=scale.corners_px.tolist() if scale is not None else [],
-                   boards=[b.edges for b in view.boards] if view is not None else [])
+                   segments=view.segments() if view is not None else [])
 
 
 class InspectionResult(BaseModel):
@@ -54,12 +57,17 @@ class InspectionResult(BaseModel):
     failure: GateFailure | None
     light: LightState
     overlay: Overlay | None
+    regrounded_from: str | None = None
+    resolution: Resolution | None = None
 
 
-class DeckingInspection:
-    """The decking hold point: board gaps and alignment against an approved requirement."""
+class Inspection:
+    """One hold point. Subclasses name the scene, the model view, the measurer and the action."""
 
-    scene = "decking"
+    scene: ClassVar[str]
+    view: ClassVar[type[View]]
+    action: ClassVar[Action]
+    method: ClassVar[str]
 
     def __init__(self, settings: Settings, gate: Gate | MockGate, store: DossierStore,
                  packs: PackStore, vision: VisionModel | None = None, fiducial: Fiducial | None = None):
@@ -69,11 +77,14 @@ class DeckingInspection:
         self.packs = packs
         self.vision = vision
         self.fiducial = fiducial or Fiducial(settings.fiducial_mm)
-        self.measurer = DeckMeasurer()
+        self.measurer = self.make_measurer()
+
+    def make_measurer(self) -> Measurer:
+        raise NotImplementedError
 
     def run(self, source: Source | None, condition: Condition, jurisdiction: str,
-            action: Action = "inspection.release_hold") -> InspectionResult:
-        ev = EvidenceBuilder(self.scene, action, condition)
+            action: Action | None = None) -> InspectionResult:
+        ev = EvidenceBuilder(self.scene, action or self.action, condition)
         frames = self._capture(source, ev)
         vision = self._vision(ev)
         scales = {f.index: self.fiducial.detect(f.image) for f in frames}
@@ -96,26 +107,42 @@ class DeckingInspection:
             except ValueError as exc:
                 ev.error(f"measure[{f.index}]", exc)
                 continue
-            if not overlay or not overlay.boards:
+            if not overlay or not overlay.segments:
                 overlay = Overlay.of(f, scales[f.index], view)
         if vision is not None:
             ev.models["vlm"] = vision.model
-        ev.measurements = self.measurer.combine(samples, "nemotron-vl edge points + fiducial homography")
-        ev.citations = self.packs.load(jurisdiction).citations(self.scene)
-        if not ev.citations:
-            ev.error("grounding", f"no approved {self.scene} requirement in the {jurisdiction} pack")
-        bundle = ev.build()
+        ev.measurements = self.measurer.combine(samples, self.method)
+        ev.citations = self._ground(jurisdiction, ev.errors)
+        return self._decide(ev.build(), jurisdiction, overlay)
+
+    def reground(self, record: DossierRecord, jurisdiction: str) -> InspectionResult:
+        """The same evidence decided again against another jurisdiction's approved requirements."""
+        old = record.evidence
+        errors = [e for e in old.errors if not e.startswith("grounding:")]
+        citations = self._ground(jurisdiction, errors)
+        bundle = old.model_copy(update={"citations": citations, "errors": errors})
+        return self._decide(bundle, jurisdiction, None, regrounded_from=record.id)
+
+    def _ground(self, jurisdiction: str, errors: list[str]) -> list[Citation]:
+        citations = self.packs.load(jurisdiction).citations(self.scene)
+        if not citations:
+            errors.append(f"grounding: no approved {self.scene} requirement in the {jurisdiction} pack")
+        return citations
+
+    def _decide(self, bundle: EvidenceBundle, jurisdiction: str, overlay: Overlay | None,
+                regrounded_from: str | None = None) -> InspectionResult:
         exchange = self.gate.propose(bundle)
         record = DossierRecord.of(bundle, exchange, jurisdiction, self.gate.mode)
+        record.regrounded_from = regrounded_from
         self.store.save(record)
         result = exchange.result
         return InspectionResult(
-            record_id=record.id, created_at=record.created_at, scene=self.scene, action=action,
-            condition=condition, jurisdiction=jurisdiction, gate_mode=self.gate.mode,
+            record_id=record.id, created_at=record.created_at, scene=self.scene, action=bundle.action,
+            condition=bundle.condition, jurisdiction=jurisdiction, gate_mode=self.gate.mode,
             measurements=bundle.measurements, citations=bundle.citations, checks=Facts(bundle).checks(),
             errors=bundle.errors, verdict=result if isinstance(result, Verdict) else None,
             failure=result if isinstance(result, GateFailure) else None,
-            light=LightState.of(result), overlay=overlay,
+            light=LightState.of(result), overlay=overlay, regrounded_from=regrounded_from,
         )
 
     def _capture(self, source: Source | None, ev: EvidenceBuilder) -> list[Frame]:
@@ -141,13 +168,12 @@ class DeckingInspection:
             ev.error("vision", exc)
             return None
 
-    @staticmethod
-    def _locate(vision: VisionModel | None, frames: list[Frame], ev: EvidenceBuilder) -> dict[int, DeckingView]:
+    def _locate(self, vision: VisionModel | None, frames: list[Frame], ev: EvidenceBuilder) -> dict[int, View]:
         if vision is None or not frames:
             return {}
         views = {}
         with ThreadPoolExecutor(max_workers=len(frames)) as pool:
-            futures = {f.index: pool.submit(vision.locate, f, DeckingView) for f in frames}
+            futures = {f.index: pool.submit(vision.locate, f, self.view) for f in frames}
             for index, future in futures.items():
                 try:
                     views[index] = future.result()
@@ -155,3 +181,26 @@ class DeckingInspection:
                     ev.error(f"vision[{index}]", exc)
         return views
 
+
+class DeckingInspection(Inspection):
+    """Decking: board gaps and alignment against an approved requirement."""
+
+    scene = "decking"
+    view = DeckingView
+    action = "inspection.release_hold"
+    method = "nemotron-vl edge points + fiducial homography"
+
+    def make_measurer(self) -> Measurer:
+        return DeckMeasurer()
+
+
+class TrenchInspection(Inspection):
+    """Trench entry: wall slope against the jurisdiction's protective-sloping requirement."""
+
+    scene = "trench"
+    view = TrenchView
+    action = "trench.authorize_entry"
+    method = "nemotron-vl wall points + upright fiducial homography"
+
+    def make_measurer(self) -> Measurer:
+        return TrenchMeasurer()

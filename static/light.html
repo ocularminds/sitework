@@ -5,11 +5,12 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>SiteWork Light</title>
 <style>
-  :root { --green: #1e8e3e; --amber: #f29900; --red: #d93025; --off: #202124; }
+  :root { --green: #1e8e3e; --amber: #f29900; --red: #d93025; --blue: #1a5fb4; --off: #202124; }
   html, body { margin: 0; height: 100%; }
   body { display: flex; align-items: center; justify-content: center; background: var(--off);
          color: #fff; font: 800 12vw/1 system-ui, sans-serif; transition: background .2s; }
   body.green { background: var(--green); } body.amber { background: var(--amber); } body.red { background: var(--red); }
+  body.blue { background: var(--blue); }
   #label { text-align: center; letter-spacing: .04em; }
   #sub { font-size: 3vw; font-weight: 500; opacity: .85; margin-top: 2vw; }
 </style>
@@ -20,7 +21,8 @@
 function set(light, mode) {
   document.body.className = light.color;
   document.getElementById("label").textContent = light.label;
-  document.getElementById("sub").textContent = mode === "mock" ? "MOCK GATE · not a Decionis decision" : "Decionis";
+  document.getElementById("sub").textContent = mode === "mock" ? "MOCK GATE · not a Decionis decision"
+    : light.color === "blue" ? "Released by a named person, not by the gate" : "Decionis";
 }
 let mode = "live";
 fetch("/api/state").then((r) => r.json()).then((st) => { mode = st.gate_mode; set(st.light, mode); });
@@ -29,7 +31,7 @@ fetch("/api/state").then((r) => r.json()).then((st) => { mode = st.gate_mode; se
   ws.onmessage = (ev) => {
     const msg = JSON.parse(ev.data);
     if (msg.type === "state") { mode = msg.state.gate_mode; set(msg.state.light, mode); }
-    if (msg.type === "result") set(msg.light, mode);
+    if (msg.type === "result" || msg.type === "resolution") set(msg.light, mode);
   };
   ws.onclose = () => setTimeout(connect, 2000);
 })();

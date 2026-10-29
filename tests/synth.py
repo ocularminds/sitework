@@ -42,3 +42,11 @@ def deck_view(angle_deg: float, gap_mm: float, confidence: float = 0.9) -> Decki
           for edge in ([[60, 90 + gap_mm], [260, 90 + gap_mm]], [[60, 120 + gap_mm], [260, 120 + gap_mm]])]
     return DeckingView(confidence=confidence, boards=[
         {"edges": [to_px(edge).tolist() for edge in board]} for board in (b2, b1)])  # unordered on purpose
+
+
+def trench_view(slope_deg: float, depth_mm: float, confidence: float = 0.9):
+    """A cross-section on the marker plane: ground at y=60 mm, one wall dropping depth_mm at slope_deg."""
+    from sitework.perceive.views import TrenchView
+    run = depth_mm / math.tan(math.radians(slope_deg))
+    top, toe = [120.0, 60.0], [120.0 + run, 60.0 + depth_mm]
+    return TrenchView(confidence=confidence, walls=[{"top": to_px([top])[0].tolist(), "toe": to_px([toe])[0].tolist()}])

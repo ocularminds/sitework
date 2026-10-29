@@ -1,5 +1,11 @@
 from sitework.config import Settings
 from sitework.health import TavilyCheck, TokenFactoryCheck
+from sitework.health import GateCheck
+from sitework.gate.authority import Gate
+from sitework.gate.decionis import DecionisClient
+import httpx
+import json
+import pytest
 from sitework.ground.web import WebResult
 from sitework.nebius import ModelCatalog
 
@@ -73,3 +79,42 @@ def test_tavily_without_allowlisted_results_blocks():
     assert not TavilyCheck(offline(), FakeWeb([])).run().ok
     hit = WebResult(url="https://www.osha.gov/laws-regs/1926.652")
     assert TavilyCheck(offline(), FakeWeb([hit])).run().ok
+
+
+@pytest.mark.parametrize("mode", ["ENFORCEMENT", "PARALLEL", "SHADOW"])
+def test_gate_probe_uses_configured_mode_and_carries_incomplete_evidence(mode):
+    requests = []
+
+    def respond(request):
+        requests.append(json.loads(request.content))
+        return httpx.Response(200, json={"status": "ESCALATE", "should_execute": False,
+                                       "dossier_id": "test-dossier"})
+
+    config = offline(decionis_gate_mode=mode, decionis_org_id="test-org",
+                     decionis_api_key="test-key", agentsafe_tenant_key="test-ingress")
+    client = DecionisClient(config, transport=httpx.MockTransport(respond))
+    result = GateCheck(config, Gate(config, client)).run()
+    assert result.ok
+    assert mode in result.name
+    assert len(requests) == 1
+    assert requests[0]["mode"] == mode
+    assert requests[0]["context"]["sitework_error_count"] == 1
+    client.close()
+
+
+def test_gate_probe_never_claims_an_allow_and_reports_it_as_a_policy_problem():
+    paths = []
+
+    def respond(request):
+        paths.append(request.url.path)
+        return httpx.Response(200, json={"status": "ALLOW", "should_execute": True,
+                                       "execution_token": "test-token", "dossier_id": "test-dossier"})
+
+    config = offline(decionis_org_id="test-org", decionis_api_key="test-key",
+                     agentsafe_tenant_key="test-ingress")
+    client = DecionisClient(config, transport=httpx.MockTransport(respond))
+    result = GateCheck(config, Gate(config, client)).run()
+    assert not result.ok
+    assert paths == ["/v1/authority/enforce-and-bind"]
+    assert any("incomplete integration evidence" in b for b in result.blockers)
+    client.close()

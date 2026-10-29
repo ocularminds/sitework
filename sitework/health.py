@@ -1,6 +1,8 @@
 """Credential and reachability checks for Token Factory, Tavily and Decionis."""
 
 from abc import ABC, abstractmethod
+from base64 import urlsafe_b64decode
+import json
 
 from pydantic import BaseModel, Field
 
@@ -108,12 +110,13 @@ class TavilyCheck(Check):
 
 
 class DecionisCheck(Check):
-    """Public health, workspace identity and the selected AgentSafe tenant."""
+    """Routing, credential scopes and workspace limits for the configured gate mode."""
 
     name = "Decionis"
 
     def __init__(self, settings: Settings, client: DecionisClient | None = None):
         super().__init__(settings)
+        self.name = f"Decionis ({settings.decionis_gate_mode})"
         self.client = client or DecionisClient(settings)
 
     def probe(self) -> CheckResult:
@@ -124,11 +127,12 @@ class DecionisCheck(Check):
             result.blockers.append(f"health call failed: {health.summary()}")
         self._check_key(result)
         self._check_gateways(result)
+        self._check_workspace_mode(result)
         return result
 
     def _check_key(self, result: CheckResult) -> None:
         if not self.client.has_key:
-            result.blockers.append("DECIONIS_API_KEY is not set (see .env.example and TODO_HUMAN.md)")
+            result.blockers.append(f"{self.client.credential_env_var} is not set (see .env.example)")
             return
         if not self.settings.decionis_org_id:
             result.blockers.append("DECIONIS_ORG_ID is not set")
@@ -138,6 +142,53 @@ class DecionisCheck(Check):
         result.detail.append(f"api key: {probe.summary()} ({'accepted' if accepted else 'rejected'})")
         if not accepted:
             result.blockers.append(f"api key not verified for DECIONIS_ORG_ID: {probe.summary()}")
+            return
+        scopes = probe.body.get("scopes")
+        if not isinstance(scopes, list) or not all(isinstance(s, str) for s in scopes):
+            result.blockers.append("API key scopes are missing or malformed; gate permissions are unverified")
+            return
+        scopes = [s.strip() for s in scopes]
+        mode = self.settings.decionis_gate_mode
+        required = {"decision:write", "decision:enforce", "org:*"}
+        if mode == "SHADOW":
+            required |= {"decision:run", "decision:shadow"}
+        permitted = any(s == needed or (s.endswith("*") and needed.startswith(s[:-1]))
+                        for s in scopes for needed in required)
+        result.detail.append(f"{self.client.credential_env_var}: scopes={', '.join(scopes) or '(none)'}")
+        if not permitted:
+            result.blockers.append(
+                f"{self.client.credential_env_var} cannot run {mode}; "
+                f"needs {'decision:shadow or decision:run' if mode == 'SHADOW' else 'decision:enforce'} "
+                "or a supported broader decision scope"
+            )
+
+    def _check_workspace_mode(self, result: CheckResult) -> None:
+        # Readiness metadata comes directly from the authenticated API over TLS.
+        # Decoding it here never authorizes an action; the live gate still decides.
+        probe = self.client.policy_bundle()
+        if probe.status != 200 or not isinstance(probe.body, dict):
+            result.blockers.append(f"workspace mode could not be checked: {probe.summary()}")
+            return
+        try:
+            token = probe.body["signed_bundle"]
+            if not isinstance(token, str) or len(token.split(".")) != 3:
+                raise ValueError("invalid signed_bundle")
+            payload = token.split(".")[1]
+            claims = json.loads(urlsafe_b64decode(payload + "=" * (-len(payload) % 4)))
+            if (not isinstance(claims, dict) or claims.get("aud") != self.settings.decionis_org_id
+                    or claims.get("max_mode") not in {"SHADOW", "ENFORCEMENT"}):
+                raise ValueError("wrong workspace or unknown max_mode")
+        except (KeyError, ValueError, TypeError):
+            result.blockers.append("workspace mode claims are missing or malformed")
+            return
+        maximum = claims["max_mode"]
+        reason = claims.get("max_mode_reason")
+        result.detail.append(f"workspace max_mode={maximum}" + (f" ({reason})" if reason else ""))
+        if self.settings.decionis_gate_mode != "SHADOW" and maximum == "SHADOW":
+            result.blockers.append(
+                f"workspace refuses {self.settings.decionis_gate_mode}: {reason or 'SHADOW-only'}; "
+                "a valid enforcement scope does not lift this workspace restriction"
+            )
 
     def _check_gateways(self, result: CheckResult) -> None:
         probe = self.client.gateway(self.settings.decionis_gateway_url)
@@ -160,15 +211,16 @@ class DecionisCheck(Check):
 
 
 class GateCheck(Check):
-    """One SHADOW-mode authority call, labelled as an integration check, to confirm the
-    request shape is accepted. Opt-in (`check.py --gate`): it writes to the Decionis ledger."""
+    """One deliberately incomplete authority request in the configured mode.
 
-    name = "Decionis gate (SHADOW)"
+    Opt-in (`check.py --gate`): it may write to the Decionis ledger. Its evidence
+    carries an error, so Gate never claims an execution grant for this check.
+    """
 
     def __init__(self, settings: Settings, gate: Gate | None = None):
         super().__init__(settings)
-        shadow = settings.model_copy(update={"decionis_gate_mode": "SHADOW"})
-        self.gate = gate or Gate(shadow)
+        self.name = f"Decionis gate ({settings.decionis_gate_mode})"
+        self.gate = gate or Gate(settings)
 
     def probe(self) -> CheckResult:
         bundle = EvidenceBundle(
@@ -190,6 +242,8 @@ class GateCheck(Check):
                              f"{r.grant_error}".rstrip())
         result.detail.append(f"dossier {r.dossier_id or '(none)'}; decision {r.decision_id or '(none)'}")
         result.detail.append(f"response keys: {sorted(exchange.response or {})}")
+        if r.decision not in {"ESCALATE", "BLOCK"} or r.should_execute or r.grant_claimed:
+            result.blockers.append("incomplete integration evidence must keep the hold closed with ESCALATE or BLOCK")
         return result
 
 

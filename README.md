@@ -6,7 +6,7 @@ Physical AI that inspects construction work at the hold point, before it disappe
 
 > Models observe → code measures → policy decides → humans sign when the AI isn't sure → everything is provable.
 
-Status: **P2, proof and grounding depth.** The decking slice is gated live. Dossiers verify offline, jurisdiction packs are built with Tavily map and crawl, and amendments become gated policy updates. Trench, plumbing and eval arrive in later phases (see `IMPLEMENT.md`).
+Status: **P3, trench.** Decking and trench entry are gated live. A jurisdiction switch re-decides the same evidence under the other pack, and an escalated hold is resolved by a named person. Plumbing audio and eval arrive in later phases (see `IMPLEMENT.md`).
 
 ## Setup
 
@@ -20,9 +20,11 @@ make test
 make demo                # dashboard at http://127.0.0.1:8000, stack light at /light
 ```
 
-`make check` lists the Nemotron models Token Factory serves to your key, runs one Tavily search, verifies the Decionis workspace identity, and checks the selected gateway. Anything it cannot verify is reported as a blocker; open items live in `TODO_HUMAN.md`.
+`make check` lists the Nemotron models Token Factory serves to your key, runs one Tavily search, and checks Decionis identity, routing, credential scopes for the configured gate mode, and the workspace's allowed mode. Anything it cannot verify is reported as a blocker; open items live in `TODO_HUMAN.md`.
 
-SiteWork uses the `https://dci.decionisedge.com` gateway, explicitly selected on 29 October 2026. Its ingress key and workspace key are in the ignored `.env`. `uv run --frozen python scripts/check.py --decionis-only --gate` adds one SHADOW-mode intent through the gate; that call is recorded in the Decionis ledger. `docs/gateway-setup.md` covers the gateway setup.
+SiteWork uses the `https://dci.decionisedge.com` gateway, explicitly selected on 29 October 2026. Its credentials are in ignored `.env`. Enforced calls and grant claims use the dedicated `DECIONIS_ENFORCE_API_KEY`; dossier reads and SHADOW calls retain `DECIONIS_API_KEY`.
+
+`uv run --frozen python scripts/check.py --decionis-only --gate` sends one deliberately incomplete intent in the configured mode (default **ENFORCEMENT**). It expects ESCALATE or BLOCK, may record a dossier, and never claims an execution grant. Add `--gate-mode SHADOW` only to test SHADOW explicitly; a SHADOW pass does not establish enforcement readiness. See [gateway setup](docs/gateway-setup.md) for the verified enforcement result and workspace claim.
 
 ## How a decking inspection runs
 
@@ -36,6 +38,12 @@ SiteWork uses the `https://dci.decionisedge.com` gateway, explicitly selected on
 8. **Record.** Evidence, request, response and verdict are written to `data/dossiers/<dossier_id>.json`, with the execution token redacted.
 
 Nothing is faked: errors (no marker, model failure, missing key, no approved requirement) are sent to Decionis as facts. `DECIONIS_MODE=mock` exists for tests only and puts a red MOCK GATE banner on every page.
+
+## Trench, jurisdiction switch and human release
+
+- **Trench entry** (`trench.authorize_entry`). Use a side view of the trench cross-section, with the marker standing upright in that plane and its bottom edge level. Nemotron VL returns each wall's top and toe point. Code then measures the steepest wall's slope (degrees from horizontal) and its depth. Steep walls are the sensitive case: with little horizontal run, 0.2 mm of corner error is about 0.4°.
+- **Jurisdiction switch.** Choosing another jurisdiction on the dashboard re-decides the last inspection's evidence against that pack's approved requirements, without re-running perception. A new gate call produces a new dossier that names the record it was re-grounded from. US trench cites OSHA's maximum allowable slopes. Sweden's AFS 2023:13 sets no fixed slope, so an approved SE requirement carries no numeric threshold and the policy escalates to a person.
+- **Named release.** An ESCALATE or REVIEW_REQUIRED shows a name field with Release hold and Keep hold. The record keeps who decided, when, any note, and Decionis's `approval_request_id`. A release turns the light **blue** ("RELEASED BY …"), never green, because green is reserved for a Decionis ALLOW with a claimed grant.
 
 ## Proof, packs and policy updates
 
@@ -77,7 +85,8 @@ physical capture has been completed by this setup work.
 | `NEBIUS_API_KEY`, `NEBIUS_BASE_URL` | Nebius Token Factory (OpenAI-compatible) |
 | `NEBIUS_VLM_MODEL`, `NEBIUS_AGENT_MODEL`, `NEBIUS_AUDIO_MODEL` | Optional overrides of the model IDs recorded in `sitework/config.py` |
 | `TAVILY_API_KEY` | Tavily search / extract / map / crawl / research |
-| `DECIONIS_API_KEY`, `DECIONIS_ORG_ID` | Decionis credentials |
+| `DECIONIS_API_KEY`, `DECIONIS_ORG_ID` | Decionis read/SHADOW credential and workspace; also used for dossier retrieval |
+| `DECIONIS_ENFORCE_API_KEY` | Separate `decision:enforce` key for ENFORCEMENT/PARALLEL evaluations and grant claims |
 | `DECIONIS_POLICY_API_KEY` | Separate `policy:read` / `policy:write` key for authoring via `DECIONIS_API_BASE` |
 | `AGENTSAFE_TENANT_KEY` | Ingress key for the selected AgentSafe tenant; distinct from the workspace API key |
 | `DECIONIS_API_BASE`, `DECIONIS_GATEWAY_URL` | Decionis API and selected hosted AgentSafe gateway; no automatic switch to another tenant |

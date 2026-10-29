@@ -11,11 +11,62 @@ Status on 29 October 2026: **using the existing dci gateway at the user's reques
 - An authenticated `GET /v1/health` returned HTTP 200, `ok: true`, API revision `67be91f`, and `agentsafe-execution: PASSTHROUGH` at `2026-10-29T01:27:36.986Z`.
 - The verified workspace API key is saved in ignored `.env`, mode 0600, as `DECIONIS_API_KEY`. Its scopes are `org:read`, `decision:run`, `decision:read`, and `policy:read`.
 - Direct workspace authentication returned HTTP 200. An additional `POST /v1/auth/credential-context` through dci with both credentials returned HTTP 200, the expected workspace, and `agentsafe-execution: PASSTHROUGH` at `2026-10-29T01:45:11.527832Z` (02:45 Stockholm).
-- These checks establish routing and authentication. SiteWork policy evaluation, signed inspection decisions, and enforcement are not yet validated.
+- Those initial checks established routing and authentication. The later enforcement verification is recorded below; a real clean bench inspection remains separate work.
 
 The client now sends the ingress key only to its selected gateway. `POST /v1/auth/credential-context` independently verifies that an API key belongs to the configured workspace; missing keys, a different workspace, redirects and error responses do not pass. No automatic fallback sends a tenant key to another hostname.
 
 Run `uv run --frozen python scripts/check.py --decionis-only` to repeat the connection checks. All Decionis connection checks pass. Tavily is also configured and verified; the full `make check` still needs the Nebius credential.
+
+## Enforcement credential and workspace claim
+
+The original key could run SHADOW evaluations but lacked the scope needed for
+ENFORCEMENT. A live request reproduced HTTP 403 with the required scopes
+`decision:write`, `decision:*`, `org:*`, or `decision:enforce`.
+
+An existing authorized operator command issued a separate MEMBER key named
+`SiteWork execution authority`, with exactly `decision:enforce`. It is saved as
+`DECIONIS_ENFORCE_API_KEY` in ignored `.env`, mode 0600. The deployed API confines
+that scope to evaluations and grant handling; it cannot author policy or fetch
+arbitrary workspace records. No fleet credential or Azure role grant was changed.
+
+| Credential | Use |
+|---|---|
+| `DECIONIS_ENFORCE_API_KEY` | ENFORCEMENT/PARALLEL gate requests and execution-grant claims |
+| `DECIONIS_API_KEY` | SHADOW requests, dossier retrieval and reading workspace mode limits |
+| `DECIONIS_POLICY_API_KEY` | Policy authoring directly against the API |
+| `AGENTSAFE_TENANT_KEY` | Admission to the selected dci gateway |
+
+The application prefers the dedicated enforcement key for enforcing modes. If
+none is configured, it can use `DECIONIS_API_KEY`, but the readiness check still
+requires a scope accepted for that mode. Credentials never trigger an automatic
+downgrade to SHADOW or a switch to another gateway.
+
+The new key passed authentication through dci, then the enforced request reached
+the next restriction: HTTP 403 `PROVISIONAL_WORKSPACE_SHADOW_ONLY`. The workspace
+was still unclaimed. With explicit user approval, Decionis's supported browser
+claim attached the existing workspace to `mail.festus@gmail.com`. The page
+confirmed **Claimed** for `decionisedge dci Agent Workspace`. Its gateway,
+workspace ID, active policy and ledger were preserved; the issued mode metadata
+now reports `max_mode: ENFORCEMENT`.
+
+After claiming on 29 October 2026, a deliberately incomplete integration request
+through dci returned **ESCALATE**, policy `decionis-starter-v2+sitework-1`,
+`should_execute=false`. Both request and response used **ENFORCEMENT**. Dossier
+`b4bdc118-5394-43ce-8a77-e94ec5affe82` verified offline with required artifact
+coverage. Pinned verification against Decionis's official JWKS returned
+`DECIONIS_OFFICIAL` and confirmed issuer authenticity. This was an integration
+check with no measurements or citations, not
+a real inspection, and no execution grant was claimed.
+
+The readiness checks now inspect the active credential's scopes and read the
+workspace's `max_mode` from the authenticated policy-bundle endpoint. Decoding
+that metadata is diagnostic only; actual actions still require a live gate
+decision. A missing scope, malformed mode metadata or SHADOW-only workspace is
+reported as a blocker for ENFORCEMENT/PARALLEL.
+
+`check.py --decionis-only --gate` now tests the configured mode, default
+ENFORCEMENT. Its incomplete evidence must receive ESCALATE or BLOCK and cannot
+claim a grant. `--gate-mode SHADOW` is an explicit diagnostic override.
 
 ## Policy authoring access
 
@@ -27,7 +78,8 @@ directly with `DECIONIS_API_BASE` when authoring policies.
 AgentSafe's onboarding and reconciliation checks require narrow runtime scopes
 and reject `policy:write` on a gateway runtime key. The original
 `DECIONIS_API_KEY` therefore retains `org:read`, `decision:run`, `decision:read`
-and `policy:read`. The application continues to use that key for gate calls.
+and `policy:read`. The application retains it for reads and SHADOW calls; enforced
+calls use the dedicated credential described above.
 
 The user identified `festus@decionis.com` as the owner account, whose mailbox is
 currently inaccessible. The existing authorized Kubernetes operator access
