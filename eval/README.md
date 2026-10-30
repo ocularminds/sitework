@@ -68,6 +68,25 @@ truth fields are blank. The DSP processed audio; no Nemotron vision inference
 ran because no sampled frame had a calibration marker. These rates apply only
 to the six paired refusal cases and do not estimate accuracy on valid inspections.
 
+## Cosmos refusal run (30 October)
+
+The second run adds the Cosmos Transfer 2.5 rain, mud and dusk-glare variants of
+`sw-rig05` and `sw-rig08` (seconds 0–6 of each), paired across US and SE: twelve
+rows from six generated videos, plus the six outdoor rows again. The roof clip
+`sw-rig02` and its variants matched no hold-point scene and were left out.
+
+Every variant row was labelled **ESCALATE** before the run: no calibration
+marker in any generated frame (`data/clips/RUN_INFO.md`), no audio track, and a
+qualitative plumbing pack. Against the live dci gateway in SHADOW mode, commit
+`8339eb4`, the report records **18/18 ESCALATE**, **0 false ALLOW** in every
+condition, no gate failures, **18/18 dossiers verified offline** and **735.5 ms
+gate p95** (nearest rank, n=18).
+
+This shows that the weather variants are refused, not that SiteWork measures
+correctly through rain, mud or glare. The variants derive from two outdoor clips
+that are also in the file, so they are not independent recordings, and no
+measurement or seating accuracy was estimated.
+
 ## Every-frame check (29 October)
 
 A second pass over all ten files, after the run above:
