@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { inspectionMessage, matchesSelection, measurementValue, presentation, safeUrl } from "../static/ui.mjs";
+import { inspectionMessage, limitText, matchesSelection, measurementName, measurementValue, presentation, released, safeUrl, sourceName } from "../static/ui.mjs";
 
 test("a disconnected workspace cannot display a stale green release", () => {
   const status = presentation({ color: "green", label: "ALLOW" }, { connected: false });
@@ -49,7 +49,7 @@ test("a zero measurement and a negative sound detection remain evidence", () => 
 
 test("operator guidance distinguishes an unconfirmed release from missing calibration", () => {
   const record = { verdict: { decision: "ALLOW", grant_error: "CLAIM_UNRESOLVED" }, errors: ["fiducial[0]: marker not found"] };
-  assert.match(inspectionMessage(record), /release could not be confirmed/);
+  assert.match(inspectionMessage(record), /did not complete the release/);
   assert.match(inspectionMessage({ ...record, verdict: { decision: "ESCALATE" } }), /calibration marker was not found/);
 });
 
@@ -58,4 +58,27 @@ test("citation links reject executable schemes and embedded credentials", () => 
     assert.equal(safeUrl(url), "");
   }
   assert.equal(safeUrl("https://www.osha.gov/laws-regs"), "https://www.osha.gov/laws-regs");
+});
+
+test("a green release says it was finalized, not that the physical effect was confirmed", () => {
+  assert.equal(presentation({ color: "green", label: "ALLOW" }).kicker, "Release finalized");
+  const stored = { verdict: { decision: "ALLOW", should_execute: true, grant_claimed: true, grant_finalized: true }, citations: [{}] };
+  assert.equal(released(stored), true);
+  assert.match(inspectionMessage(stored), /claimed its single-use grant and finalized it/);
+  assert.equal(released({ verdict: { ...stored.verdict, grant_finalized: false } }), false);
+});
+
+test("limits read as ranges with units", () => {
+  assert.equal(limitText({ min: 3.175, max: 6.35 }, "gap_mm"), "3.175–6.35 mm");
+  assert.equal(limitText({ min: null, max: 34 }, "slope_deg"), "≤ 34°");
+  assert.equal(limitText({ min: 2 }, "depth_mm"), "≥ 2 mm");
+  assert.equal(limitText({}, "gap_mm"), "No numeric limit");
+});
+
+test("angles are named for the scene, and sources without their scheme", () => {
+  assert.equal(measurementName("angle_deg", "decking"), "Board angle");
+  assert.equal(measurementName("angle_deg", "plumbing"), "Pipe alignment");
+  assert.equal(measurementName("slope_deg", "trench"), "Wall slope");
+  assert.equal(sourceName("file:decking-ok.mp4"), "decking-ok.mp4");
+  assert.equal(sourceName("camera:0"), "Camera 0");
 });

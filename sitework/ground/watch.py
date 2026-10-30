@@ -170,6 +170,8 @@ class PolicyUpdate:
             raise ValueError("a resolution needs a named approver")
         if proposal.status != "pending":
             raise ValueError(f"proposal already {proposal.status} by {proposal.resolved_by}")
+        if approve and not ((proposal.exchange or {}).get("result") or {}).get("decision"):
+            raise ValueError("Decionis never decided this proposal, so it can only be rejected; run the research again")
         proposal.status = "approved" if approve else "rejected"
         proposal.resolved_by, proposal.note = approver.strip(), note
         proposal.resolved_at = datetime.now(timezone.utc)

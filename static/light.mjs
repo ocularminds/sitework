@@ -16,7 +16,7 @@ function render() {
   $("sub").textContent = !connected && loaded ? "The current hold status cannot be confirmed. Reconnect to the workspace."
     : mode === "mock" ? "Test environment. This signal does not authorize a live release."
       : p.color === "blue" ? "A named person recorded this release. It is not an automatic gate approval."
-        : p.color === "green" ? "Decionis allowed the action and the execution was finalized."
+        : p.color === "green" ? "Decionis allowed this release, and SiteWork claimed and finalized its grant."
           : p.color === "amber" ? "Keep the hold in place. A named person must review the evidence."
             : p.color === "red" ? "Keep the hold in place. Check the inspection workspace for details."
               : "Waiting for an inspection from the workspace.";

@@ -1,4 +1,4 @@
-import { $, api, conditionName, dateTime, esc, hydrateIcons, icon, inspectionMessage, measurementName, measurementValue, proofMarkup, safeUrl, sceneName } from "./ui.mjs";
+import { $, api, conditionName, dateTime, esc, hydrateIcons, icon, inspectionMessage, measurementName, measurementValue, proofMarkup, released, safeUrl, sceneName } from "./ui.mjs";
 
 hydrateIcons();
 const id = new URLSearchParams(location.search).get("id") || "";
@@ -46,11 +46,13 @@ function renderRecord(record) {
   $("recordMode").textContent = mock ? "MOCK GATE" : "Decionis record";
   $("recordMode").className = `badge ${mock ? "badge-red" : "badge-neutral"}`;
   $("recordStatus").textContent = dateTime(record.created_at);
-  const verdictColor = verdict.decision === "ALLOW" ? "var(--blue)" : ["ESCALATE", "REVIEW_REQUIRED"].includes(verdict.decision) ? "var(--amber)" : "var(--red)";
-  const explanation = inspectionMessage({ ...evidence, verdict: verdict.decision ? verdict : null, failure: verdict.error ? verdict : null });
+  const summary = { ...evidence, verdict: verdict.decision ? verdict : null, failure: verdict.error ? verdict : null };
+  // Blue belongs to a human release; an automatic ALLOW is green only once its release was finalized.
+  const verdictColor = verdict.decision === "ALLOW" ? (released(summary) ? "var(--green)" : "var(--ink)") : ["ESCALATE", "REVIEW_REQUIRED"].includes(verdict.decision) ? "var(--amber)" : "var(--red)";
+  const explanation = inspectionMessage(summary);
   $("summary").innerHTML = `<div><span class="summary-decision" style="color:${verdictColor}">${esc(verdict.decision || "NO DECISION")}</span><span>${esc(explanation)}</span></div>
     <div class="summary-context">${[sceneName(evidence.scene), conditionName(evidence.condition), record.jurisdiction, `Policy ${verdict.policy_version || "—"}`].map((text) => `<span class="badge badge-neutral">${esc(text)}</span>`).join("")}</div>
-    <p class="muted small" style="margin-top:12px">${esc(evidence.action)}</p>
+    <p class="muted small" style="margin-top:12px">Gated action <code>${esc(evidence.action)}</code></p>
     <details class="disclosure"><summary>${icon("chevron", "chevron")}Decision details</summary><code style="white-space:pre-wrap">${esc([verdict.reason, verdict.grant_error, verdict.error].filter(Boolean).join("\n"))}</code></details>
     ${record.regrounded_from ? `<p class="small muted">Re-evaluated from <a href="/dossier?id=${encodeURIComponent(record.regrounded_from)}">${esc(record.regrounded_from.slice(0, 12))}…</a></p>` : ""}
     ${record.resolution ? `<div class="resolution" style="margin:14px 0 0"><strong style="color:var(--${record.resolution.release ? "blue" : "red"})">${record.resolution.release ? "Released" : "Kept on hold"} by ${esc(record.resolution.approver)}</strong>${esc(dateTime(record.resolution.at))}${record.resolution.note ? ` · ${esc(record.resolution.note)}` : ""}</div>` : ""}`;
@@ -58,7 +60,7 @@ function renderRecord(record) {
   $("evidenceCount").textContent = `${evidence.measurements.length} measurements`;
   const rows = evidence.measurements.map((measurement) => {
     const value = measurementValue(measurement);
-    return `<tr><td class="measure-name">${esc(measurementName(measurement.kind))}</td><td class="num measure-value">${esc(value.value)} <small>${esc(value.unit)}</small></td><td class="num">${Number.isFinite(measurement.confidence) ? `${(measurement.confidence * 100).toFixed(0)}%` : "—"}</td><td class="muted">${esc(measurement.method)}</td></tr>`;
+    return `<tr><td class="measure-name">${esc(measurementName(measurement.kind, evidence.scene))}</td><td class="num measure-value">${esc(value.value)} <small>${esc(value.unit)}</small></td><td class="num">${Number.isFinite(measurement.confidence) ? `${(measurement.confidence * 100).toFixed(0)}%` : "—"}</td><td class="muted">${esc(measurement.method)}</td></tr>`;
   }).join("");
   const citations = evidence.citations.map((citation) => {
     const url = safeUrl(citation.url);

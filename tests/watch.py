@@ -57,3 +57,15 @@ def test_policy_update_sends_structured_facts_only_and_needs_a_named_resolution(
     assert done.status == "approved" and store.get(p.id).resolved_by == "A Person"
     with pytest.raises(ValueError, match="already approved"):
         updates.resolve(p.id, False, "Someone Else")
+
+
+def test_a_proposal_the_gate_never_decided_cannot_be_approved(tmp_path):
+    gate = MockGate(Settings(_env_file=None, decionis_org_id="00000000-0000-4000-8000-000000000002"))
+    store = ProposalStore(tmp_path)
+    updates = PolicyUpdate(gate, store)
+    p = updates.propose(AmendmentWatch(None, PACK).proposal("r-1", "q", RESULT))
+    p.exchange["result"] = {"error": "HTTP 403: API key missing required scope", "latency_ms": 5.0, "status": 403}
+    store.save(p)
+    with pytest.raises(ValueError, match="only be rejected"):
+        updates.resolve(p.id, True, "A Person")
+    assert updates.resolve(p.id, False, "A Person").status == "rejected"

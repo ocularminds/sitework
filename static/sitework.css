@@ -178,7 +178,7 @@ td { padding: 13px 20px; border-bottom: 1px solid #f0f2f5; vertical-align: middl
 tbody tr:last-child td { border-bottom: 0; }
 .num { text-align: right; font-variant-numeric: tabular-nums; }
 .measure-name { font-weight: 550; color: #414957; }
-.measure-method { display: block; margin-top: 4px; max-width: 180px; color: var(--muted); font-size: 9px; }
+.measure-method, .measure-range { display: block; margin-top: 4px; max-width: 180px; color: var(--muted); font-size: 9px; }
 .measure-value { font-size: 14px; font-weight: 600; white-space: nowrap; }
 .measure-value small { font-size: 10px; font-weight: 400; color: var(--muted); }
 .confidence { display: inline-flex; align-items: center; gap: 7px; white-space: nowrap; color: #5b6573; }
@@ -368,6 +368,7 @@ dialog::backdrop { background: rgb(17 23 34 / 45%); backdrop-filter: blur(3px); 
   .config-bar .scene-group { min-width: 0; }
   .config-group > label { font-size: 9px; }
   .scene-tab { min-height: 40px; font-size: 12px; }
+  .measure-method { display: none; } /* the full method stays on the dossier page */
   input, textarea, select { font-size: 16px; }
   select { height: 44px; }
   .select-wrap::after { top: 17px; }
