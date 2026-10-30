@@ -5,7 +5,7 @@
 - Every non-SiteWork rule of the active bundle is kept verbatim. Only `sitework_*` rules are replaced.
 - Before loading, the starter policy auto-approved a SiteWork intent with no evidence (dossier `e81018f7-…`). After loading, the same intent escalates (dossier `4f0ecb44-eccf-44dd-ba23-1af62b9df591`).
 
-SiteWork never decides. It sends evidence and deterministic measurement facts. Decionis applies the rules below and returns `ALLOW`, `BLOCK`, `ESCALATE` or `ERROR`, which SiteWork shows verbatim. On `ALLOW` with `should_execute`, SiteWork claims the single-use execution grant (`POST /v1/execution/consume-token`). The light turns green only when that claim is valid.
+SiteWork never decides. It sends evidence and deterministic measurement facts. Decionis applies the rules below and returns `ALLOW`, `BLOCK`, `ESCALATE` or `ERROR`, which SiteWork shows verbatim. On `ALLOW` with `should_execute`, SiteWork claims the single-use execution grant (`POST /v1/execution/claim-token`) and reports the release `COMMITTED` (`POST /v1/execution/finalize-token`) inside the claim's lease. The light turns green only when both succeed.
 
 ## Request SiteWork sends
 
