@@ -139,6 +139,9 @@ class AmendmentWatch:
                         result_sha256=digest)
 
 
+APPROVABLE = ("ALLOW", "ESCALATE", "REVIEW_REQUIRED")  # a BLOCK or ERROR can only be rejected
+
+
 class PolicyUpdate:
     """Sends a proposal through the gate as `policy.update`, then records a named person's resolution."""
 
@@ -170,8 +173,11 @@ class PolicyUpdate:
             raise ValueError("a resolution needs a named approver")
         if proposal.status != "pending":
             raise ValueError(f"proposal already {proposal.status} by {proposal.resolved_by}")
-        if approve and not ((proposal.exchange or {}).get("result") or {}).get("decision"):
+        decision = ((proposal.exchange or {}).get("result") or {}).get("decision")
+        if approve and not decision:
             raise ValueError("Decionis never decided this proposal, so it can only be rejected; run the research again")
+        if approve and decision not in APPROVABLE:
+            raise ValueError(f"Decionis returned {decision} for this proposal, so it can only be rejected")
         proposal.status = "approved" if approve else "rejected"
         proposal.resolved_by, proposal.note = approver.strip(), note
         proposal.resolved_at = datetime.now(timezone.utc)

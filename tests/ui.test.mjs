@@ -82,3 +82,8 @@ test("angles are named for the scene, and sources without their scheme", () => {
   assert.equal(sourceName("file:decking-ok.mp4"), "decking-ok.mp4");
   assert.equal(sourceName("camera:0"), "Camera 0");
 });
+
+test("a re-decided ALLOW says a fresh inspection is needed to release", () => {
+  const record = { regrounded_from: "r1", verdict: { decision: "ALLOW", grant_error: "not claimed: re-decided evidence" }, citations: [{}] };
+  assert.match(inspectionMessage(record), /re-decision never releases the hold/);
+});

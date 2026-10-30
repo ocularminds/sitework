@@ -97,6 +97,7 @@ def test_switching_jurisdiction_regrounds_the_last_inspection(client):
     st = client.post("/api/jurisdiction", json={"jurisdiction": "SE"}).json()
     assert st["jurisdiction"] == "SE" and st["jurisdictions"] == ["SE", "US"]
     assert st["last"]["regrounded_from"] == first["record_id"] and st["last"]["jurisdiction"] == "SE"
+    assert first["overlay"] and st["last"]["overlay"] == first["overlay"]  # same evidence, same frame
     assert any("SE pack" in e for e in st["last"]["errors"])
     assert client.post("/api/jurisdiction", json={"jurisdiction": "XX"}).status_code == 404
 

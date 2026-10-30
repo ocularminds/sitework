@@ -79,6 +79,7 @@ export function released(record) {
 export function inspectionMessage(record) {
   if (!record) return "Run an inspection to check this hold point against its cited requirement.";
   if (record.failure) return "No decision came back from Decionis, so the hold stays closed. Check the connection details.";
+  if (record.regrounded_from && record.verdict?.decision === "ALLOW" && record.verdict?.grant_error) return "Decionis allows this under the new jurisdiction, but a re-decision never releases the hold. Inspect again to release it.";
   if (record.verdict?.grant_error) return "Decionis allowed the action, but SiteWork did not complete the release, so the hold stays closed. The decision details say why.";
   if ((record.errors || []).some((error) => /marker not found/i.test(error))) return "The calibration marker was not found. Bring it clearly into view, then inspect again.";
   if (!(record.citations || []).length) return "No approved requirement covers this inspection, so it cannot be released automatically.";

@@ -128,13 +128,16 @@ class Inspection:
         """Measurements by ear, taken before the frames. Scenes without audio take none."""
         return []
 
+    REDECIDED = "re-decided evidence from an earlier capture; inspect again to release"
+
     def reground(self, record: DossierRecord, jurisdiction: str) -> InspectionResult:
-        """The same evidence decided again against another jurisdiction's approved requirements."""
+        """The same evidence decided again against another jurisdiction's approved requirements.
+        The verdict follows the rule, but a re-decision never releases: that needs a fresh capture."""
         old = record.evidence
         errors = [e for e in old.errors if not e.startswith("grounding:")]
         citations = self._ground(jurisdiction, errors)
         bundle = old.model_copy(update={"citations": citations, "errors": errors})
-        return self._decide(bundle, jurisdiction, None, regrounded_from=record.id)
+        return self._decide(bundle, jurisdiction, None, regrounded_from=record.id, hold=self.REDECIDED)
 
     def _ground(self, jurisdiction: str, errors: list[str]) -> list[Citation]:
         citations = self.packs.load(jurisdiction).citations(self.scene)
@@ -147,8 +150,8 @@ class Inspection:
         return citations
 
     def _decide(self, bundle: EvidenceBundle, jurisdiction: str, overlay: Overlay | None,
-                regrounded_from: str | None = None) -> InspectionResult:
-        exchange = self.gate.propose(bundle)
+                regrounded_from: str | None = None, hold: str = "") -> InspectionResult:
+        exchange = self.gate.propose(bundle, hold)
         record = DossierRecord.of(bundle, exchange, jurisdiction, self.gate.mode)
         record.regrounded_from = regrounded_from
         self.store.save(record)

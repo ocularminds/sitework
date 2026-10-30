@@ -20,6 +20,8 @@ from sitework.gate.authority import make_gate
 from sitework.ground.packs import PackStore
 from sitework.ground.watch import PolicyUpdate, ProposalStore
 from sitework.light import LightState
+from sitework.measure.fiducial import Fiducial
+from sitework.preview import LivePreview
 from sitework.proof import ProofError, Proofs
 from sitework.scenes import DeckingInspection, InspectionResult, PlumbingInspection, TrenchInspection
 from sitework.schema import Action, Condition
@@ -96,6 +98,7 @@ class Runtime:
         self.last: InspectionResult | None = None
         self.lit: str | None = None  # the record the stack light shows; None after the source changes
         self.hub = Hub()
+        self.preview = LivePreview(Fiducial(settings.fiducial_mm, settings.fiducial_id))
         self._busy = threading.Lock()
         self.open(settings.sitework_source)
 
@@ -146,8 +149,9 @@ class Runtime:
             record = self.store.get(self.last.record_id) if (req.reground and self.last) else None
             if record is None:
                 return None
-            was_lit = self.lit == record.id
+            was_lit, frame = self.lit == record.id, self.last.overlay if self.last.record_id == record.id else None
             self.last = self.scenes[record.evidence.scene].reground(record, req.jurisdiction)
+            self.last = self.last.model_copy(update={"overlay": frame})  # the same evidence, so the same frame
             self.lit = self.last.record_id if was_lit else None
             return self.last
         finally:
@@ -304,6 +308,6 @@ def _mjpeg(rt: Runtime, fps: float = 10.0):
             frame = rt.source.grab()
         except ValueError:
             break
-        yield b"--frame\r\nContent-Type: image/jpeg\r\n\r\n" + frame.jpeg + b"\r\n"
+        yield b"--frame\r\nContent-Type: image/jpeg\r\n\r\n" + rt.preview.jpeg(frame) + b"\r\n"
         time.sleep(1.0 / fps)
 

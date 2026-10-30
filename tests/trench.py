@@ -69,6 +69,19 @@ def test_trench_entry_checks_slope_and_regrounds_under_another_jurisdiction(tmp_
     assert request["sitework_checks_total"] == 0 and request["sitework_citation_count"] == 1
 
 
+def test_a_re_decided_allow_never_releases_the_hold(tmp_path):
+    image, view = trench_scene(30.0, 40.0)
+    cfg = Settings(_env_file=None, data_dir=tmp_path, decionis_org_id="00000000-0000-4000-8000-000000000002",
+                   nebius_api_key=None)
+    flow = TrenchInspection(cfg, MockGate(cfg, "ALLOW"), DossierStore(tmp_path / "dossiers"), packs(tmp_path),
+                            vision=FakeVision(view))
+    fresh = flow.run(StillSource(image), "clean", "US")
+    assert fresh.verdict.green
+    again = flow.reground(flow.store.get(fresh.record_id), "US")
+    assert again.verdict.decision == "ALLOW" and not again.verdict.green
+    assert "re-decided evidence" in again.verdict.grant_error and again.light.color == "red"
+
+
 def test_reground_to_a_pack_without_requirements_records_the_grounding_error(tmp_path):
     image, view = trench_scene(30.0, 40.0)
     cfg = Settings(_env_file=None, data_dir=tmp_path, decionis_org_id="00000000-0000-4000-8000-000000000002",

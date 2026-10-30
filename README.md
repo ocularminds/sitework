@@ -20,6 +20,8 @@ make test
 make demo                # dashboard at http://127.0.0.1:8000, stack light at /light
 ```
 
+To use a phone at the work face as the stack light, run `make demo HOST=0.0.0.0` and open `http://<this machine's IP>:8000/light` on the phone. Only do this on a network you trust: the API has no login, so anyone who can reach it can record a human release.
+
 `make check` lists the Nemotron models Token Factory serves to your key, runs one Tavily search, and checks Decionis identity, routing, credential scopes for the configured gate mode, and the workspace's allowed mode. Anything it cannot verify is reported as a blocker; open items live in `TODO_HUMAN.md`.
 
 The inspection workspace adapts to desktop, tablet and phone screens. Choose
