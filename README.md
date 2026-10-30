@@ -9,7 +9,7 @@ Physical AI that inspects construction work at the hold point, before it disappe
 **Status: built and validated live; calibrated bench accuracy not yet measured.**
 
 - **Live releases:** decking and trench release through the real Decionis gate. Synthetic in-limit clips were allowed, claimed and finalized, and turned green; a steep trench was blocked; Sweden escalated.
-- **Live human paths:** a named human release (blue) and a real webcam were exercised live ([readiness notes](docs/live-demo-readiness.md)).
+- **Live human paths:** a named human release (blue) and a real webcam were exercised live.
 - **Refusal evaluation:** outdoor clips and their Cosmos weather variants were refused 18 out of 18 times, with no false ALLOW ([results](eval/results.md)).
 - **Still needed:** measured bench clips, for accuracy figures (see the [bench checklist](docs/bench-rig.md)).
 
@@ -47,7 +47,7 @@ Pick the hold point, site condition and jurisdiction, then **Run inspection**. *
 
 SiteWork uses the `https://dci.decionisedge.com` gateway, with credentials in the ignored `.env`. Enforced calls and grant claims use `DECIONIS_ENFORCE_API_KEY`; dossier reads and SHADOW calls use `DECIONIS_API_KEY`.
 
-`uv run --frozen python scripts/check.py --decionis-only --gate` sends one deliberately incomplete intent in the configured mode (default ENFORCEMENT). It expects ESCALATE or BLOCK and never claims a grant. A SHADOW pass (`--gate-mode SHADOW`) doesn't show enforcement readiness. See [gateway setup](docs/gateway-setup.md).
+`uv run --frozen python scripts/check.py --decionis-only --gate` sends one deliberately incomplete intent in the configured mode (default ENFORCEMENT). It expects ESCALATE or BLOCK and never claims a grant. A SHADOW pass (`--gate-mode SHADOW`) doesn't show enforcement readiness. See [Connecting SiteWork to Decionis](docs/gateway.md).
 
 ## How a decking inspection runs
 
@@ -162,7 +162,7 @@ at Actual Size / 100%. The [bench checklist](docs/bench-rig.md) covers board
 angles, tabletop trench slopes, the unseated joint and outdoor captures.
 
 **Cosmos:** nine rain, mud and dusk-glare variants of three outdoor segments were generated on a US Nebius RTX PRO 6000. All 837 frames decode, and the temporary VM and disk were deleted afterwards.
-- [RUN_INFO.md](data/clips/RUN_INFO.md) records the settings and timings, and the [handoff](scripts/cosmos_transfer/README.md) links the resumable runner.
+- [Cosmos stress inputs](docs/cosmos.md) describes the set, [RUN_INFO.md](data/clips/RUN_INFO.md) records the settings and timings, and [`scripts/cosmos`](scripts/cosmos/README.md) is the resumable runner.
 - The sources have no independent measurements, so the variants are stress inputs: they test refusal, not accuracy.
 
 ## Environment
@@ -197,6 +197,7 @@ static/     dashboard, stack light and dossier pages (plain ES modules, no build
 policies/   SiteWork rules loaded into Decionis (sitework.json) and their rationale
 eval/       labels, results and evaluation scope
 data/       clips, jurisdiction packs, dossiers (large media git-ignored)
+docs/       developer guides: Decionis connection, requirements, bench rig, Cosmos
 tests/      pytest suite and node UI tests (ui.test.mjs)
 ```
 
