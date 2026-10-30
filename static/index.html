@@ -1,325 +1,187 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>SiteWork</title>
-<style>
-  :root {
-    --bg: #f4f4f1; --panel: #ffffff; --ink: #1d1f21; --muted: #6b6f73; --line: #dcdcd6;
-    --green: #1e8e3e; --amber: #c77700; --red: #c5221f; --blue: #1a5fb4; --off: #8a8f94; --accent: #24527a;
-  }
-  @media (prefers-color-scheme: dark) {
-    :root { --bg: #121416; --panel: #1b1e21; --ink: #e8eaed; --muted: #9aa0a6; --line: #2e3236;
-            --green: #34a853; --amber: #f29900; --red: #ea4335; --blue: #6ea8fe; --off: #5f6368; --accent: #8ab4f8; }
-  }
-  * { box-sizing: border-box; }
-  [hidden] { display: none !important; }
-  a { color: var(--accent); }
-  input { font: inherit; padding: 6px 8px; border: 1px solid var(--line); border-radius: 6px;
-          background: var(--bg); color: var(--ink); }
-  body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.4 system-ui, sans-serif; }
-  header { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; padding: 10px 16px;
-           border-bottom: 1px solid var(--line); background: var(--panel); }
-  header h1 { font-size: 18px; margin: 0 8px 0 0; letter-spacing: .02em; }
-  .tabs button, header select, header button, .actions button {
-    font: inherit; padding: 6px 12px; border: 1px solid var(--line); border-radius: 6px;
-    background: var(--panel); color: var(--ink); cursor: pointer; }
-  .tabs button[aria-selected="true"] { background: var(--accent); color: var(--panel); border-color: var(--accent); }
-  .tabs button:disabled, button:disabled { opacity: .45; cursor: not-allowed; }
-  .badge { padding: 3px 8px; border-radius: 999px; font-size: 12px; border: 1px solid var(--line); color: var(--muted); }
-  .spacer { flex: 1; }
-  #mock { display: none; background: var(--red); color: #fff; text-align: center; font-weight: 700;
-          padding: 8px; letter-spacing: .08em; }
-  main { display: grid; grid-template-columns: minmax(0, 3fr) minmax(300px, 2fr); gap: 16px; padding: 16px; }
-  @media (max-width: 900px) { main { grid-template-columns: 1fr; } }
-  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px; }
-  .feed { position: relative; }
-  .feed img, .feed canvas { width: 100%; display: block; border-radius: 6px; background: #000; }
-  .feed .view { display: flex; gap: 8px; margin-bottom: 8px; }
-  .side { display: grid; gap: 16px; align-content: start; }
-  .verdict { border-left: 10px solid var(--off); }
-  .verdict .decision { font-size: 40px; font-weight: 800; letter-spacing: .04em; }
-  .verdict.green { border-color: var(--green); } .verdict.green .decision { color: var(--green); }
-  .verdict.amber { border-color: var(--amber); } .verdict.amber .decision { color: var(--amber); }
-  .verdict.red { border-color: var(--red); } .verdict.red .decision { color: var(--red); }
-  .verdict.blue { border-color: var(--blue); } .verdict.blue .decision { color: var(--blue); }
-  h2 { font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin: 0 0 8px; }
-  .muted { color: var(--muted); font-size: 13px; }
-  table { width: 100%; border-collapse: collapse; font-size: 14px; }
-  td { padding: 4px 0; border-bottom: 1px solid var(--line); vertical-align: top; }
-  td.num { text-align: right; font-variant-numeric: tabular-nums; }
-  .ok { color: var(--green); } .bad { color: var(--red); }
-  ul.errors { margin: 6px 0 0; padding-left: 18px; color: var(--amber); font-size: 13px; }
-  code { font-size: 12px; word-break: break-all; }
-  .actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
-  #inspect { background: var(--accent); color: var(--panel); border-color: var(--accent); font-weight: 600; }
-</style>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#191e27">
+  <title>SiteWork · Inspection workspace</title>
+  <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/static/sitework.css">
+  <script type="module" src="/static/dashboard.mjs"></script>
 </head>
 <body>
-<div id="mock">MOCK GATE · decisions below are not from Decionis</div>
-<header>
-  <h1>SiteWork</h1>
-  <div class="tabs" role="tablist">
-    <button role="tab" aria-selected="true" data-scene="decking">Decking</button>
-    <button role="tab" aria-selected="false" data-scene="trench">Trench</button>
-    <button role="tab" aria-selected="false" data-scene="plumbing">Plumbing</button>
+<a class="skip-link" href="#main">Skip to inspection workspace</a>
+<div id="mock" class="mock-banner" role="alert" hidden>MOCK GATE · Test environment. These are not live Decionis decisions.</div>
+<div class="app-shell">
+  <aside class="sidebar" aria-label="Workspace navigation">
+    <a class="brand" href="/" aria-label="SiteWork home">
+      <span class="brand-mark"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5h18M3 12h18M3 19h18M3 5v7m18 0v7" fill="none" stroke="currentColor" stroke-width="2.5"/></svg></span>
+      <span class="brand-copy"><span class="brand-name">SiteWork<span>.</span></span><span class="brand-caption" style="display:block">Field assurance</span></span>
+    </a>
+    <div class="nav-label">Workspace</div>
+    <nav class="nav-list" aria-label="Main">
+      <a class="nav-item active" href="#inspection" data-nav="inspection" aria-current="page" title="Inspections"><span data-icon="grid"></span><span class="nav-copy">Inspections</span></a>
+      <a class="nav-item" href="#evidence" data-nav="evidence" title="Evidence &amp; proof"><span data-icon="shield"></span><span class="nav-copy">Evidence &amp; proof</span></a>
+      <a class="nav-item" href="#policy" data-nav="policy" title="Policy review"><span data-icon="book"></span><span class="nav-copy">Policy review</span><span id="policyCount" class="nav-count" hidden>0</span></a>
+    </nav>
+    <div class="nav-divider"></div>
+    <div class="nav-label">At the work face</div>
+    <nav class="nav-list" aria-label="Tools">
+      <button class="nav-item" data-open-source title="Capture setup"><span data-icon="camera"></span><span class="nav-copy">Capture setup</span></button>
+      <a class="nav-item" href="/light" target="_blank" rel="noopener" title="Open stack light"><span data-icon="light"></span><span class="nav-copy">Stack light</span><span class="icon-sm nav-copy" data-icon="external"></span></a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="gateway-card">
+        <strong>Governed by Decionis</strong>
+        <div class="gateway-address" id="gatewayAddress">Loading gateway…</div>
+        <div class="gateway-caption"><span class="dot"></span><span id="gatewayMode">Waiting for workspace</span></div>
+      </div>
+      <div class="sidebar-footnote">Models observe.<br>Policy decides. People sign.</div>
+    </div>
+  </aside>
+
+  <div class="workspace">
+    <header class="topbar">
+      <div class="breadcrumb"><span data-icon="grid"></span><span>Workspace</span><span data-icon="chevron"></span><strong id="breadcrumbCurrent">Inspections</strong></div>
+      <a class="brand mobile-brand" href="/" aria-label="SiteWork home"><span class="brand-mark"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5h18M3 12h18M3 19h18M3 5v7m18 0v7" fill="none" stroke="currentColor" stroke-width="2.5"/></svg></span><span class="brand-name">SiteWork.</span></a>
+      <div class="topbar-right">
+        <span class="connection" id="connection" data-status="connecting" role="status"><span class="dot"></span><span class="connection-label" id="connectionLabel">Connecting</span></span>
+        <a class="btn" id="lightBtn" href="/light" target="_blank" rel="noopener"><span data-icon="light"></span>Stack light<span class="icon-sm" data-icon="external"></span></a>
+      </div>
+    </header>
+
+    <main id="main" class="main-content" tabindex="-1">
+      <div class="page-heading" id="inspection">
+        <div><h1>Inspection workspace</h1><p>Verify the work. Know when it’s safe to move forward.</p></div>
+        <span class="badge badge-neutral heading-badge" id="gate"><span class="dot"></span><span id="gateLabel">Loading workspace</span></span>
+      </div>
+
+      <div class="config-bar" aria-label="Inspection setup">
+        <div class="config-group scene-group">
+          <label id="sceneLabel">Hold point</label>
+          <div class="scene-tabs" role="tablist" aria-labelledby="sceneLabel">
+            <button class="scene-tab" id="scene-decking" role="tab" aria-selected="true" aria-controls="inspectionWorkspace" data-scene="decking"><span data-icon="deck"></span>Decking</button>
+            <button class="scene-tab" id="scene-trench" role="tab" aria-selected="false" aria-controls="inspectionWorkspace" tabindex="-1" data-scene="trench"><span data-icon="trench"></span>Trench</button>
+            <button class="scene-tab" id="scene-plumbing" role="tab" aria-selected="false" aria-controls="inspectionWorkspace" tabindex="-1" data-scene="plumbing"><span data-icon="pipe"></span>Plumbing</button>
+          </div>
+        </div>
+        <div class="config-group"><label for="condition">Site condition</label><div class="select-wrap"><select id="condition">
+          <option value="clean">Clean / dry</option><option value="rain">Rain</option><option value="mud">Mud</option><option value="dusk_glare">Dusk / glare</option><option value="outdoor">Outdoor</option>
+        </select></div></div>
+        <div class="config-group"><label for="jurisdiction">Jurisdiction</label><div class="select-wrap"><select id="jurisdiction" aria-describedby="jurisdictionHint" disabled><option>Loading…</option></select></div><span id="jurisdictionHint" class="sr-only">Changing jurisdiction re-evaluates the last inspection against that requirement pack.</span></div>
+        <div class="config-action"><button class="btn btn-primary" id="inspect" disabled><span data-icon="play"></span><span id="inspectLabel">Run inspection</span></button></div>
+      </div>
+
+      <div id="inspectionWorkspace" role="tabpanel" aria-labelledby="scene-decking">
+        <div class="inspection-grid">
+          <div class="visual-column">
+            <section class="panel capture-card" aria-labelledby="captureTitle">
+              <div class="panel-head">
+                <div><h2 id="captureTitle">Capture</h2><div class="panel-subtitle" id="captureSubtitle">The work, as it is.</div></div>
+                <div class="view-toggle" role="group" aria-label="Capture view">
+                  <button id="showLive" aria-pressed="true">Source feed</button>
+                  <button id="showInspected" aria-pressed="false" disabled>Inspected frame</button>
+                </div>
+              </div>
+              <div class="capture-stage" id="captureStage" aria-busy="false">
+                <img id="live" alt="Current capture source" hidden>
+                <canvas id="overlay" aria-label="Inspected frame with calibration and measurement overlays" hidden></canvas>
+                <div class="feed-empty" id="feedEmpty">
+                  <div class="empty-camera"><span data-icon="camera"></span></div>
+                  <h3 id="feedEmptyTitle">Bring the work into view</h3>
+                  <p id="feedEmptyMessage">Connect a camera or replay a recorded clip to begin an inspection.</p>
+                  <button class="btn btn-sm" data-open-source>Connect a source<span class="icon-sm" data-icon="arrow"></span></button>
+                </div>
+                <div class="capture-hud" id="captureHud" hidden>
+                  <span class="hud-chip"><span class="dot"></span><span id="feedMode">Source feed</span></span>
+                  <span class="hud-chip" id="calibrationStatus">Calibration checked on inspection</span>
+                </div>
+                <div class="frame-context" id="frameContext" hidden><span id="frameLabel"></span><span id="frameSize" class="mono" hidden></span></div>
+                <div class="processing" id="processing" role="status" hidden><span class="spinner"></span><span id="processingLabel">Inspecting the evidence…</span></div>
+              </div>
+              <div class="capture-footer">
+                <div class="source-description"><span data-icon="file"></span><div><strong id="source">No source connected</strong><small id="sourceDetail">Camera or video replay</small></div></div>
+                <button class="btn btn-quiet btn-sm" data-open-source><span class="icon-sm" data-icon="settings"></span>Change source</button>
+              </div>
+              <div class="capture-tip"><span data-icon="info"></span><span id="captureTip">Keep the 40 mm calibration marker and both board edges in view.</span></div>
+            </section>
+
+            <section class="panel measurements-card" aria-labelledby="measurementsTitle">
+              <div class="panel-head"><div class="panel-title"><span data-icon="ruler"></span><h2 id="measurementsTitle">Measurements</h2></div><span class="badge badge-neutral" id="measurementCount">No readings yet</span></div>
+              <div class="table-wrap">
+                <table id="measurements"><caption class="sr-only">Measurements from the last inspection</caption><thead><tr><th scope="col">Measurement</th><th scope="col" class="num">Value</th><th scope="col" class="num">Confidence</th><th scope="col" class="num">Requirement</th></tr></thead><tbody id="measurementRows">
+                  <tr><td colspan="4"><div class="empty-measurements"><strong>Evidence starts with an inspection</strong><p>Measured values and their confidence will appear here.</p></div></td></tr>
+                </tbody></table>
+              </div>
+              <ul class="error-list" id="errors" aria-label="Evidence issues" hidden></ul>
+            </section>
+          </div>
+
+          <div class="decision-column">
+            <section class="panel verdict-card off" id="verdictCard" aria-labelledby="holdStatusTitle">
+              <div class="panel-head"><div class="panel-title"><span data-icon="shield"></span><h2 id="holdStatusTitle">Hold-point status</h2></div><span class="badge badge-neutral" id="statusBadge">Not inspected</span></div>
+              <div class="status-block" aria-live="polite" aria-atomic="true">
+                <div class="status-symbol"><span id="statusIcon" data-icon="lock"></span><span class="status-kicker" id="statusKicker">Hold point</span></div>
+                <div class="status-title" id="statusTitle">Awaiting inspection</div>
+                <div class="status-reason" id="reason">Run an inspection to assess this hold point against its cited requirements.</div>
+              </div>
+              <div class="decision-detail"><span class="muted" id="decisionLabel">Decionis decision</span><span class="decision-value" id="decision">—</span></div>
+              <div class="result-context" id="resultContext" hidden></div>
+              <div class="selection-note" id="selectionNote" hidden></div>
+              <div class="verdict-meta" id="verdictMeta"><span id="policyVersion">Policy —</span><span id="latency"><span data-icon="clock"></span>Awaiting a decision</span></div>
+              <details class="disclosure" id="decisionDetails" style="margin:0 18px 14px" hidden><summary><span class="chevron" data-icon="chevron"></span>Decision details</summary><code id="decisionRaw" style="display:block;white-space:pre-wrap;font-size:10px"></code></details>
+              <div id="hold" class="hold-form" hidden>
+                <h3>Record a human decision</h3>
+                <p>A named reviewer must resolve this hold. A human release is shown in blue.</p>
+                <div class="field"><label for="approver">Approver’s full name</label><input id="approver" autocomplete="name" placeholder="Enter your full name" aria-describedby="holdError"></div>
+                <div class="field"><label for="resolutionNote">Review note <span class="muted">(optional)</span></label><textarea id="resolutionNote" rows="2" placeholder="What did you check?"></textarea></div>
+                <div class="inline-error" id="holdError" role="alert" hidden></div>
+                <div class="button-row"><button class="btn btn-blue btn-sm" id="release">Record human release</button><button class="btn btn-sm" id="keep">Keep on hold</button></div>
+              </div>
+              <div class="resolution" id="resolution" hidden></div>
+            </section>
+
+            <section class="panel citation-card" aria-labelledby="citationTitle">
+              <div class="panel-head"><div class="panel-title"><span data-icon="book"></span><h2 id="citationTitle">Cited requirement</h2></div><span class="badge badge-neutral" id="citationJurisdiction">—</span></div>
+              <div class="panel-body" id="citation"><div class="empty-copy">The applicable requirement and its source will appear with the inspection result.</div></div>
+            </section>
+
+            <section class="panel dossier-card" id="evidence" aria-labelledby="dossierTitle">
+              <div class="panel-head"><div class="panel-title"><span data-icon="file"></span><h2 id="dossierTitle">Decision dossier</h2></div><span class="badge badge-neutral" id="proofStatus">No record</span></div>
+              <div class="panel-body">
+                <div class="empty-copy" id="dossierEmpty">Every inspection has an evidence trail. Inspect the work to create its decision record.</div>
+                <div class="dossier-id" id="dossierIdentity" hidden><code id="dossier">—</code><button class="btn btn-quiet btn-square btn-sm" id="copyDossier" aria-label="Copy dossier ID"><span data-icon="copy"></span></button></div>
+                <div class="dossier-actions"><button class="btn btn-sm" id="verify" disabled><span class="icon-sm" data-icon="shield"></span>Verify signature</button><a class="btn btn-quiet btn-sm" id="dossierLink" href="#" target="_blank" rel="noopener" hidden>Open dossier<span class="icon-sm" data-icon="external"></span></a></div>
+                <div id="proof" class="proof-result" role="status"></div>
+                <details class="disclosure" id="tamperDetails" hidden><summary><span class="chevron" data-icon="chevron"></span>Test tamper detection</summary><p>Change one byte in a copy of the signed artifact, then verify that copy.</p><button class="btn btn-sm" id="tamper" disabled>Run tamper test</button></details>
+              </div>
+            </section>
+          </div>
+        </div>
+      </div>
+
+      <details class="panel policy-section" id="policy">
+        <summary><div class="policy-summary"><span data-icon="book"></span><div><h2>Policy review</h2><p id="policySummary">Loading amendment and recall proposals…</p></div></div><div class="button-row"><span class="badge badge-neutral" id="policyBadge">—</span><span class="chevron" data-icon="chevron"></span></div></summary>
+        <div class="proposal-list" id="proposals"><p class="empty-copy" style="padding:18px 0">Loading proposals…</p></div>
+      </details>
+
+      <footer class="workspace-footer"><span><span data-icon="lock"></span>Every release starts with evidence.</span><span>SiteWork · Physical AI, accountable decisions</span></footer>
+    </main>
   </div>
-  <label class="muted">Condition
-    <select id="condition">
-      <option>clean</option><option>rain</option><option>mud</option><option>dusk_glare</option><option>outdoor</option>
-    </select>
-  </label>
-  <label class="muted">Jurisdiction <select id="jurisdiction" title="Switching re-grounds the last inspection against that pack"></select></label>
-  <span class="badge" id="gate">gate —</span>
-  <span class="badge" id="source">source —</span>
-  <span class="spacer"></span>
-  <button id="inspect">Inspect</button>
-  <button id="lightBtn" title="Full-screen stack light for a phone at the work face">Light</button>
-</header>
-<main>
-  <section class="panel feed">
-    <div class="view">
-      <button id="showLive">Live</button><button id="showInspected" disabled>Inspected frame</button>
-      <span class="muted" id="feedNote"></span>
-    </div>
-    <img id="live" alt="Live feed" src="/api/stream">
-    <canvas id="overlay" hidden></canvas>
-    <h2 style="margin-top:14px">Measurements</h2>
-    <table id="measurements"><tr><td class="muted">No inspection yet.</td></tr></table>
-    <ul class="errors" id="errors"></ul>
-  </section>
-  <section class="side">
-    <div class="panel verdict" id="verdictCard">
-      <h2>Decionis verdict</h2>
-      <div class="decision" id="decision">—</div>
-      <div id="reason" class="muted">Press Inspect to propose releasing the hold.</div>
-      <div class="muted" id="verdictMeta"></div>
-      <div id="hold" class="actions" hidden>
-        <input id="approver" placeholder="Your full name" style="flex:1;min-width:140px">
-        <button id="release">Release hold</button>
-        <button id="keep">Keep hold</button>
-      </div>
-      <div id="resolution" class="muted"></div>
-    </div>
-    <div class="panel">
-      <h2>Cited requirement</h2>
-      <div id="citation" class="muted">No citation.</div>
-    </div>
-    <div class="panel">
-      <h2>Dossier</h2>
-      <div><code id="dossier">—</code></div>
-      <div class="actions">
-        <a id="dossierLink" class="muted" href="#" target="_blank" hidden>Open dossier</a>
-        <button id="verify" disabled title="Verify the Decionis dossier offline with @decionis/verify">Verify</button>
-        <button id="tamper" disabled title="Change one byte of a signed artifact, then verify again">Tamper one byte</button>
-      </div>
-      <div id="proof" class="muted"></div>
-    </div>
-    <div class="panel">
-      <h2>Policy updates</h2>
-      <div id="proposals" class="muted">No proposals.</div>
-    </div>
-  </section>
-</main>
-<script>
-const $ = (id) => document.getElementById(id);
-let last = null;
+</div>
 
-function esc(s) { return String(s ?? "").replace(/[&<>"]/g, (c) => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
-
-function applyState(st) {
-  $("mock").style.display = st.gate_mode === "mock" ? "block" : "none";
-  $("gate").textContent = st.gate_mode === "mock" ? "MOCK GATE" : `gate ${new URL(st.gateway).host}`;
-  $("jurisdiction").innerHTML = (st.jurisdictions || [st.jurisdiction]).map((j) =>
-    `<option ${j === st.jurisdiction ? "selected" : ""}>${esc(j)}</option>`).join("");
-  $("source").textContent = (st.source ? `source ${st.source}` : `no source: ${st.source_error}`)
-    + (st.audio ? ` · audio ${st.audio}` : "");
-  if (st.last) render(st.last);
-}
-
-function render(r) {
-  if (!last || last.record_id !== r.record_id) selectScene(r.scene);  // a new result shows its own scene
-  last = r;
-  const card = $("verdictCard");
-  card.className = `panel verdict ${r.light.color}`;
-  if (r.verdict) {
-    $("decision").textContent = r.verdict.decision;
-    $("reason").textContent = r.verdict.reason + (r.verdict.grant_error ? ` · hold stays closed: ${r.verdict.grant_error}` : "");
-    $("verdictMeta").textContent = `${r.action} · ${r.jurisdiction} · policy ${r.verdict.policy_version || "—"} · ${r.verdict.latency_ms} ms · ${r.gate_mode}`
-      + (r.regrounded_from ? ` · re-grounded from ${r.regrounded_from.slice(0, 8)}` : "");
-  } else {
-    $("decision").textContent = r.light.label;
-    $("reason").textContent = r.failure ? r.failure.error : "";
-    $("verdictMeta").textContent = r.failure ? `${r.failure.latency_ms} ms · hold stays closed` : "";
-  }
-  renderHold(r);
-  const checks = Object.fromEntries((r.checks || []).map((c) => [c.kind + c.value, c]));
-  $("measurements").innerHTML = r.measurements.length ? r.measurements.map((m) => {
-    const c = checks[m.kind + m.value];
-    const bound = c ? `<span class="${c.within ? "ok" : "bad"}">${c.within ? "within" : "outside"} ${c.min ?? "–"}…${c.max ?? "–"}</span>` : `<span class="muted">no threshold</span>`;
-    return `<tr><td>${esc(m.kind)}<div class="muted">${esc(m.method)}</div></td><td class="num">${m.value}</td><td class="num">${bound}</td><td class="num muted">conf ${m.confidence}</td></tr>`;
-  }).join("") : `<tr><td class="muted">No measurements.</td></tr>`;
-  $("errors").innerHTML = r.errors.map((e) => `<li>${esc(e)}</li>`).join("");
-  const c = r.citations[0];
-  $("citation").innerHTML = c ? `<div>${esc(c.requirement)}</div>
-    <div class="muted">${esc(c.source_domain)} · retrieved ${new Date(c.retrieved_at).toLocaleString()}</div>
-    <div class="muted">sha256 <code>${esc(c.content_sha256.slice(0, 16))}…</code> · <a href="${esc(c.url)}" target="_blank" rel="noopener">source</a></div>`
-    : `<span class="bad">No approved requirement in the ${esc(r.jurisdiction)} pack: the gate is told there is no citation.</span>`;
-  $("dossier").textContent = r.record_id;
-  $("dossierLink").hidden = false;
-  $("dossierLink").href = `/dossier?id=${encodeURIComponent(r.record_id)}`;
-  const verifiable = !!(r.verdict && r.gate_mode === "live" && r.verdict.dossier_id);
-  $("verify").disabled = $("tamper").disabled = !verifiable;
-  $("proof").textContent = verifiable ? "" : "No Decionis dossier to verify for this record.";
-  $("showInspected").disabled = !r.overlay;
-  if (r.overlay) drawOverlay(r);
-}
-
-function drawOverlay(r) {
-  const o = r.overlay, cv = $("overlay"), img = new Image();
-  img.onload = () => {
-    cv.width = o.width; cv.height = o.height;
-    const g = cv.getContext("2d");
-    g.drawImage(img, 0, 0);
-    g.lineWidth = Math.max(2, o.width / 400);
-    if (o.marker.length) {
-      g.strokeStyle = "#00e5ff"; g.beginPath();
-      o.marker.forEach(([x, y], i) => (i ? g.lineTo(x, y) : g.moveTo(x, y))); g.closePath(); g.stroke();
-    }
-    g.strokeStyle = "#ffd400";
-    o.segments.forEach(([[x1, y1], [x2, y2]]) => { g.beginPath(); g.moveTo(x1, y1); g.lineTo(x2, y2); g.stroke(); });
-    g.font = `${Math.max(16, o.width / 40)}px system-ui`; g.fillStyle = "#ffd400";
-    r.measurements.forEach((m, i) => g.fillText(`${m.kind} ${m.value}`, 12, 30 + i * Math.max(20, o.width / 32)));
-    show("inspected");
-  };
-  img.src = `data:image/jpeg;base64,${o.frame_jpeg}`;
-}
-
-function show(which) {
-  $("live").hidden = which !== "live";
-  $("overlay").hidden = which !== "inspected";
-  $("feedNote").textContent = which === "inspected" && last ? `frame inspected ${new Date(last.created_at).toLocaleTimeString()}` : "";
-}
-
-function renderHold(r) {
-  const escalated = r.verdict && ["ESCALATE", "REVIEW_REQUIRED"].includes(r.verdict.decision);
-  $("hold").hidden = !escalated || !!r.resolution;
-  const x = r.resolution;
-  // The card keeps Decionis's own decision; the person's resolution is shown beneath it, never as the verdict.
-  $("resolution").innerHTML = x ? `<b style="color:var(--${x.release ? "blue" : "red"})">${x.release ? "Released" : "Kept on hold"} by ${esc(x.approver)}</b> · ${new Date(x.at).toLocaleString()}${x.note ? " · " + esc(x.note) : ""}` : "";
-  if (x) $("verdictCard").className = `panel verdict ${r.light.color}`;
-}
-
-async function holdDecision(release) {
-  const approver = $("approver").value.trim();
-  if (!approver) { alert("A named approver is required."); return; }
-  try {
-    const out = await post(`/api/dossiers/${encodeURIComponent(last.record_id)}/resolve`, { approver, release });
-    render({ ...last, resolution: out.resolution, light: out.light });
-  } catch (e) { alert(e.message); }
-}
-$("release").onclick = () => holdDecision(true);
-$("keep").onclick = () => holdDecision(false);
-
-let scene = "decking";
-function selectScene(s) {
-  scene = s;
-  document.querySelectorAll('[role="tab"][data-scene]').forEach((t) => t.setAttribute("aria-selected", String(t.dataset.scene === s)));
-}
-document.querySelectorAll('[role="tab"][data-scene]').forEach((tab) => { tab.onclick = () => selectScene(tab.dataset.scene); });
-$("jurisdiction").onchange = async () => {
-  $("reason").textContent = `Re-grounding against the ${$("jurisdiction").value} pack…`;
-  try { applyState(await post("/api/jurisdiction", { jurisdiction: $("jurisdiction").value })); }
-  catch (e) { $("reason").textContent = `Jurisdiction switch failed: ${e.message}`; }
-};
-
-function proofLine(v) {
-  const status = v.verified ? "VALID" : "INVALID";
-  return `${status} (${v.mode}) · signed artifacts ${v.artifact_paths.join(", ") || "none"} · trust ${v.trust}`;
-}
-
-async function post(url, body) {
-  const res = await fetch(url, { method: "POST", headers: { "content-type": "application/json" },
-    body: body ? JSON.stringify(body) : undefined });
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.detail || res.statusText);
-  return data;
-}
-
-$("verify").onclick = async () => {
-  $("proof").textContent = "Verifying offline…";
-  try {
-    const v = await post(`/api/dossiers/${encodeURIComponent(last.record_id)}/verify`);
-    $("proof").innerHTML = `<span class="${v.verified ? "ok" : "bad"}">${esc(proofLine(v))}</span>`;
-  } catch (e) { $("proof").textContent = `Verify failed: ${e.message}`; }
-};
-
-$("tamper").onclick = async () => {
-  $("proof").textContent = "Changing one byte, verifying again…";
-  try {
-    const t = await post(`/api/dossiers/${encodeURIComponent(last.record_id)}/tamper`);
-    $("proof").innerHTML = `${esc(t.pointer)}: “${esc(t.before)}” → “${esc(t.after)}” (${t.bytes_changed} byte)<br>
-      <span class="${t.result.verified ? "ok" : "bad"}">${esc(proofLine(t.result))}</span>`;
-  } catch (e) { $("proof").textContent = `Tamper failed: ${e.message}`; }
-};
-
-async function loadProposals() {
-  const list = await (await fetch("/api/proposals")).json();
-  if (!list.length) { $("proposals").textContent = "No proposals."; return; }
-  $("proposals").innerHTML = list.map((p) => {
-    const v = (p.exchange || {}).result || {};
-    const gate = v.decision || "NO DECISION";
-    const findings = p.findings.map((f) => `<li>${esc(f.kind)} · ${esc(f.scene)} · ${esc(f.title)}${f.allowlisted ? "" : " <span class=\"bad\">(source not on allowlist)</span>"}</li>`).join("");
-    const action = p.status === "pending" ? `<div class="actions">
-        <input id="who-${p.id}" placeholder="Your full name" style="flex:1;min-width:120px">
-        <button onclick="resolveProposal('${p.id}', true)">Approve</button>
-        <button onclick="resolveProposal('${p.id}', false)">Reject</button></div>`
-      : `<div>${esc(p.status)} by ${esc(p.resolved_by)}</div>`;
-    return `<div style="margin-bottom:10px"><div><b>${esc(p.jurisdiction)}</b> · Decionis ${esc(gate)}
-      ${v.dossier_id ? `· <a href="/dossier?id=${encodeURIComponent(v.dossier_id)}" target="_blank">dossier</a>` : ""}</div>
-      <ul style="margin:4px 0;padding-left:18px">${findings}</ul>${action}</div>`;
-  }).join("");
-}
-
-async function resolveProposal(id, approve) {
-  const approver = $(`who-${id}`).value.trim();
-  if (!approver) { alert("A named approver is required."); return; }
-  try { await post(`/api/proposals/${id}/resolve`, { approve, approver }); } catch (e) { alert(e.message); }
-  loadProposals();
-}
-
-$("showLive").onclick = () => show("live");
-$("showInspected").onclick = () => last && last.overlay && show("inspected");
-$("lightBtn").onclick = () => window.open("/light", "sitework-light");
-$("inspect").onclick = async () => {
-  const btn = $("inspect");
-  btn.disabled = true; btn.textContent = scene === "plumbing" ? "Listening… push the joint home" : "Inspecting…";
-  try {
-    const res = await fetch("/api/inspect", { method: "POST", headers: { "content-type": "application/json" },
-      body: JSON.stringify({ scene, condition: $("condition").value }) });
-    const body = await res.json();
-    if (!res.ok) throw new Error(body.detail || res.statusText);
-    render(body);
-  } catch (e) {
-    $("reason").textContent = `Inspection request failed: ${e.message}`;
-  } finally {
-    btn.disabled = false; btn.textContent = "Inspect";
-  }
-};
-
-fetch("/api/state").then((r) => r.json()).then(applyState);
-loadProposals();
-(function connect() {
-  const ws = new WebSocket(`${location.protocol === "https:" ? "wss" : "ws"}://${location.host}/ws`);
-  ws.onmessage = (ev) => {
-    const msg = JSON.parse(ev.data);
-    if (msg.type === "state") applyState(msg.state);
-    if (msg.type === "result") render(msg.result);
-    if (msg.type === "resolution" && last && last.record_id === msg.record_id) render({ ...last, resolution: msg.resolution, light: msg.light });
-  };
-  ws.onclose = () => setTimeout(connect, 2000);
-})();
-</script>
+<dialog id="sourceDialog" aria-labelledby="sourceDialogTitle">
+  <div class="dialog-head"><h2 id="sourceDialogTitle">Connect a capture source</h2><button class="btn btn-quiet btn-square" id="closeSource" aria-label="Close capture setup"><span data-icon="close"></span></button></div>
+  <form id="sourceForm" class="dialog-body">
+    <p>Use a camera or a video on the machine running SiteWork.</p>
+    <div class="field"><label for="sourceKind">Source type</label><div class="select-wrap"><select id="sourceKind"><option value="file">Recorded video</option><option value="camera">Connected camera</option></select></div></div>
+    <div class="field" id="fileField"><label for="sourcePath">Video path</label><input id="sourcePath" placeholder="data/clips/outdoor/your-clip.mp4" autocomplete="off" spellcheck="false" required aria-describedby="sourcePathHint sourceError"><span id="sourcePathHint" class="field-hint">Enter an existing video path on the app’s host. This does not upload a file from your browser.</span></div>
+    <div class="field" id="cameraField" hidden><label for="cameraIndex">Camera number</label><input id="cameraIndex" type="number" min="0" step="1" value="0" disabled aria-describedby="cameraHint sourceError"><span id="cameraHint" class="field-hint">Use 0 for the default camera connected to the app’s host.</span></div>
+    <div class="inline-error" id="sourceError" role="alert" hidden></div>
+    <div class="dialog-footer"><button class="btn" type="button" id="cancelSource">Cancel</button><button class="btn btn-primary" type="submit" id="connectSource">Connect source<span class="icon-sm" data-icon="arrow"></span></button></div>
+  </form>
+</dialog>
+<div class="toast" id="toast" role="status" hidden><span id="toastMessage"></span><button id="closeToast" aria-label="Dismiss message"><span data-icon="close"></span></button></div>
+<div class="sr-only" id="announcer" aria-live="polite"></div>
 </body>
 </html>

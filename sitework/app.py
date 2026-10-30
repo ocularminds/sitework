@@ -10,6 +10,7 @@ from typing import Literal
 from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.concurrency import run_in_threadpool
 from fastapi.responses import FileResponse, StreamingResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from sitework.capture import Source, open_audio, open_source
@@ -24,6 +25,15 @@ from sitework.scenes import DeckingInspection, InspectionResult, PlumbingInspect
 from sitework.schema import Action, Condition
 
 STATIC = ROOT / "static"
+
+
+class BrowserAssets(StaticFiles):
+    """Revalidate unbundled assets so a deployment cannot leave stale UI modules cached."""
+
+    async def get_response(self, path, scope):
+        response = await super().get_response(path, scope)
+        response.headers["Cache-Control"] = "no-cache"
+        return response
 
 
 class InspectRequest(BaseModel):
@@ -110,6 +120,15 @@ class Runtime:
         finally:
             self._busy.release()
 
+    def change_source(self, spec: str) -> None:
+        """Keep a source change from interrupting evidence capture in another dashboard."""
+        if not self._busy.acquire(blocking=False):
+            raise HTTPException(409, "an inspection is already running")
+        try:
+            self.open(spec)
+        finally:
+            self._busy.release()
+
     def jurisdictions(self) -> list[str]:
         return sorted(p.stem for p in self.packs.directory.glob("*.json"))
 
@@ -156,6 +175,7 @@ class Runtime:
             "audio": self.scenes["plumbing"].audio.label if self.scenes["plumbing"].audio else None,
             "source_error": self.source_error,
             "gate_mode": self.gate.mode,
+            "decision_mode": self.settings.decionis_gate_mode,
             "gateway": self.settings.decionis_gateway_url,
             "gate_route": self.settings.decionis_gate_route,
             "jurisdiction": self.jurisdiction,
@@ -171,23 +191,26 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     rt = Runtime(settings or get_settings())
     app = FastAPI(title="SiteWork")
     app.state.runtime = rt
+    app.mount("/static", BrowserAssets(directory=STATIC), name="static")
 
     @app.get("/")
     def index():
-        return FileResponse(STATIC / "index.html")
+        return FileResponse(STATIC / "index.html", headers={"Cache-Control": "no-cache"})
 
     @app.get("/light")
     def light():
-        return FileResponse(STATIC / "light.html")
+        return FileResponse(STATIC / "light.html", headers={"Cache-Control": "no-cache"})
 
     @app.get("/api/state")
     def state():
         return rt.state()
 
     @app.post("/api/source")
-    def source(req: SourceRequest):
-        rt.open(req.spec)
-        return rt.state()
+    async def source(req: SourceRequest):
+        await run_in_threadpool(rt.change_source, req.spec)
+        current = rt.state()
+        await rt.hub.send({"type": "state", "state": current})
+        return current
 
     @app.post("/api/inspect")
     async def inspect(req: InspectRequest):
@@ -219,7 +242,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     @app.get("/dossier")
     def dossier_page():
-        return FileResponse(STATIC / "dossier.html")
+        return FileResponse(STATIC / "dossier.html", headers={"Cache-Control": "no-cache"})
 
     @app.post("/api/dossiers/{record_id}/verify")
     async def verify(record_id: str, mode: Literal["offline", "pinned"] = "offline"):
