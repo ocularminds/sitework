@@ -33,7 +33,7 @@ From the Cosmos repo ([setup](https://github.com/nvidia-cosmos/cosmos-transfer2.
 | GPU | Ampere or newer, **65.4 GB VRAM on one GPU** for Cosmos-Transfer2.5-2B |
 | Driver | NVIDIA ≥ 570.124.06 (CUDA 12.8.1) |
 | OS | Linux x86-64, glibc ≥ 2.35 (Ubuntu ≥ 22.04) |
-| Access | Hugging Face token with Read permission. Accept the NVIDIA Open Model License at [nvidia/Cosmos-Guardrail1](https://huggingface.co/nvidia/Cosmos-Guardrail1). Checkpoints download on first inference. |
+| Access | Hugging Face token with Read permission for public gated repositories. Accept the NVIDIA Open Model License for [Cosmos-Transfer2.5-2B](https://huggingface.co/nvidia/Cosmos-Transfer2.5-2B), [Cosmos-Predict2.5-2B](https://huggingface.co/nvidia/Cosmos-Predict2.5-2B) and [Cosmos-Guardrail1](https://huggingface.co/nvidia/Cosmos-Guardrail1). Checkpoints download on first inference. Each repository has its own access gate. |
 
 Our own sizing, not from the Cosmos docs:
 - Use a **≥ 200 GiB network boot disk**. It holds the checkpoints, the Python environment and the clips.
@@ -74,7 +74,7 @@ Cosmos keeps the input's frame rate and generates in 93-frame chunks, so `run.py
 3. **AWS fallback:** the 16-vCPU G/VT On-Demand and Spot requests in `us-east-1` are filed. Check approval using the [handoff](../cosmos_transfer/README.md); do not submit duplicates. Earlier Stockholm requests are historical and must not be used under the US-only requirement.
 4. **Hugging Face:**
    - Create a Read token.
-   - Accept the license linked above.
+   - Complete access for all three repositories linked above. A successful identity or Guardrail1 check alone does not establish Transfer/Predict checkpoint access.
 
 ## Provision: Nebius AI Cloud (primary)
 
@@ -132,8 +132,9 @@ ssh "$VM"
 On the VM:
 
 ```bash
-bash sitework/scripts/cosmos/setup.sh
-hf auth login                      # Read token; accept the license linked above
+COSMOS_CUDA_EXTRA=cu130 bash sitework/scripts/cosmos/setup.sh # verified on the Nebius CUDA 13 image
+export PATH="$HOME/.local/bin:$PATH" # hf and uvx are needed by the calling shell too
+hf auth login                      # Read token; complete the three model access gates above
 tmux new -s cosmos
 cd sitework
 python3 scripts/cosmos/run.py --cloud nebius --instance "us-central1 gpu-rtx6000 1gpu-24vcpu-218gb" --distilled --dry-run
@@ -141,7 +142,7 @@ python3 scripts/cosmos/run.py --cloud nebius --instance "us-central1 gpu-rtx6000
 ```
 
 - On AWS, use `--cloud aws` and the instance actually launched, e.g. `--instance "us-east-1 g7e.4xlarge"`.
-- **Blackwell GPUs** (`g7e`, Nebius `gpu-rtx6000`): the pinned revision benchmarks the RTX PRO 6000 Blackwell SE, but its Docker setup builds Blackwell from a separate nightly image, while `setup.sh` installs the default `cu128` environment. That pairing is untested here. Run one condition first (`--conditions rain`) and read its log. If the CUDA extensions fail to load, rerun `setup.sh` with `COSMOS_CUDA_EXTRA=cu130`, which needs a driver ≥ 580.65.06.
+- **Blackwell GPUs** (`g7e`, Nebius `gpu-rtx6000`): the nine-variant US Nebius run passed with `COSMOS_CUDA_EXTRA=cu130`, PyTorch `2.9.1+cu130` and driver `580.173.02`; see [RUN_INFO.md](../../data/clips/RUN_INFO.md). CUDA 13 needs a driver ≥ 580.65.06. The default `cu128` pairing remains untested in this workflow. For a new environment, run one condition first (`--conditions rain`) and inspect an output before the rest.
 - `--dry-run` prepares the clips and specs and prints the Cosmos command without starting it.
 - The real run loads the model once for every pending variant.
 - Exit code 0 means every variant is done.

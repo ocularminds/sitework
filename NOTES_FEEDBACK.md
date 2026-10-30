@@ -40,4 +40,15 @@
 | SiteWork evidence provenance | Prepare a run on raw field videos with no detected calibration marker | The vision step correctly skipped uncalibrated frames, but the dossier still listed the configured VLM as if used. Model recording now occurs only when a vision call is attempted. The regression check confirms no call and no model attribution for an uncalibrated input. | Distinguish configured models from attempted inference in evidence and evaluation reports. |
 | SiteWork field input / Decionis | Run three raw pipe/drainage videos under both US and SE, with no calibration marker or independently measured truth | `scripts/eval.py` produced six real SHADOW ESCALATE decisions and six offline-verified dossiers. The resulting 0/6 false ALLOW rate describes refusal cases only; measurement and seating accuracy remain unavailable, and no VLM inference ran. | Make the distinction between missing-calibration refusal checks and measurement-accuracy evaluation visible in capture and reporting workflows. |
 
-Time lost has not been measured. No performance figures or model capability claims have been inferred from these observations.
+## 30 October — Cosmos GPU execution
+
+| Service | What was tried | Observed result | Improvement to request |
+| --- | --- | --- | --- |
+| Nebius AI Cloud | Run the approved nine-variant batch after billing activation | Active billing and a $25 starting balance were verified. A preemptible US `us-central1` RTX PRO 6000 VM ran with a $1.79/GPU-hour cap. The VM and its 200 GiB managed disk were deleted after collection; both resource lists then showed zero. | Keep compute and storage charges visible together, including that disks remain chargeable while a VM is stopped. |
+| Cosmos checkpoint access | Start with a valid HF token and verified Guardrail1 access | The real run also needed separate access to Transfer2.5 and Predict2.5. Both were granted under the approved NVIDIA license; checkpoint reads then succeeded from the VM. | List every required gated repository in setup and check actual checkpoint reads before renting a GPU. |
+| SiteWork Cosmos bootstrap | Launch from a non-interactive shell | The first invocation could not find `uvx`; setup had exported its install directory only inside the child shell. Adding `~/.local/bin` to the batch caller's PATH fixed it. CUDA 13/PyTorch 2.9.1 worked on the RTX PRO 6000. | Export the tool path in the documented calling shell, and record the verified GPU, driver and CUDA combination. |
+| NVIDIA Cosmos Transfer 2.5 | Generate three rain, three mud and three dusk/glare clips from unmeasured outdoor inputs | All nine completed, with 93 frames at 16 fps and no audio. Per-sample processing took 48.7–57.0 s, totalling 453.2 s, excluding setup/download/model loading. All prompt and video guardrails passed. Appearance changed, but so did fine details, labels and textures; one mud clip had a pink edge artifact at its start. | Make geometric changes and condition strength explicit when using generated video for physical evaluation; edge control cannot establish inherited ground truth. |
+
+[RUN_INFO.md](data/clips/RUN_INFO.md) contains the measured generation ledger.
+Time lost to setup friction has not been measured. No accuracy or construction
+compliance claim has been inferred from this unmeasured footage.
