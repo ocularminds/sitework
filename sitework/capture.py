@@ -69,9 +69,12 @@ class FileSource(Source):
             raise ValueError(f"cannot open video {self.path}")
         self._count = int(self._cap.get(cv2.CAP_PROP_FRAME_COUNT))
         self._lock = threading.Lock()
+        self._closed = False
 
     def grab(self) -> Frame:
         with self._lock:
+            if self._closed:
+                raise ValueError(f"{self.label} is closed")
             ok, image = self._cap.read()
             if not ok:
                 self._cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
@@ -87,6 +90,8 @@ class FileSource(Source):
         frame that will not read is replaced by the nearest earlier one that does. A frame that
         still will not read is an error, never a silently shorter sample."""
         with self._lock:
+            if self._closed:
+                raise ValueError(f"{self.label} is closed")
             indices = np.linspace(0, max(self._count - 1, 0), num=max(count, 1)).astype(int)
             frames = []
             for i in dict.fromkeys(indices.tolist()):
@@ -103,7 +108,11 @@ class FileSource(Source):
         return Frame(image, index) if ok else None
 
     def close(self) -> None:
-        self._cap.release()
+        # OpenCV releases the GIL during reads; releasing the decoder concurrently can crash it.
+        with self._lock:
+            if not self._closed:
+                self._closed = True
+                self._cap.release()
 
 
 class CameraSource(Source):
@@ -117,9 +126,12 @@ class CameraSource(Source):
             raise ValueError(f"cannot open camera {device}")
         self._index = 0
         self._lock = threading.Lock()
+        self._closed = False
 
     def grab(self) -> Frame:
         with self._lock:
+            if self._closed:
+                raise ValueError(f"{self.label} is closed")
             ok, image = self._cap.read()
             if not ok:
                 raise ValueError(f"{self.label} returned no frame")
@@ -135,7 +147,11 @@ class CameraSource(Source):
         return frames
 
     def close(self) -> None:
-        self._cap.release()
+        # A preview request may still be inside the native capture delegate when sources change.
+        with self._lock:
+            if not self._closed:
+                self._closed = True
+                self._cap.release()
 
 
 def open_source(spec: str) -> Source:
@@ -193,7 +209,7 @@ class FileAudio(AudioSource):
         try:
             out = subprocess.run(
                 ["ffmpeg", "-loglevel", "error", "-i", str(self.path), "-vn", "-ac", "1", "-ar", str(self.RATE),
-                 "-t", str(self.MAX_SECONDS), "-f", "s16le", "-"], capture_output=True)
+                 "-t", str(self.MAX_SECONDS), "-f", "s16le", "-"], check=False, capture_output=True)
         except OSError as exc:  # ffmpeg not installed: missing evidence, so the inspection escalates
             raise ValueError(f"cannot read audio from {self.path.name}: ffmpeg unavailable ({exc})") from exc
         if not out.stdout:  # missing file, no audio stream, or an unreadable container
