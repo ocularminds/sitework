@@ -23,7 +23,12 @@ from sitework.light import LightState
 from sitework.measure.fiducial import Fiducial
 from sitework.preview import LivePreview
 from sitework.proof import ProofError, Proofs
-from sitework.scenes import DeckingInspection, InspectionResult, PlumbingInspection, TrenchInspection
+from sitework.scenes import (
+    DeckingInspection,
+    InspectionResult,
+    PlumbingInspection,
+    TrenchInspection,
+)
 from sitework.schema import Action, Condition
 
 STATIC = ROOT / "static"
@@ -303,9 +308,12 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
 
 def _mjpeg(rt: Runtime, fps: float = 10.0):
-    while rt.source is not None:
+    while True:
+        source = rt.source
+        if source is None:
+            break
         try:
-            frame = rt.source.grab()
+            frame = source.grab()
         except ValueError:
             break
         yield b"--frame\r\nContent-Type: image/jpeg\r\n\r\n" + rt.preview.jpeg(frame) + b"\r\n"
