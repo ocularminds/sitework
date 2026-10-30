@@ -1,11 +1,12 @@
 import json
+import re
 from datetime import datetime, timezone
 
 import httpx
 import pytest
 
 from sitework.config import Settings
-from sitework.gate.authority import Gate, GateFailure, MockGate
+from sitework.gate.authority import Gate, GateFailure, MockGate, effect_digest
 from sitework.gate.decionis import DecionisClient, Probe
 from sitework.gate.evidence import Facts, bundle_sha256
 from sitework.gate.intent import intent_hash
@@ -32,6 +33,12 @@ def bundle(**over) -> EvidenceBundle:
         "frame_sha256": ["f" * 64], "models": {"vlm": "acme/vl"}, **over,
     }
     return EvidenceBundle(**data)
+
+
+def clean() -> EvidenceBundle:
+    """Evidence SiteWork itself reads as inside every cited limit, with no errors."""
+    return bundle(errors=[], measurements=[Measurement(kind="gap_mm", value=4.1, confidence=0.9, method="t"),
+                                           Measurement(kind="gap_mm", value=5.0, confidence=0.9, method="t")])
 
 
 def test_facts_compare_measurements_with_cited_thresholds():
@@ -80,6 +87,10 @@ def test_request_is_an_agent_safe_intent_with_a_matching_hash():
                                              "evidence_sha256": bundle_sha256(b)}}
     assert body["context"]["sitework"]["summary"]["checks_outside"] == 1
     assert "policy_projection" not in body
+    effect = body["context"]["sitework"]["expected_effect"]  # the preimage travels with the intent
+    assert effect["light"] == {"color": "green", "label": "ALLOW"} and effect["evidence_sha256"] == bundle_sha256(b)
+    assert re.fullmatch(r"sha256:[0-9a-f]{64}", body["expected_effect_digest"])
+    assert body["expected_effect_digest"] == effect_digest(effect) and "expected_effect_digest" in binding
     v = exchange.result
     assert isinstance(v, Verdict) and v.decision == "BLOCK" and v.reason == "GAP_OUTSIDE" and not v.green
     assert len(sent) == 1  # no claim for a BLOCK
@@ -103,7 +114,7 @@ def claim_then(finalize: httpx.Response, sent: list):
 def test_allow_is_green_only_after_the_grant_is_claimed_and_the_release_finalized():
     sent = []
     finalized = httpx.Response(200, json={"finalized": True, "outcome": "COMMITTED"})
-    exchange = gate_with(claim_then(finalized, sent)).propose(bundle(errors=[]))
+    exchange = gate_with(claim_then(finalized, sent)).propose(clean())
     first, claim, final = (json.loads(r.content) for r in sent)
     assert [r.url.path for r in sent[1:]] == ["/v1/execution/claim-token", "/v1/execution/finalize-token"]
     assert claim["execution_token"] == "tok_secret" and claim["intent_hash"] == first["intent_hash"]
@@ -119,7 +130,7 @@ def test_allow_is_green_only_after_the_grant_is_claimed_and_the_release_finalize
 def test_a_release_that_is_not_finalized_keeps_the_light_off_green():
     """An unfinalized claim goes INDETERMINATE and blocks the target's next claim, so say so."""
     refused = httpx.Response(409, json={"finalized": False, "reason_codes": ["CLAIM_LEASE_EXPIRED"]})
-    v = gate_with(claim_then(refused, [])).propose(bundle(errors=[])).result
+    v = gate_with(claim_then(refused, [])).propose(clean()).result
     assert v.grant_claimed and not v.grant_finalized and not v.green
     assert "CLAIM_LEASE_EXPIRED" in v.grant_error and "reconcil" in v.grant_error
     assert LightState.of(v) == LightState(color="red", label="NOT RELEASED")  # never a red "ALLOW" on the phone
@@ -134,7 +145,7 @@ def test_a_refused_claim_keeps_the_light_off_green_and_finalizes_nothing():
             return httpx.Response(409, json={"valid": False, "reason_codes": ["CURRENT_STATE_UNRESOLVED"]})
         return httpx.Response(200, json=allow())
 
-    v = gate_with(respond).propose(bundle()).result
+    v = gate_with(respond).propose(clean()).result
     assert v.decision == "ALLOW" and not v.green and "CURRENT_STATE_UNRESOLVED" in v.grant_error
     assert LightState.of(v).color == "red" and len(sent) == 2
 
@@ -146,13 +157,43 @@ def test_allow_is_claimed_only_for_a_release_in_enforcement():
         sent.append(request)
         return httpx.Response(200, json=allow())
 
-    shadow = gate_with(respond, decionis_gate_mode="SHADOW").propose(bundle(errors=[])).result
+    shadow = gate_with(respond, decionis_gate_mode="SHADOW").propose(clean()).result
     assert len(sent) == 1 and not shadow.grant_claimed and "SHADOW" in shadow.grant_error
     update = gate_with(respond).propose_intent(
         action={"type": "policy.update", "resource": "sitework/policy/SE", "parameters": {"proposal_id": "p"}},
         context={"sitework_jurisdiction": "SE"}, endpoint="jurisdiction-pack").result
     assert len(sent) == 2 and not update.grant_claimed and "policy.update" in update.grant_error
+    assert "expected_effect_digest" not in json.loads(sent[1].content)  # no physical effect to commit to
     assert LightState.of(update).color == "red"
+
+
+@pytest.mark.parametrize("evidence,why", [
+    (bundle(errors=[]), "outside the cited limit"),
+    (bundle(errors=[], citations=[]), "no approved citation"),
+    (bundle(errors=[], measurements=[Measurement(kind="angle_deg", value=2.0, confidence=0.9, method="t")]),
+     "no measurement was checked"),
+])
+def test_an_allow_that_siteworks_own_facts_contradict_is_never_claimed(evidence, why):
+    """E.g. a changed DECIONIS_DECISION_TYPE misses the SiteWork rules and a starter rule allows."""
+    sent = []
+
+    def respond(request):
+        sent.append(request)
+        return httpx.Response(200, json=allow())
+
+    v = gate_with(respond).propose(evidence).result
+    assert v.decision == "ALLOW" and len(sent) == 1 and not v.grant_claimed and why in v.grant_error
+
+
+def test_a_hold_reason_keeps_even_a_clean_allow_unclaimed():
+    sent = []
+
+    def respond(request):
+        sent.append(request)
+        return httpx.Response(200, json=allow())
+
+    v = gate_with(respond).propose(clean(), hold="re-decided evidence").result
+    assert len(sent) == 1 and v.grant_error == "not claimed: re-decided evidence" and not v.green
 
 
 def test_allow_on_evidence_with_errors_is_never_claimed():

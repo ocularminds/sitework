@@ -69,3 +69,12 @@ def test_a_proposal_the_gate_never_decided_cannot_be_approved(tmp_path):
     with pytest.raises(ValueError, match="only be rejected"):
         updates.resolve(p.id, True, "A Person")
     assert updates.resolve(p.id, False, "A Person").status == "rejected"
+
+
+def test_a_proposal_decionis_blocked_cannot_be_approved(tmp_path):
+    gate = MockGate(Settings(_env_file=None, decionis_org_id="00000000-0000-4000-8000-000000000002"), "BLOCK")
+    updates = PolicyUpdate(gate, ProposalStore(tmp_path))
+    p = updates.propose(AmendmentWatch(None, PACK).proposal("r-1", "q", RESULT))
+    with pytest.raises(ValueError, match="returned BLOCK"):
+        updates.resolve(p.id, True, "A Person")
+    assert updates.resolve(p.id, False, "A Person").status == "rejected"

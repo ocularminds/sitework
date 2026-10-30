@@ -5,6 +5,7 @@ execution token) -> `claim-token` claims that grant -> `finalize-token` reports 
 COMMITTED inside the claim's lease. Only a claimed and finalized ALLOW can turn the light green.
 """
 
+import hashlib
 import time
 import uuid
 from typing import get_args
@@ -14,7 +15,7 @@ from pydantic import BaseModel
 from sitework.config import Settings
 from sitework.gate.decionis import DecionisClient, Probe
 from sitework.gate.evidence import Facts, bundle_sha256
-from sitework.gate.intent import IntentError, IntentProducer, intent_hash
+from sitework.gate.intent import IntentError, IntentProducer, canonical_json, intent_hash
 from sitework.schema import Decision, EvidenceBundle, Verdict
 
 
@@ -27,6 +28,30 @@ class GateFailure(BaseModel):
 
 
 RELEASES = ("inspection.release_hold", "trench.authorize_entry", "work.cover_up")  # actions with a physical release
+
+
+def expected_effect(bundle: EvidenceBundle) -> dict:
+    """The state an executed release produces: this inspection's stack light turns green."""
+    return {"system": "sitework", "effect": "stack_light", "light": {"color": "green", "label": "ALLOW"},
+            "action": bundle.action, "resource": f"sitework/{bundle.scene}", "evidence_sha256": bundle_sha256(bundle)}
+
+
+def effect_digest(effect: dict) -> str:
+    """Agent-Safe `expected_effect_digest`: sha256 of the effect's canonical JSON, as `sha256:<hex>`."""
+    return "sha256:" + hashlib.sha256(canonical_json(effect).encode("utf-8")).hexdigest()
+
+
+def interlock(bundle: EvidenceBundle) -> str:
+    """SiteWork's own reading of its evidence. An ALLOW it contradicts is never executed, whatever
+    rules matched in Decionis (e.g. a changed DECIONIS_DECISION_TYPE that misses the SiteWork rules)."""
+    s = Facts(bundle).summary()
+    if not s["citation_count"]:
+        return "no approved citation"
+    if not s["checks_total"]:
+        return "no measurement was checked against a cited limit"
+    if s["checks_outside"]:
+        return f"{s['checks_outside']} measurement(s) outside the cited limit"
+    return ""
 
 
 class Exchange(BaseModel):
@@ -49,17 +74,19 @@ class AuthorityRequest:
     def build(self, bundle: EvidenceBundle, correlation_id: str) -> tuple[dict, dict]:
         """An inspection: the evidence bundle, its flat facts and their checks."""
         facts = Facts(bundle)
+        effect = expected_effect(bundle)
         return self.intent(
             action={"type": bundle.action, "resource": f"sitework/{bundle.scene}",
                     "parameters": {"scene": bundle.scene, "condition": bundle.condition,
                                    "evidence_sha256": bundle_sha256(bundle)}},
             context={**facts.flat(),
                      "sitework": {**bundle.model_dump(mode="json"), "summary": facts.summary(),
-                                  "checks": facts.checks()}},
-            endpoint="stack-light", correlation_id=correlation_id,
+                                  "checks": facts.checks(), "expected_effect": effect}},
+            endpoint="stack-light", correlation_id=correlation_id, effect_digest=effect_digest(effect),
         )
 
-    def intent(self, action: dict, context: dict, endpoint: str, correlation_id: str) -> tuple[dict, dict]:
+    def intent(self, action: dict, context: dict, endpoint: str, correlation_id: str,
+               effect_digest: str = "") -> tuple[dict, dict]:
         """Any SiteWork action as an Agent-Safe Intent v1 binding plus the request body."""
         s = self.settings
         producer = IntentProducer(
@@ -67,6 +94,8 @@ class AuthorityRequest:
             s.decionis_intent_ttl_s)
         binding = producer.bind(action=action, context=context, idempotency_key=correlation_id,
                                 target={"system": "sitework", "operation": action["type"], "endpoint": endpoint})
+        if effect_digest:  # pre-dispatch commitment, so a stuck claim can later be reconciled against it
+            binding["expected_effect_digest"] = effect_digest
         if s.decionis_decision_type:
             binding["policy_projection"] = {"decision_type": s.decionis_decision_type,
                                             "transaction_type": None, "workflow_key": None, "channel": None}
@@ -83,16 +112,17 @@ class Gate:
         self.client = client or DecionisClient(settings)
         self.requests = AuthorityRequest(settings)
 
-    def propose(self, bundle: EvidenceBundle) -> Exchange:
+    def propose(self, bundle: EvidenceBundle, hold: str = "") -> Exchange:
+        """`hold` is a SiteWork reason not to execute even an ALLOW, e.g. re-decided evidence."""
         cid = str(uuid.uuid4())
-        return self._send(cid, lambda: self.requests.build(bundle, cid), bundle.errors)
+        return self._send(cid, lambda: self.requests.build(bundle, cid), bundle.errors, hold or interlock(bundle))
 
     def propose_intent(self, action: dict, context: dict, endpoint: str, errors: list[str] = ()) -> Exchange:
         """A non-inspection action such as `policy.update`."""
         cid = str(uuid.uuid4())
         return self._send(cid, lambda: self.requests.intent(action, context, endpoint, cid), list(errors))
 
-    def _send(self, cid: str, build, errors: list[str]) -> Exchange:
+    def _send(self, cid: str, build, errors: list[str], hold: str = "") -> Exchange:
         try:
             binding, body = build()
         except IntentError as exc:
@@ -110,6 +140,8 @@ class Gate:
                 # Interlock: the verdict stays ALLOW verbatim, but SiteWork will not execute an
                 # action whose own evidence it knows is incomplete. The grant expires unused.
                 result.grant_error = f"not claimed: evidence carries {len(errors)} error(s)"
+            elif hold:
+                result.grant_error = f"not claimed: {hold}"
             elif body.get("mode") != "ENFORCEMENT":
                 result.grant_error = f"not claimed: {body.get('mode')} decisions never execute"
             elif action not in RELEASES:
@@ -184,18 +216,20 @@ class MockGate:
         self.requests = AuthorityRequest(settings)
         self.decision = decision
 
-    def propose(self, bundle: EvidenceBundle) -> Exchange:
+    def propose(self, bundle: EvidenceBundle, hold: str = "") -> Exchange:
         cid = str(uuid.uuid4())
-        return self._answer(cid, lambda: self.requests.build(bundle, cid))
+        return self._answer(cid, lambda: self.requests.build(bundle, cid), hold)
 
     def propose_intent(self, action: dict, context: dict, endpoint: str, errors: list[str] = ()) -> Exchange:
         cid = str(uuid.uuid4())
         return self._answer(cid, lambda: self.requests.intent(action, context, endpoint, cid))
 
-    def _answer(self, cid: str, build) -> Exchange:
+    def _answer(self, cid: str, build, hold: str = "") -> Exchange:
         allow = self.decision == "ALLOW"
+        released = allow and not hold
         verdict = Verdict(decision=self.decision, reason="MOCK GATE", dossier_id=f"mock-{cid}",
-                          should_execute=allow, grant_claimed=allow, grant_finalized=allow, latency_ms=0.0)
+                          should_execute=allow, grant_claimed=released, grant_finalized=released,
+                          grant_error=f"not claimed: {hold}" if allow and hold else "", latency_ms=0.0)
         try:
             request = build()[1]
         except IntentError as exc:
