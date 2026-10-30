@@ -135,6 +135,15 @@ def test_file_audio_reads_a_clip_track_with_ffmpeg(tmp_path):
         FileAudio(tmp_path / "missing.mp4").record(3.0)
 
 
+def test_a_missing_ffmpeg_is_missing_evidence_not_a_crash(tmp_path, monkeypatch):
+    def absent(*args, **kwargs):
+        raise FileNotFoundError(2, "No such file or directory", "ffmpeg")
+
+    monkeypatch.setattr("sitework.capture.subprocess.run", absent)
+    with pytest.raises(ValueError, match="ffmpeg unavailable"):
+        FileAudio(tmp_path / "joint.mp4").record(3.0)
+
+
 @pytest.mark.parametrize("kind,seated", [("click", True), ("thud", False), ("noise", False)])
 def test_dsp_alone_is_the_seat_measurement_by_default(tmp_path, kind, seated):
     r = flow(tmp_path, joint_audio(kind), None, mode="dsp").run(StillSource(JOINT[0]), "clean", "US")

@@ -94,6 +94,7 @@ class Runtime:
         self.source: Source | None = None
         self.source_error = ""
         self.last: InspectionResult | None = None
+        self.lit: str | None = None  # the record the stack light shows; None after the source changes
         self.hub = Hub()
         self._busy = threading.Lock()
         self.open(settings.sitework_source)
@@ -103,6 +104,7 @@ class Runtime:
         self.scenes["plumbing"].audio = open_audio(self.settings.sitework_audio_source, spec)
         if self.source is not None:
             self.source.close()
+        self.lit = None  # a result for the old source says nothing about the work now in view
         try:
             self.source, self.source_error = open_source(spec), ""
         except ValueError as exc:
@@ -116,6 +118,7 @@ class Runtime:
             raise HTTPException(409, "an inspection is already running")
         try:
             self.last = scene.run(self.source, req.condition, self.jurisdiction, req.action)
+            self.lit = self.last.record_id
             return self.last
         finally:
             self._busy.release()
@@ -136,14 +139,16 @@ class Runtime:
         """Change the job's jurisdiction; by default re-decide the last inspection under it."""
         if req.jurisdiction not in self.jurisdictions():
             raise HTTPException(404, f"no {req.jurisdiction} pack in {self.packs.directory}")
-        self.jurisdiction = req.jurisdiction
-        record = self.store.get(self.last.record_id) if (req.reground and self.last) else None
-        if record is None:
-            return None
-        if not self._busy.acquire(blocking=False):
+        if not self._busy.acquire(blocking=False):  # before switching, so a refusal changes nothing
             raise HTTPException(409, "an inspection is already running")
         try:
+            self.jurisdiction = req.jurisdiction
+            record = self.store.get(self.last.record_id) if (req.reground and self.last) else None
+            if record is None:
+                return None
+            was_lit = self.lit == record.id
             self.last = self.scenes[record.evidence.scene].reground(record, req.jurisdiction)
+            self.lit = self.last.record_id if was_lit else None
             return self.last
         finally:
             self._busy.release()
@@ -182,7 +187,8 @@ class Runtime:
             "jurisdictions": self.jurisdictions(),
             "scenes": list(self.scenes),
             "vlm_model": self.settings.nebius_vlm_model,
-            "light": (self.last.light if self.last else LightState.idle()).model_dump(),
+            "light": (self.last.light if self.last and self.last.record_id == self.lit else LightState.idle()).model_dump(),
+            "light_record": self.lit,
             "last": self.last.model_dump(mode="json") if self.last else None,
         }
 
@@ -216,7 +222,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     async def inspect(req: InspectRequest):
         result = await run_in_threadpool(rt.inspect, req)
         payload = result.model_dump(mode="json")
-        await rt.hub.send({"type": "result", "result": payload, "light": payload["light"]})
+        await rt.hub.send({"type": "result", "result": payload, "light": payload["light"], "light_record": rt.lit})
         return payload
 
     @app.get("/api/dossiers/{record_id}")
@@ -231,7 +237,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         result = await run_in_threadpool(rt.switch, req)
         if result is not None:
             payload = result.model_dump(mode="json")
-            await rt.hub.send({"type": "result", "result": payload, "light": payload["light"]})
+            current = rt.state()  # idle light when the re-decided record was not the one lit
+            await rt.hub.send({"type": "result", "result": payload, "light": current["light"], "light_record": rt.lit})
         return rt.state()
 
     @app.post("/api/dossiers/{record_id}/resolve")

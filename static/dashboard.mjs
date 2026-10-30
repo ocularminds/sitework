@@ -81,6 +81,7 @@ function applyState(next, forceSource = false) {
   }
   if (next.last) render(next.last);
   else if (last) resetResult();
+  if (next.last && next.light_record !== next.last.record_id) previousSource = true;
   updateView();
   controls();
   renderStatus();
@@ -494,6 +495,9 @@ api("/api/state", undefined, "GET").then((next) => { if (!state) applyState(next
 loadProposals();
 connectState((message) => {
   if (message.type === "state") applyState(message.state);
-  if (message.type === "result") render(message.result);
+  if (message.type === "result") {
+    render(message.result);
+    if (message.light_record !== undefined && message.light_record !== message.result.record_id) { previousSource = true; renderStatus(); }
+  }
   if (message.type === "resolution" && last?.record_id === message.record_id) render({ ...last, resolution: message.resolution, light: message.light });
 }, setConnection);

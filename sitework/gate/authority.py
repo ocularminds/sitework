@@ -26,6 +26,9 @@ class GateFailure(BaseModel):
     status: int | None = None
 
 
+RELEASES = ("inspection.release_hold", "trench.authorize_entry", "work.cover_up")  # actions with a physical release
+
+
 class Exchange(BaseModel):
     """What was asked, what came back, and what SiteWork made of it."""
 
@@ -102,10 +105,15 @@ class Gate:
         result = self.interpret(probe, latency)
         claim = finalize = None
         if isinstance(result, Verdict) and result.decision == "ALLOW" and result.should_execute:
+            action = body["action"]["type"]
             if errors:
                 # Interlock: the verdict stays ALLOW verbatim, but SiteWork will not execute an
                 # action whose own evidence it knows is incomplete. The grant expires unused.
                 result.grant_error = f"not claimed: evidence carries {len(errors)} error(s)"
+            elif body.get("mode") != "ENFORCEMENT":
+                result.grant_error = f"not claimed: {body.get('mode')} decisions never execute"
+            elif action not in RELEASES:
+                result.grant_error = f"not claimed: {action} has no release for SiteWork to execute"
             else:
                 claim, finalize = self._claim(result, response or {}, binding, body["intent_hash"])
         return Exchange(correlation_id=cid, request=body, response=_redact(response),

@@ -10,7 +10,7 @@ Status: **built; calibrated bench validation pending.** Decking, trench entry an
 
 ## Setup
 
-Requires [uv](https://docs.astral.sh/uv/) and Node 18+ (for `npx @decionis/verify`).
+Requires [uv](https://docs.astral.sh/uv/), Node 18+ (for `npx @decionis/verify`) and `ffmpeg` (reads a replayed clip's audio for the plumbing seat check; without it that check escalates).
 
 ```bash
 make setup               # installs Python 3.11 and dependencies into .venv

@@ -46,12 +46,12 @@ plumbing with real audio, any bench capture with measured truth.
 
 | # | Gap | Evidence | Fix |
 |---|---|---|---|
-| F1 | Missing `ffmpeg` makes a plumbing replay return HTTP 500, with no gate call and no dossier | `sitework/capture.py:193` raises `FileNotFoundError`; `sitework/scenes.py:255-259` catches `ValueError` only | Catch `OSError` in `FileAudio.record` and raise `ValueError`, so it escalates. Add ffmpeg to README setup |
-| F2 | A jurisdiction switch during a running inspection changes the jurisdiction, then returns 409 without re-deciding | `sitework/app.py:139` sets it before the busy check at `:143` | Take the lock first |
+| F1 | Missing `ffmpeg` makes a plumbing replay return HTTP 500, with no gate call and no dossier | `sitework/capture.py:193` raises `FileNotFoundError`; `sitework/scenes.py:255-259` catches `ValueError` only | Catch `OSError` in `FileAudio.record` and raise `ValueError`, so it escalates. Add ffmpeg to README setup **Fixed on `p6-polish`.** |
+| F2 | A jurisdiction switch during a running inspection changes the jurisdiction, then returns 409 without re-deciding | `sitework/app.py:139` sets it before the busy check at `:143` | Take the lock first **Fixed on `p6-polish`.** |
 | F3 | Re-grounding an old ALLOW claims a fresh grant on old evidence; this happened today (`b5532637`, from `05722767`) | `sitework/scenes.py:131-137`; the evidence has no capture time or source | Don't claim on re-grounded evidence; add a capture time and source to the evidence |
-| F4 | Any ALLOW with `should_execute` is claimed, whatever the action or mode: a `policy.update` ALLOW would be finalized `COMMITTED` with nothing applied, and SHADOW relies on Decionis sending `should_execute=false` | `sitework/gate/authority.py:104-110` | Claim only release actions (`inspection.release_hold`, `trench.authorize_entry`), never in SHADOW |
-| F5 | The phone light turns blue for a resolution on **any** record, and keeps the last green after the source changes | `static/light.mjs:35`; `sitework/app.py:101-109` | Send `record_id` with the light and match it; reset the light when the source changes |
-| F6 | The config default gateway is the unprovisioned `sitework.decionisedge.com` | `sitework/config.py:57` (`.env.example` uses dci) | Default to `https://dci.decionisedge.com` |
+| F4 | Any ALLOW with `should_execute` is claimed, whatever the action or mode: a `policy.update` ALLOW would be finalized `COMMITTED` with nothing applied, and SHADOW relies on Decionis sending `should_execute=false` | `sitework/gate/authority.py:104-110` | Claim only release actions (`inspection.release_hold`, `trench.authorize_entry`), never in SHADOW **Fixed on `p6-polish`.** |
+| F5 | The phone light turns blue for a resolution on **any** record, and keeps the last green after the source changes | `static/light.mjs:35`; `sitework/app.py:101-109` | Send `record_id` with the light and match it; reset the light when the source changes **Fixed on `p6-polish`.** |
+| F6 | The config default gateway is the unprovisioned `sitework.decionisedge.com` | `sitework/config.py:57` (`.env.example` uses dci) | Default to `https://dci.decionisedge.com` **Fixed on `p6-polish`.** |
 | F7 | `DECIONIS_DECISION_TYPE` set to anything else makes the SiteWork rules miss and the starter rules apply | `policies/sitework.json:12`; `sitework/config.py:68` | Claim only when `checks_total > 0` and `checks_outside == 0`, as a SiteWork-side interlock |
 | F8 | Finalize is reported before the light changes; no `expected_effect_digest` is bound, so a future INDETERMINATE claim can't be reconciled | `sitework/gate/authority.py:114-145` | Bind an expected effect digest at decision time, and finalize after the light state is set (FAILED if that fails). Confirm the field with Decionis first |
 | F9 | A proposal Decionis BLOCKed can still be approved | `sitework/ground/watch.py:165-177` | Allow approval only after ESCALATE or REVIEW_REQUIRED |
@@ -81,7 +81,7 @@ plumbing with real audio, any bench capture with measured truth.
 
 ## Suggested order before 12:00
 
-1. Code fixes F1, F2, F4, F5, F6: small, fail-safe, unit-testable.
+1. ~~Code fixes F1, F2, F4, F5, F6~~: done on `p6-polish`, unit-tested and smoke-tested live (`bbad88e4`).
 2. Brief edits D1, D4–D10; human decision on D2.
 3. Human: reject `0a7c4022` (D11), run one named release live (S3), film.
 4. After freeze: F3, F7, F8, F9 and bench capture (S1).

@@ -190,9 +190,12 @@ class FileAudio(AudioSource):
         self.label = f"file:{self.path.name}"
 
     def record(self, seconds: float) -> AudioClip:
-        out = subprocess.run(
-            ["ffmpeg", "-loglevel", "error", "-i", str(self.path), "-vn", "-ac", "1", "-ar", str(self.RATE),
-             "-t", str(self.MAX_SECONDS), "-f", "s16le", "-"], capture_output=True)
+        try:
+            out = subprocess.run(
+                ["ffmpeg", "-loglevel", "error", "-i", str(self.path), "-vn", "-ac", "1", "-ar", str(self.RATE),
+                 "-t", str(self.MAX_SECONDS), "-f", "s16le", "-"], capture_output=True)
+        except OSError as exc:  # ffmpeg not installed: missing evidence, so the inspection escalates
+            raise ValueError(f"cannot read audio from {self.path.name}: ffmpeg unavailable ({exc})") from exc
         if not out.stdout:  # missing file, no audio stream, or an unreadable container
             raise ValueError(f"no audio track in {self.path.name}")
         samples = np.frombuffer(out.stdout, dtype="<i2").astype(np.float32) / 32768.0
