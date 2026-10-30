@@ -67,7 +67,7 @@ microphone audio, or any bench capture with independently measured truth.
 
 | # | Spec | Status | Owner |
 |---|---|---|---|
-| S1 | P1 "board at a known angle … within your stated tolerance" | Missing: no bench capture with measured truth (`TODO_HUMAN.md`, Bench rig) | Human |
+| S1 | P1 "board at a known angle … within your stated tolerance" | Missing: no bench capture with measured truth (`docs/bench-rig.md`) | Human |
 | S2 | P3 jurisdiction toggle | Works live. The re-grounded result drops the overlay (`scenes.py:137`), so the inspected frame disappears | Code: carry the overlay over **Fixed:** the re-decided result keeps its frame. |
 | S3 | §4 ESCALATE resolution "recorded in the dossier" | Recorded alongside, in local unsigned JSON (`sitework/dossier.py:68-85`) | **Live rehearsal done:** Festus Jejelowo released `3cf72cca`; connected light changed from amber to blue. The original gate verdict remains ESCALATE; the human record is still unsigned. |
 | S4 | P4 audio model + DSP agree | DSP only; Token Factory rejects audio (accepted deviation) | — |
@@ -76,7 +76,7 @@ microphone audio, or any bench capture with independently measured truth.
 | S7 | Webcam source | **Tested:** FaceTime HD camera 0 returned five distinct 1920 × 1080 frames; dashboard preview and five streamed frames passed after a main-thread camera open | Done; see [the camera access note](live-demo-readiness.md#real-webcam) |
 | S8 | Policy review on a fresh clone | `data/proposals/` is git-ignored, so the panel is empty | Accept, or commit a sample |
 | S9 | Replay audio | First 10 s of the clip, not about 3 s around the join | Code, after bench capture |
-| S10 | Doc drift | `policies/sitework.md:8` and `TODO_HUMAN.md:43` said `consume-token`; now name `claim-token` + `finalize-token` | Fixed on `p6-polish` |
+| S10 | Doc drift | `policies/sitework.md:8` and the internal TODO said `consume-token`; now name `claim-token` + `finalize-token` | Fixed on `p6-polish` |
 
 ## Checked and backed
 

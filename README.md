@@ -6,12 +6,12 @@ Physical AI that inspects construction work at the hold point, before it disappe
 
 > Models observe → code measures → policy decides → humans sign when the AI isn't sure → everything is provable.
 
-**Status (30 October 2026): built and validated live; calibrated bench accuracy not yet measured.**
+**Status: built and validated live; calibrated bench accuracy not yet measured.**
 
 - **Live releases:** decking and trench release through the real Decionis gate. Synthetic in-limit clips were allowed, claimed and finalized, and turned green; a steep trench was blocked; Sweden escalated.
 - **Live human paths:** a named human release (blue) and a real webcam were exercised live ([readiness notes](docs/live-demo-readiness.md)).
 - **Refusal evaluation:** outdoor clips and their Cosmos weather variants were refused 18 out of 18 times, with no false ALLOW ([results](eval/results.md)).
-- **Still needed:** measured bench clips, for accuracy figures ([TODO_HUMAN.md](TODO_HUMAN.md)).
+- **Still needed:** measured bench clips, for accuracy figures (see the [bench checklist](docs/bench-rig.md)).
 
 ## Setup
 
@@ -45,7 +45,7 @@ Pick the hold point, site condition and jurisdiction, then **Run inspection**. *
 
 ## Decionis gateway
 
-SiteWork uses the `https://dci.decionisedge.com` gateway, selected on 29 October 2026, with credentials in the ignored `.env`. Enforced calls and grant claims use `DECIONIS_ENFORCE_API_KEY`; dossier reads and SHADOW calls use `DECIONIS_API_KEY`.
+SiteWork uses the `https://dci.decionisedge.com` gateway, with credentials in the ignored `.env`. Enforced calls and grant claims use `DECIONIS_ENFORCE_API_KEY`; dossier reads and SHADOW calls use `DECIONIS_API_KEY`.
 
 `uv run --frozen python scripts/check.py --decionis-only --gate` sends one deliberately incomplete intent in the configured mode (default ENFORCEMENT). It expects ESCALATE or BLOCK and never claims a grant. A SHADOW pass (`--gate-mode SHADOW`) doesn't show enforcement readiness. See [gateway setup](docs/gateway-setup.md).
 
@@ -242,14 +242,14 @@ Tavily is never in the decision's hot path. Packs are built and approved beforeh
 
 ## Models
 
-Exact IDs come from Token Factory `GET /models` via `make check` and are recorded in `sitework/config.py`. On 29 October 2026 the `us-central1` endpoint listed 18 models and no vision model; the global endpoint listed 30, including Nemotron VL, so SiteWork uses the global endpoint. A missing or failing model is recorded as an error, which escalates.
+Exact IDs come from Token Factory `GET /models` via `make check` and are recorded in `sitework/config.py`. When checked, the `us-central1` endpoint listed 18 models and no vision model, while the global endpoint listed 30, including Nemotron VL, so SiteWork uses the global endpoint. A missing or failing model is recorded as an error, which escalates.
 
 Nemotron VL answers on a 0–1000 grid whatever image size the prompt states, so SiteWork asks for that grid and converts it. Its points are a starting place, not a measurement: code snaps them to image edges (step 4 above).
 
 | Role | Model | Runs on | Exact ID |
 |---|---|---|---|
 | Vision: points for boards, trench walls, pipe and fitting axes | NVIDIA Nemotron 3.5 Super VL (thinking off, schema-constrained JSON) | Nebius Token Factory, global endpoint | `nvidia/Nemotron-3.5-Super-VL` |
-| Audio: joint seating | No model: a deterministic DSP check (librosa onset strength and spectral centroid). Token Factory rejects `input_audio` for every model it lists (HTTP 422, 29 Oct 2026) | SiteWork process | — |
+| Audio: joint seating | No model: a deterministic DSP check (librosa onset strength and spectral centroid). Token Factory rejects `input_audio` for every model it lists (HTTP 422) | SiteWork process | — |
 | Weather and light variants for the stress test | NVIDIA Cosmos-Transfer2.5-2B (distilled edge control) | Nebius AI Cloud, US `us-central1`, offline generation | commit `2ff49d0` of `nvidia-cosmos/cosmos-transfer2.5` |
 
 Not built, so not claimed: Cosmos Reason 2 and a Nemotron 3 Super grounding agent. Requirement thresholds are approved by a named person instead.

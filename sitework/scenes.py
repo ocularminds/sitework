@@ -304,5 +304,5 @@ class PlumbingInspection(Inspection):
             return AudioModel(TokenFactory(self.settings).client, self.settings.nebius_audio_model)
         except (MissingCredential, AudioError) as exc:
             ev.error("audio model", f"{exc}; Token Factory rejects input_audio, so a self-hosted audio model "
-                                    "is needed (see TODO_HUMAN.md)")
+                                    "is needed (see the README, Plumbing)")
             return None

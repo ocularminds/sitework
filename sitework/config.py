@@ -14,7 +14,7 @@ class MissingCredential(RuntimeError):
     """A required secret is not set in the environment or `.env`."""
 
     def __init__(self, env_var: str):
-        super().__init__(f"{env_var} is not set (see .env.example and TODO_HUMAN.md)")
+        super().__init__(f"{env_var} is not set (see .env.example and the README)")
         self.env_var = env_var
 
 
