@@ -6,60 +6,68 @@ Physical AI that inspects construction work at the hold point, before it disappe
 
 > Models observe → code measures → policy decides → humans sign when the AI isn't sure → everything is provable.
 
-Status: **built; calibrated bench validation pending.** Decking, trench entry and plumbing close-in are gated by Decionis. Packs, offline proof, the amendment watch and the eval harness are in place. Outdoor refusal results and nine generated Cosmos variants are recorded; measurement accuracy still needs independently measured bench clips (see `TODO_HUMAN.md`).
+**Status (30 October 2026): built and validated live; calibrated bench accuracy not yet measured.**
+
+- **Live releases:** decking and trench release through the real Decionis gate. Synthetic in-limit clips were allowed, claimed and finalized, and turned green; a steep trench was blocked; Sweden escalated.
+- **Live human paths:** a named human release (blue) and a real webcam were exercised live ([readiness notes](docs/live-demo-readiness.md)).
+- **Refusal evaluation:** outdoor clips and their Cosmos weather variants were refused 18 out of 18 times, with no false ALLOW ([results](eval/results.md)).
+- **Still needed:** measured bench clips, for accuracy figures ([TODO_HUMAN.md](TODO_HUMAN.md)).
 
 ## Setup
 
-Requires [uv](https://docs.astral.sh/uv/), Node 18+ (for `npx @decionis/verify`) and `ffmpeg` (reads a replayed clip's audio for the plumbing seat check; without it that check escalates).
+Requires [uv](https://docs.astral.sh/uv/), Node 18+ (for `npx @decionis/verify`) and `ffmpeg` (reads a replayed clip's audio; without it the plumbing seat check escalates).
 
 ```bash
-make setup               # installs Python 3.11 and dependencies into .venv
-cp -n .env.example .env  # preserves an existing .env; then fill in missing keys
-make check               # verifies Token Factory, Tavily and Decionis credentials
-make test
+make setup               # Python 3.11 and dependencies into .venv
+cp -n .env.example .env  # keeps an existing .env; fill in the missing keys
+make check               # verifies Token Factory, Tavily and Decionis
+make test && make test-ui
 make demo                # dashboard at http://127.0.0.1:8000, stack light at /light
 ```
 
-To use a phone at the work face as the stack light, run `make demo HOST=0.0.0.0` and open `http://<this machine's IP>:8000/light` on the phone. Only do this on a network you trust: the API has no login, so anyone who can reach it can record a human release.
+`make check` lists the Nemotron models Token Factory serves to your key, runs one Tavily search, and checks Decionis identity, routing, key scopes for the configured gate mode, and the workspace's allowed mode. Anything it cannot verify is reported as a blocker.
 
-`make check` lists the Nemotron models Token Factory serves to your key, runs one Tavily search, and checks Decionis identity, routing, credential scopes for the configured gate mode, and the workspace's allowed mode. Anything it cannot verify is reported as a blocker; open items live in `TODO_HUMAN.md`.
+**Phone as the stack light:** run `make demo HOST=0.0.0.0` and open `http://<this machine's IP>:8000/light` on the phone. Only on a network you trust: the API has no login, so anyone who can reach it can record a human release.
 
-The inspection workspace adapts to desktop, tablet and phone screens. Choose
-the hold point, condition and jurisdiction, then **Run inspection**. **Capture
-setup** connects a camera or an existing video path on the app's host; it does
-not upload a browser file. Portrait video stays within the capture viewer.
-Inspection overlays, measurements, requirements and the decision dossier remain
-available together. Changing the setup marks the previous result as historical.
+**Running it elsewhere:** `make demo` runs locally. A judge needs their own credentials and a camera or clips; a public URL needs a separate app host that keeps the keys server-side. The Cosmos GPU was only for offline video generation and is not needed to run SiteWork.
 
-The hold status is separate from the policy verdict: an ALLOW with an unconfirmed
-release stays closed, a human release stays blue, and a disconnected workspace or
-stack light stops displaying a current green signal. Named reviews, verification
-and tamper checks show their progress and errors in place. The dossier page
-distinguishes signature integrity from independently verified issuer identity.
+## Dashboard
 
-There is no frontend build step. Run `make test-ui` (Node 18+) for the presentation
-logic regressions, alongside `make test` for the Python suite.
+Pick the hold point, site condition and jurisdiction, then **Run inspection**. **Capture setup** opens a camera or a video path on the app's host; it doesn't upload from the browser. The live feed outlines the calibration marker; the inspected frame carries the measurements.
 
-`make demo` runs the web app locally. Judges need configured credentials and a
-camera or input clips; a public demo URL needs a separate app host. The Cosmos
-GPU is used only for offline video generation. Replaying its saved videos or
-calling Nemotron through Token Factory does not require that GPU VM to remain
-running. Keep service credentials on the app server and out of the public repo.
+- **Hold status vs. verdict:** the hold status is shown separately from the Decionis verdict.
+  - An ALLOW whose release wasn't completed stays closed.
+  - A human release shows blue.
+  - A disconnected page stops showing green.
+  - Changing the source or setup marks the last result as previous, and the stack light goes dark.
+- **Dossier page:** separates signature integrity from verified issuer identity.
+- **No build step:** the frontend is plain ES modules.
 
-SiteWork uses the `https://dci.decionisedge.com` gateway, explicitly selected on 29 October 2026. Its credentials are in ignored `.env`. Enforced calls and grant claims use the dedicated `DECIONIS_ENFORCE_API_KEY`; dossier reads and SHADOW calls retain `DECIONIS_API_KEY`.
+## Decionis gateway
 
-`uv run --frozen python scripts/check.py --decionis-only --gate` sends one deliberately incomplete intent in the configured mode (default **ENFORCEMENT**). It expects ESCALATE or BLOCK, may record a dossier, and never claims an execution grant. Add `--gate-mode SHADOW` only to test SHADOW explicitly; a SHADOW pass does not establish enforcement readiness. See [gateway setup](docs/gateway-setup.md) for the verified enforcement result and workspace claim.
+SiteWork uses the `https://dci.decionisedge.com` gateway, selected on 29 October 2026, with credentials in the ignored `.env`. Enforced calls and grant claims use `DECIONIS_ENFORCE_API_KEY`; dossier reads and SHADOW calls use `DECIONIS_API_KEY`.
+
+`uv run --frozen python scripts/check.py --decionis-only --gate` sends one deliberately incomplete intent in the configured mode (default ENFORCEMENT). It expects ESCALATE or BLOCK and never claims a grant. A SHADOW pass (`--gate-mode SHADOW`) doesn't show enforcement readiness. See [gateway setup](docs/gateway-setup.md).
 
 ## How a decking inspection runs
 
 1. **Capture.** `SITEWORK_SOURCE` is a webcam index, or a clip to replay; three frames are sampled.
 2. **Scale.** The printed ArUco `DICT_4X4_50` marker gives millimetres and a homography onto its plane. Keep the marker flat and close to the joint: one 40 mm marker extrapolates, about 1.4 % error at 250 mm in the synthetic tests.
 3. **Perceive.** Nemotron VL on Token Factory returns roughly where each board's four corners are, as strict JSON on its 0–1000 grid; code converts that to pixels and takes the two long sides as the board's edges. (Asked for edges directly, the model returned box diagonals.) An invalid reply is retried once.
-4. **Snap.** Code moves each proposed edge onto the strongest straight image edge within reach (4 % of the longer image side either side), using gradient profiles across the line and a robust line fit. The point quality is the share of the line the image supports × how straight that edge is × how clearly it stands out: a parallel edge nearly as strong within reach, such as wood grain, lowers it. For each board both readings are tried, darker or lighter than its surroundings; the stronger one wins, and if the other reading is nearly as good the quality falls. Code also finds where each edge starts and stops, so lengths come from the image rather than the model. A line with no clear edge under it, or two boards that overlap, is an error, so the inspection escalates instead of measuring a guess. `SNAP_EDGES=false` measures the model's lines as given, with its self-reported confidence.
+4. **Snap.** Code moves each proposed edge onto the strongest straight image edge within reach (4 % of the longer image side), using gradient profiles and a robust line fit, and finds where that edge starts and stops, so lengths come from the image rather than the model. Point quality = how much of the line the image supports × how straight the edge is × how clearly it beats rival parallel edges such as wood grain. Each board is tried both darker and lighter than its surroundings, and a near tie lowers the quality. A line with no clear edge under it, or two overlapping boards, is an error, so the inspection escalates instead of measuring a guess. `SNAP_EDGES=false` uses the model's lines as given.
 5. **Measure.** Code computes the narrowest and widest joint gap (mm) and the largest angle between adjacent boards (°) on the snapped lines. Confidence = point quality × marker quality × agreement across frames.
 6. **Ground.** Decisions read `data/packs/<jurisdiction>.json`, never the live web. `scripts/pack.py search` proposes clauses from allowlisted pages via Tavily search and extract. `scripts/pack.py approve` adds one only with a named approver and a threshold.
 7. **Decide.** An [Agent-Safe Intent v1](https://github.com/decionis/agent-safe-pipeline/blob/master/spec/intent/v1/README.md) goes to `POST /v1/authority/enforce-and-bind` through dci. The verdict (`ALLOW`, `BLOCK`, `ESCALATE`, `ERROR`) is shown verbatim. The rules the policy should apply are drafted in `policies/sitework.md`.
-8. **Act.** The light turns green only for `ALLOW` with `should_execute`, and only after SiteWork claims the single-use grant (`/v1/execution/claim-token`) and reports the release `COMMITTED` (`/v1/execution/finalize-token`) inside the claim's 30-second lease. A claim left unfinalized goes `INDETERMINATE`, and Decionis then refuses every later claim on that target (`CURRENT_STATE_UNRESOLVED`) until it is reconciled. SiteWork never claims a grant when its own evidence carries errors.
+8. **Act.** Each intent commits, before dispatch, to its expected effect: this inspection's light turning green (`expected_effect_digest`).
+   - **Green requires all of:** `ALLOW` with `should_execute`, then SiteWork claims the single-use grant (`/v1/execution/claim-token`) and reports the release `COMMITTED` (`/v1/execution/finalize-token`) inside the claim's 30-second lease. A claim left unfinalized goes `INDETERMINATE`, and Decionis refuses later claims on that target until it is reconciled.
+   - **SiteWork never claims** when:
+     - its own evidence has errors
+     - it lacks a citation or a checked measurement
+     - a measurement is outside its limit
+     - the verdict is a re-decision
+     - the mode isn't ENFORCEMENT
+     - the action releases nothing physical (e.g. `policy.update`)
+   - **Effect confirmation:** Decionis reports the effect as unconfirmed, because nothing observes the phone screen.
 9. **Record.** Evidence, request, response and verdict are written to `data/dossiers/<dossier_id>.json`, with the execution token redacted.
 
 Nothing is faked: errors (no marker, model failure, missing key, no approved requirement) are sent to Decionis as facts. `DECIONIS_MODE=mock` exists for tests only and puts a red MOCK GATE banner on every page.
@@ -82,9 +90,13 @@ Label every recorded clip (clean bench, Cosmos variants, outdoor) in `eval/label
 
 Leave inapplicable or unknown truth blank. Review each Cosmos variant before inheriting its clean clip's truth: edge control does not guarantee unchanged geometry, visibility or seating evidence.
 
-The [approved requirements](docs/requirements.md) name Festus B. Jejelowo. US decking uses the TimberTech Advanced PVC/Cortex spacing profile (3.175–6.35 mm); US trench uses OSHA Option 1's stated 34° limit. SE decking, SE trench and both plumbing profiles are qualitative and currently escalate. Ten raw field recordings are available. The current labels use three pipe/drainage clips for six paired US/SE input-refusal checks, with no dimensional or seating truth. Read [the evaluation scope](eval/README.md) before interpreting any Results numbers; calibrated bench accuracy remains unmeasured.
+The [approved requirements](docs/requirements.md) name Festus B. Jejelowo. US decking uses the TimberTech Advanced PVC/Cortex spacing profile (3.175–6.35 mm); US trench uses OSHA Option 1's stated 34° limit. SE decking, SE trench and both plumbing profiles are qualitative and currently escalate. The current labels are input-refusal cases only:
+- three outdoor pipe/drainage clips;
+- the Cosmos rain, mud and dusk-glare variants of two of them.
 
-The first [recorded run](eval/results.md) returned ESCALATE for all six cases, with zero false ALLOWs and six dossiers verified offline. Gate p95 was 778.3 ms. No vision inference ran because the sampled frames lacked a marker; the run establishes refusal behavior, with measurement and seating accuracy unavailable.
+Each is paired across US and SE, giving 18 rows from nine unique videos, with no dimensional or seating truth. Read [the evaluation scope](eval/README.md) before interpreting any numbers.
+
+The latest [run](eval/results.md) escalated all 18 cases, with no false ALLOW in any condition and 18/18 dossiers verified offline. Gate p95 was 735.5 ms. No vision inference ran, because no frame shows a calibration marker. The run shows that SiteWork refuses what it cannot measure; it does not measure accuracy.
 
 ```bash
 uv run python scripts/eval.py --run-label "run 1"
@@ -117,8 +129,8 @@ Where a condition has false ALLOWs, the report suggests the lowest confidence fl
 ## Trench, jurisdiction switch and human release
 
 - **Trench entry** (`trench.authorize_entry`). Use a side view of the trench cross-section, with the marker standing upright in that plane and its bottom edge level. Nemotron VL returns each wall's top and toe point. Code snaps the line between them to the wall's image edge, then measures the steepest wall's slope (degrees from horizontal) and its depth. Depth comes from where that edge stops at the ground surface and at the floor, found in the image. A wall end that runs out of the picture is an error, and so the inspection escalates; an object covering a corner looks like the wall's end, so keep both corners clear. Steep walls are the sensitive case: with little horizontal run, 0.2 mm of corner error is about 0.4°.
-- **Jurisdiction switch.** Choosing another jurisdiction on the dashboard re-decides the last inspection's evidence against that pack's approved requirements, without re-running perception. A new gate call produces a new dossier that names the record it was re-grounded from. US trench cites OSHA's maximum allowable slopes. Sweden's AFS 2023:13 sets no fixed slope, so an approved SE requirement carries no numeric threshold and the policy escalates to a person.
-- **Named release.** An ESCALATE or REVIEW_REQUIRED shows a name field with Release hold and Keep hold. The record keeps who decided, when, any note, and Decionis's `approval_request_id`. A release turns the light **blue** ("RELEASED BY …"), never green, because green is reserved for a Decionis ALLOW with a claimed grant.
+- **Jurisdiction switch.** Choosing another jurisdiction re-decides the last inspection's evidence against that pack, without re-running perception. The new gate call gets its own dossier, which names the record it came from. US trench cites OSHA's maximum allowable slopes. The approved Swedish requirement, Arbetsmiljöverket's excavation guidance, sets no fixed slope, so the policy escalates to a person. A re-decision never releases a hold, even on ALLOW: that takes a fresh inspection.
+- **Named release.** An ESCALATE or REVIEW_REQUIRED shows a name field with Release hold and Keep hold. The record keeps who decided, when, any note, and Decionis's `approval_request_id`. A release turns the light **blue** ("RELEASED BY …"), never green, because green is reserved for a Decionis ALLOW whose grant was claimed and finalized. The resolution is stored alongside the signed dossier, not inside it.
 
 ## Proof, packs and policy updates
 
@@ -141,7 +153,7 @@ Lengths are converted to mm, and stated angles are kept in degrees. Slope ratios
 - Checks each finding's source against the pack allowlist.
 - Proposes a `policy.update` through the Decionis gate. Only kinds, scenes, URLs, dates and title hashes are sent.
 
-The SiteWork policy escalates every `policy.update`. A named person resolves it on the dashboard or with `scripts/watch.py resolve`.
+The SiteWork policy escalates every `policy.update`; a named person resolves it on the dashboard or with `scripts/watch.py resolve`. A proposal that Decionis blocked, or never decided, can only be rejected.
 
 ## Bench and Cosmos preparation
 
@@ -149,14 +161,9 @@ Print the [40 mm ArUco marker and capture worksheet](output/pdf/sitework-bench.p
 at Actual Size / 100%. The [bench checklist](docs/bench-rig.md) covers board
 angles, tabletop trench slopes, the unseated joint and outdoor captures.
 
-The [Cosmos handoff](scripts/cosmos_transfer/README.md) links the resumable GPU
-runner and records the AWS fallback quota requests. **Nine rain, mud and
-dusk/glare variants** were generated on a US Nebius RTX PRO 6000 and collected
-locally; all 837 frames decode. [RUN_INFO.md](data/clips/RUN_INFO.md) records
-the real settings and timings. The temporary VM and disk were deleted after
-collection. The raw outdoor sources have no independent measurements, so these
-variants provide visual stress inputs; calibrated bench capture and evaluation
-remain pending.
+**Cosmos:** nine rain, mud and dusk-glare variants of three outdoor segments were generated on a US Nebius RTX PRO 6000. All 837 frames decode, and the temporary VM and disk were deleted afterwards.
+- [RUN_INFO.md](data/clips/RUN_INFO.md) records the settings and timings, and the [handoff](scripts/cosmos_transfer/README.md) links the resumable runner.
+- The sources have no independent measurements, so the variants are stress inputs: they test refusal, not accuracy.
 
 ## Environment
 
@@ -186,11 +193,11 @@ remain pending.
 ```
 sitework/   config, clients, perception, measurement, grounding, gate
 scripts/    check.py, pack.py (jurisdiction packs), proof.py (dossier verify), watch.py (amendments), policy.py, cosmos/
-static/     dashboard (single page, no build step)
+static/     dashboard, stack light and dossier pages (plain ES modules, no build step)
 policies/   SiteWork rules loaded into Decionis (sitework.json) and their rationale
-eval/       labelled clips and results
+eval/       labels, results and evaluation scope
 data/       clips, jurisdiction packs, dossiers (large media git-ignored)
-tests/      pytest suite
+tests/      pytest suite and node UI tests (ui.test.mjs)
 ```
 
 ## Architecture
