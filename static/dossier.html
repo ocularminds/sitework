@@ -1,103 +1,48 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>SiteWork Dossier</title>
-<style>
-  :root { --bg: #f4f4f1; --panel: #fff; --ink: #1d1f21; --muted: #6b6f73; --line: #dcdcd6;
-          --green: #1e8e3e; --amber: #c77700; --red: #c5221f; --accent: #24527a; }
-  @media (prefers-color-scheme: dark) {
-    :root { --bg: #121416; --panel: #1b1e21; --ink: #e8eaed; --muted: #9aa0a6; --line: #2e3236;
-            --green: #34a853; --amber: #f29900; --red: #ea4335; --accent: #8ab4f8; }
-  }
-  * { box-sizing: border-box; }
-  body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.45 system-ui, sans-serif; }
-  main { max-width: 960px; margin: 0 auto; padding: 16px; display: grid; gap: 16px; }
-  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px; }
-  h1 { font-size: 20px; margin: 0; } h2 { font-size: 12px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin: 0 0 8px; }
-  code { font-size: 12px; word-break: break-all; }
-  table { width: 100%; border-collapse: collapse; font-size: 14px; } td { padding: 4px 6px 4px 0; border-bottom: 1px solid var(--line); vertical-align: top; }
-  .muted { color: var(--muted); } .ok { color: var(--green); } .bad { color: var(--red); } .amber { color: var(--amber); }
-  button { font: inherit; padding: 6px 12px; border: 1px solid var(--line); border-radius: 6px; background: var(--panel); color: var(--ink); cursor: pointer; }
-  .actions { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
-  ul { margin: 4px 0; padding-left: 18px; }
-  a { color: var(--accent); }
-</style>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SiteWork · Decision dossier</title>
+  <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/static/sitework.css">
+  <script type="module" src="/static/dossier.mjs"></script>
 </head>
 <body>
-<main>
-  <div class="panel"><h1>Decision dossier</h1><div><code id="id">—</code></div><div id="summary" class="muted"></div></div>
-  <div class="panel">
-    <h2>Independent verification</h2>
-    <div class="actions">
-      <button id="offline">Verify offline</button>
-      <button id="pinned">Verify against Decionis key</button>
-      <button id="tamper">Tamper one byte</button>
-    </div>
-    <div id="proof" class="muted">Uses the published <code>@decionis/verify</code> on the saved signed proof packet.</div>
+<a class="skip-link" href="#main">Skip to decision dossier</a>
+<div class="mock-banner" id="mock" role="alert" hidden>MOCK GATE · This record is from a test environment.</div>
+<header class="document-topbar">
+  <a class="brand" href="/" aria-label="SiteWork home"><span class="brand-mark"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5h18M3 12h18M3 19h18M3 5v7m18 0v7" fill="none" stroke="currentColor" stroke-width="2.5"/></svg></span><span class="brand-name">SiteWork.</span></a>
+  <a class="btn btn-quiet btn-sm" href="/">Back to workspace<span class="icon-sm" data-icon="arrow"></span></a>
+</header>
+<main id="main" class="document-layout" tabindex="-1">
+  <div class="document-heading"><div><div class="eyebrow">Evidence &amp; proof</div><h1>Decision dossier</h1><code id="id">Loading record…</code></div><span class="badge badge-neutral" id="recordStatus">Saved evidence</span></div>
+  <div class="document-grid">
+    <section class="panel" aria-labelledby="decisionTitle">
+      <div class="panel-head"><div class="panel-title"><span data-icon="shield"></span><h2 id="decisionTitle">Recorded decision</h2></div><span class="badge badge-neutral" id="recordMode">—</span></div>
+      <div id="summary" class="panel-body document-summary" aria-live="polite">Loading the inspection record…</div>
+    </section>
+    <section class="panel" aria-labelledby="verificationTitle">
+      <div class="panel-head"><div class="panel-title"><span data-icon="lock"></span><h2 id="verificationTitle">Independent verification</h2></div><span class="badge badge-neutral" id="verificationBadge">Not verified</span></div>
+      <div class="panel-body">
+        <div class="proof-options">
+          <div class="proof-option"><h3>Check the saved signature</h3><p>Verify the signed artifacts in the saved proof packet, offline.</p><button class="btn btn-sm" id="offline" disabled><span class="icon-sm" data-icon="shield"></span>Verify offline</button></div>
+          <div class="proof-option"><h3>Confirm the issuer</h3><p>Verify against Decionis’s published key to check issuer authenticity.</p><button class="btn btn-sm" id="pinned" disabled><span class="icon-sm" data-icon="globe"></span>Verify against Decionis key</button></div>
+        </div>
+        <div id="proof" class="proof-result" role="status">Verification uses the published @decionis/verify package.</div>
+        <details class="disclosure" style="margin-top:13px"><summary><span class="chevron" data-icon="chevron"></span>Test tamper detection</summary><p>This changes one byte in a copy of a signed artifact and verifies the altered copy. The saved original is retained.</p><button class="btn btn-sm" id="tamper" disabled>Tamper one byte</button></details>
+      </div>
+    </section>
+    <section class="panel" id="evidencePanel" aria-labelledby="evidenceTitle" hidden>
+      <div class="panel-head"><div class="panel-title"><span data-icon="ruler"></span><h2 id="evidenceTitle">Inspection evidence</h2></div><span class="badge badge-neutral" id="evidenceCount"></span></div>
+      <div class="panel-body" id="evidence"></div>
+    </section>
+    <details class="panel policy-section" id="factsPanel" style="margin-top:0" hidden>
+      <summary><div class="policy-summary"><span data-icon="settings"></span><div><h2>Policy inputs</h2><p>The structured facts sent with this decision.</p></div></div><span class="chevron" data-icon="chevron"></span></summary>
+      <div class="table-wrap"><table class="facts-table"><caption class="sr-only">Facts evaluated by the policy</caption><thead><tr><th scope="col">Fact</th><th scope="col">Value</th></tr></thead><tbody id="facts"></tbody></table></div>
+    </details>
   </div>
-  <div class="panel" id="evidencePanel" hidden><h2>Evidence sent to Decionis</h2><div id="evidence"></div></div>
-  <div class="panel" id="factsPanel" hidden><h2>Facts the policy read</h2><table id="facts"></table></div>
+  <footer class="workspace-footer"><span>Evidence preserved. Decisions accountable.</span><a href="/">Return to inspections</a></footer>
 </main>
-<script>
-const $ = (id) => document.getElementById(id);
-const id = new URLSearchParams(location.search).get("id") || "";
-const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
-$("id").textContent = id;
-
-function line(v) {
-  return `<span class="${v.verified ? "ok" : "bad"}">${v.verified ? "VALID" : "INVALID"}</span> (${esc(v.mode)}) ·
-    signed artifacts ${esc(v.artifact_paths.join(", ") || "none")} · coverage ${v.coverage} · trust ${esc(v.trust)}
-    · issuer authentic ${v.issuer_authentic}`;
-}
-
-async function call(path) {
-  const res = await fetch(`/api/dossiers/${encodeURIComponent(id)}/${path}`, { method: "POST" });
-  const body = await res.json();
-  if (!res.ok) throw new Error(body.detail || res.statusText);
-  return body;
-}
-
-async function verify(mode) {
-  $("proof").textContent = `Verifying (${mode})…`;
-  try { $("proof").innerHTML = line(await call(`verify?mode=${mode}`)); }
-  catch (e) { $("proof").textContent = `Verify failed: ${e.message}`; }
-}
-
-$("offline").onclick = () => verify("offline");
-$("pinned").onclick = () => verify("pinned");
-$("tamper").onclick = async () => {
-  $("proof").textContent = "Changing one byte, verifying again…";
-  try {
-    const t = await call("tamper");
-    $("proof").innerHTML = `Changed <code>${esc(t.pointer)}</code>: “${esc(t.before)}” → “${esc(t.after)}” (${t.bytes_changed} byte)<br>${line(t.result)}`;
-  } catch (e) { $("proof").textContent = `Tamper failed: ${e.message}`; }
-};
-
-fetch(`/api/dossiers/${encodeURIComponent(id)}`).then(async (res) => {
-  if (!res.ok) { $("summary").textContent = "No SiteWork inspection record (for example a policy.update proposal); the Decionis dossier can still be verified."; return; }
-  const r = await res.json();
-  const v = r.exchange.result;
-  const decision = v.decision ? `<b class="${v.decision === "ALLOW" ? "ok" : v.decision === "ESCALATE" ? "amber" : "bad"}">${esc(v.decision)}</b> · ${esc(v.reason)}` : `<b class="bad">NO DECISION</b> · ${esc(v.error)}`;
-  const e = r.evidence;
-  $("summary").innerHTML = `${decision}<br>${esc(e.action)} · ${esc(e.scene)} · ${esc(e.condition)} · ${esc(r.jurisdiction)} · gate ${esc(r.gate_mode)} · ${new Date(r.created_at).toLocaleString()}
-    ${v.policy_version ? `· policy ${esc(v.policy_version)}` : ""}
-    ${r.regrounded_from ? `<br>Re-grounded from <a href="/dossier?id=${encodeURIComponent(r.regrounded_from)}">${esc(r.regrounded_from)}</a>` : ""}
-    ${r.resolution ? `<br><b>${r.resolution.release ? "Released" : "Kept on hold"} by ${esc(r.resolution.approver)}</b> · ${new Date(r.resolution.at).toLocaleString()}${r.resolution.note ? " · " + esc(r.resolution.note) : ""}` : ""}`;
-  $("evidencePanel").hidden = false;
-  $("evidence").innerHTML = `
-    <table>${e.measurements.map((m) => `<tr><td>${esc(m.kind)}</td><td>${m.value}</td><td class="muted">conf ${m.confidence}</td><td class="muted">${esc(m.method)}</td></tr>`).join("") || "<tr><td class='muted'>No measurements</td></tr>"}</table>
-    <p>${e.citations.map((c) => `${esc(c.requirement)} — <a href="${esc(c.url)}" target="_blank" rel="noopener">${esc(c.source_domain)}</a> <code>${esc(c.content_sha256.slice(0, 16))}…</code>`).join("<br>") || "<span class='bad'>No citation</span>"}</p>
-    ${e.errors.length ? `<ul class="amber">${e.errors.map((x) => `<li>${esc(x)}</li>`).join("")}</ul>` : ""}
-    <div class="muted">frames ${e.frame_sha256.map((h) => `<code>${esc(h.slice(0, 12))}</code>`).join(" ")} · models ${esc(JSON.stringify(e.models))}</div>`;
-  const ctx = (r.exchange.request || {}).context || {};
-  const facts = Object.entries(ctx).filter(([k]) => k.startsWith("sitework_"));
-  if (facts.length) {
-    $("factsPanel").hidden = false;
-    $("facts").innerHTML = facts.map(([k, val]) => `<tr><td><code>context.${esc(k)}</code></td><td>${esc(JSON.stringify(val))}</td></tr>`).join("");
-  }
-});
-</script>
 </body>
 </html>

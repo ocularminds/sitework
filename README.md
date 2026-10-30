@@ -22,6 +22,22 @@ make demo                # dashboard at http://127.0.0.1:8000, stack light at /l
 
 `make check` lists the Nemotron models Token Factory serves to your key, runs one Tavily search, and checks Decionis identity, routing, credential scopes for the configured gate mode, and the workspace's allowed mode. Anything it cannot verify is reported as a blocker; open items live in `TODO_HUMAN.md`.
 
+The inspection workspace adapts to desktop, tablet and phone screens. Choose
+the hold point, condition and jurisdiction, then **Run inspection**. **Capture
+setup** connects a camera or an existing video path on the app's host; it does
+not upload a browser file. Portrait video stays within the capture viewer.
+Inspection overlays, measurements, requirements and the decision dossier remain
+available together. Changing the setup marks the previous result as historical.
+
+The hold status is separate from the policy verdict: an ALLOW with an unconfirmed
+release stays closed, a human release stays blue, and a disconnected workspace or
+stack light stops displaying a current green signal. Named reviews, verification
+and tamper checks show their progress and errors in place. The dossier page
+distinguishes signature integrity from independently verified issuer identity.
+
+There is no frontend build step. Run `make test-ui` (Node 18+) for the presentation
+logic regressions, alongside `make test` for the Python suite.
+
 `make demo` runs the web app locally. Judges need configured credentials and a
 camera or input clips; a public demo URL needs a separate app host. The Cosmos
 GPU is used only for offline video generation. Replaying its saved videos or

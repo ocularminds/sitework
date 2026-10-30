@@ -1,40 +1,30 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>SiteWork Light</title>
-<style>
-  :root { --green: #1e8e3e; --amber: #f29900; --red: #d93025; --blue: #1a5fb4; --off: #202124; }
-  html, body { margin: 0; height: 100%; }
-  body { display: flex; align-items: center; justify-content: center; background: var(--off);
-         color: #fff; font: 800 12vw/1 system-ui, sans-serif; transition: background .2s; }
-  body.green { background: var(--green); } body.amber { background: var(--amber); } body.red { background: var(--red); }
-  body.blue { background: var(--blue); }
-  #label { text-align: center; letter-spacing: .04em; padding: 0 4vw; overflow-wrap: anywhere; }
-  #sub { font-size: 3vw; font-weight: 500; opacity: .85; margin-top: 2vw; text-align: center; }
-</style>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#121923">
+  <title>SiteWork Light · Hold-point signal</title>
+  <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/static/sitework.css">
+  <script type="module" src="/static/light.mjs"></script>
 </head>
-<body class="off">
-<div><div id="label">—</div><div id="sub">waiting for an inspection</div></div>
-<script>
-function set(light, mode) {
-  document.body.className = light.color;
-  document.getElementById("label").textContent = light.label.replace(/_/g, " ");
-  document.getElementById("sub").textContent = mode === "mock" ? "MOCK GATE · not a Decionis decision"
-    : light.color === "blue" ? "Released by a named person, not by the gate" : "Decionis";
-}
-let mode = "live";
-fetch("/api/state").then((r) => r.json()).then((st) => { mode = st.gate_mode; set(st.light, mode); });
-(function connect() {
-  const ws = new WebSocket(`${location.protocol === "https:" ? "wss" : "ws"}://${location.host}/ws`);
-  ws.onmessage = (ev) => {
-    const msg = JSON.parse(ev.data);
-    if (msg.type === "state") { mode = msg.state.gate_mode; set(msg.state.light, mode); }
-    if (msg.type === "result" || msg.type === "resolution") set(msg.light, mode);
-  };
-  ws.onclose = () => setTimeout(connect, 2000);
-})();
-</script>
+<body class="light-page off">
+<div class="mock-banner" id="mock" role="alert" hidden>MOCK GATE · Test environment. No live release.</div>
+<header class="light-topbar">
+  <a class="brand" href="/" aria-label="Back to SiteWork"><span class="brand-mark"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 5h18M3 12h18M3 19h18M3 5v7m18 0v7" fill="none" stroke="currentColor" stroke-width="2.5"/></svg></span><span class="brand-name">SiteWork.</span></a>
+  <button class="btn btn-sm" id="fullscreen" aria-pressed="false"><span class="icon-sm" data-icon="fullscreen"></span><span id="fullscreenLabel">Full screen</span></button>
+</header>
+<main class="light-content" aria-live="polite" aria-atomic="true">
+  <div class="signal-ring" id="signalIcon"><span data-icon="lock"></span></div>
+  <div class="eyebrow" id="signalKicker">Hold-point signal</div>
+  <h1 class="light-label" id="label">NO INSPECTION</h1>
+  <p class="light-sub" id="sub">Waiting for an inspection from the workspace.</p>
+</main>
+<footer class="light-footer">
+  <span class="connection" id="connection" data-status="connecting"><span class="dot"></span><span class="connection-label" id="connectionLabel">Connecting to the workspace</span></span>
+  <span id="updated">Live hold-point status</span>
+  <a href="/" style="color:inherit">Back to workspace</a>
+</footer>
 </body>
 </html>

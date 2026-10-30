@@ -27,6 +27,27 @@ def client(tmp_path):
 def test_state_reports_mock_gate_and_source(client):
     st = client.get("/api/state").json()
     assert st["gate_mode"] == "mock" and st["source"] == "file:bench.avi" and st["light"]["color"] == "off"
+    assert st["decision_mode"] == "ENFORCEMENT"
+
+
+def test_source_changes_update_connected_workspaces(client):
+    with client.websocket_connect("/ws") as ws:
+        ws.receive_json()
+        response = client.post("/api/source", json={"spec": "missing-ui-capture.mp4"})
+        pushed = ws.receive_json()
+    assert response.status_code == 200
+    assert response.json()["source"] is None
+    assert pushed["type"] == "state" and pushed["state"]["source"] is None
+    assert "cannot open video" in pushed["state"]["source_error"]
+
+
+def test_source_cannot_change_during_an_inspection(client):
+    runtime = client.app.state.runtime
+    before = runtime.source
+    with runtime._busy:
+        response = client.post("/api/source", json={"spec": "missing-ui-capture.mp4"})
+    assert response.status_code == 409
+    assert runtime.source is before
 
 
 def test_inspect_returns_a_result_pushes_it_and_stores_the_record(client):
@@ -48,6 +69,18 @@ def test_unbuilt_scene_and_unknown_record_are_404(client):
 
 def test_pages_are_served(client):
     assert "SiteWork" in client.get("/").text and "SiteWork Light" in client.get("/light").text
+    for page in ("/", "/light", "/dossier"):
+        assert client.get(page).headers["cache-control"] == "no-cache"
+
+
+@pytest.mark.parametrize("asset", ["sitework.css", "dashboard.mjs", "dossier.mjs", "light.mjs", "ui.mjs", "favicon.svg"])
+def test_browser_assets_are_served_without_a_build_step(client, asset):
+    response = client.get(f"/static/{asset}")
+    assert response.status_code == 200
+    assert response.content
+    assert response.headers["cache-control"] == "no-cache"
+    if asset.endswith(".mjs"):
+        assert "javascript" in response.headers["content-type"]
 
 
 def test_mock_records_cannot_be_verified_and_proposals_list(client):
