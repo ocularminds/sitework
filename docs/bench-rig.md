@@ -1,12 +1,11 @@
-# SiteWork bench preparation
+# Bench rig and capture plan
 
-Status on 29 October 2026: the measured bench rig still needs preparation. The
-[six requirement approvals](requirements.md) are recorded under
-**Festus B. Jejelowo**. Ten raw field recordings have since arrived, without
-independent measurements; three pipe/drainage clips are labeled for
-[missing-calibration input-refusal checks](../eval/README.md). The US gap and
-slope profiles have numeric bounds. SE decking, SE trench
-and both plumbing profiles currently require human review.
+The bench is how SiteWork's accuracy is measured: every board gap, wall slope
+and seated joint is set and measured independently, so SiteWork's readings can
+be scored against known truth. The [approved requirements](requirements.md) say
+what each scene is checked against. US decking gaps and US trench slopes have
+numeric bounds; Swedish decking, Swedish trench and both plumbing profiles
+escalate to a person.
 
 The printable [marker and capture worksheet](../output/pdf/sitework-bench.pdf)
 contains a DICT_4X4_50 marker, ID 0, whose outer black square is exactly 40 mm

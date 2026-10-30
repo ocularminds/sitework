@@ -1,6 +1,6 @@
-# SiteWork policy (draft for Decionis)
+# SiteWork policy
 
-**Status: active** in the dci workspace since 29 Oct 2026 as bundle `decionis-starter-v2+sitework-1` (artifact `c8cd1370-04db-4fb5-9582-fd0faf062d82`).
+**Status: active** in SiteWork's Decionis workspace as bundle `decionis-starter-v2+sitework-1`.
 - The machine-readable rules are in [`sitework.json`](sitework.json). `scripts/policy.py` loads them with `DECIONIS_POLICY_API_KEY`: `plan`, `submit --yes`, `current`.
 - Every non-SiteWork rule of the active bundle is kept verbatim. Only `sitework_*` rules are replaced.
 - Before loading, the starter policy auto-approved a SiteWork intent with no evidence (dossier `e81018f7-…`). After loading, the same intent escalates (dossier `4f0ecb44-eccf-44dd-ba23-1af62b9df591`).

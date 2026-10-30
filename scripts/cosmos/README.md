@@ -20,9 +20,9 @@ geometry and marker in every variant before carrying over source labels. Record
 changed or unmeasurable geometry explicitly. The generated videos have no audio;
 keep original recordings for the plumbing audio evaluation.
 
-The [current handoff](../cosmos_transfer/README.md) records the US-only GPU
-requirement and AWS quota requests. A separate [outdoor batch](../../docs/cosmos-outdoor-batch.md)
-is prepared from three unmeasured recordings. No SiteWork GPU inference has run yet.
+The nine-variant batch SiteWork has already generated is described in
+[Cosmos stress inputs](../../docs/cosmos.md), with its ledger in
+[RUN_INFO.md](../../data/clips/RUN_INFO.md).
 
 ## Requirements
 
@@ -54,7 +54,7 @@ These figures are from Cosmos's [inference.md](https://github.com/nvidia-cosmos/
 
 - The table excludes model loading and control-map computation.
 - Nebius's `gpu-h100-sxm` is an SXM part, which the Cosmos table doesn't list.
-- Actual per-variant wall time is recorded in `RUN_INFO.md` after the run. Use that figure, not this table, in the brief.
+- Actual per-variant wall time is recorded in `RUN_INFO.md` after the run. Report that figure, not this table.
 
 Cosmos keeps the input's frame rate and generates in 93-frame chunks, so `run.py` first re-encodes clips to 16 fps:
 - **Base model:** a 10 s clip at 16 fps is 160 frames, which takes two chunks.
@@ -71,7 +71,7 @@ Cosmos keeps the input's frame rate and generates in 93-frame chunks, so `run.py
 2. **Nebius AI Cloud:**
    - Activate billing.
    - Make sure the project has quota for one GPU of the platform you pick.
-3. **AWS fallback:** the 16-vCPU G/VT On-Demand and Spot requests in `us-east-1` are filed. Check approval using the [handoff](../cosmos_transfer/README.md); do not submit duplicates. Earlier Stockholm requests are historical and must not be used under the US-only requirement.
+3. **AWS fallback:** GPU quotas start at zero. Request 16 vCPUs of G/VT or P quota in your region before you need the instance (see the AWS section below).
 4. **Hugging Face:**
    - Create a Read token.
    - Complete access for all three repositories linked above. A successful identity or Guardrail1 check alone does not establish Transfer/Predict checkpoint access.
@@ -84,21 +84,20 @@ Platforms with enough memory on one GPU ([VM types](https://docs.nebius.com/comp
 |---|---|---|---|
 | `gpu-h100-sxm` | H100 80 GB | `1gpu-16vcpu-200gb` | `eu-north1` |
 | `gpu-h200-sxm` | H200 141 GB | `1gpu-16vcpu-200gb` | `eu-north1`, `eu-west1`, `us-central1` |
-| `gpu-rtx6000` | RTX PRO 6000 96 GB | `1gpu-24vcpu-218gb` | `us-central1` (verified in console 29 October 2026) |
+| `gpu-rtx6000` | RTX PRO 6000 96 GB | `1gpu-24vcpu-218gb` | `us-central1` |
 
 L40S (48 GB) is too small for this model.
 
 **Console:**
 1. Go to **Compute → Virtual machines → Create resource → Virtual machine**.
 2. Choose **With GPUs**.
-3. Set **VM type** to **Preemptible** and use a maximum-price policy. For the approved outdoor batch, the compute ceiling is **$1.79/hour** and the total usage budget is **$10**.
-4. Select the **US `us-central1` project**, platform `gpu-rtx6000` and preset `1gpu-24vcpu-218gb`.
+3. Set **VM type** to **Preemptible** and set a maximum-price policy.
+4. Pick a project in a region that offers your platform (for example `us-central1` for `gpu-rtx6000`), then the platform and preset.
 5. Boot disk: Ubuntu 24.04 GPU image available for that platform (the console currently offers CUDA 13), `network_ssd`, 200 GiB. `setup.sh` verifies the driver; its CUDA Python dependency set is selected with `COSMOS_CUDA_EXTRA`.
-6. Add a public IP and the existing SSH public key. Use key-only SSH, a three-hour shutdown timer and provider-side deletion after outputs are collected.
+6. Add a public IP and your SSH public key. Use key-only SSH, set a shutdown timer, and delete the VM and disk once the outputs are copied back.
 
 The console's **View code → CLI** exports the exact command for the selected
-US project, subnet, image and maximum-price policy. Save that configuration with
-the run record before launch.
+project, subnet, image and maximum-price policy. Keep it with the run record.
 
 **On preemption:**
 - Nebius sends SIGTERM 60 s before stopping the VM. `run.py` forwards it to Cosmos and doesn't count the cut-short jobs as failures.
@@ -111,7 +110,7 @@ the run record before launch.
 |---|---|---|---|
 | `p5.4xlarge` | 1× H100 80 GB | 16 | Running On-Demand P instances `L-417A185B` (Spot: All P Spot Instance Requests `L-7212CCBC`) ≥ 16 |
 | `g7e.2xlarge` | 1× RTX PRO 6000 Blackwell SE 96 GB | 8 | Running On-Demand G and VT instances `L-DB2E81BA` (Spot: All G and VT Spot Instance Requests `L-3819A6DF`) ≥ 8 |
-| `g7e.4xlarge` | 1× RTX PRO 6000 Blackwell SE 96 GB, 128 GiB host RAM | 16 | Same G and VT quotas ≥ 16 (requested in `us-east-1`; see the [handoff](../cosmos_transfer/README.md)) |
+| `g7e.4xlarge` | 1× RTX PRO 6000 Blackwell SE 96 GB, 128 GiB host RAM | 16 | Same G and VT quotas ≥ 16 |
 
 - Both quotas default to 0 on new accounts ([EC2 instance type quotas](https://docs.aws.amazon.com/ec2/latest/instancetypes/ec2-instance-quotas.html)). Request the increase in **Service Quotas → Amazon EC2** in the region you will use. Check that region's availability first: AWS lists `p5.4xlarge` through EC2 Capacity Blocks in some regions.
 - `g7e.2xlarge` has 64 GiB of host RAM. If model loading runs out of memory, move up a `g7e` size.
@@ -142,7 +141,7 @@ python3 scripts/cosmos/run.py --cloud nebius --instance "us-central1 gpu-rtx6000
 ```
 
 - On AWS, use `--cloud aws` and the instance actually launched, e.g. `--instance "us-east-1 g7e.4xlarge"`.
-- **Blackwell GPUs** (`g7e`, Nebius `gpu-rtx6000`): the nine-variant US Nebius run passed with `COSMOS_CUDA_EXTRA=cu130`, PyTorch `2.9.1+cu130` and driver `580.173.02`; see [RUN_INFO.md](../../data/clips/RUN_INFO.md). CUDA 13 needs a driver ≥ 580.65.06. The default `cu128` pairing remains untested in this workflow. For a new environment, run one condition first (`--conditions rain`) and inspect an output before the rest.
+- **Blackwell GPUs** (`g7e`, Nebius `gpu-rtx6000`): SiteWork's nine-variant Nebius run passed with `COSMOS_CUDA_EXTRA=cu130`, PyTorch `2.9.1+cu130` and driver `580.173.02`; see [RUN_INFO.md](../../data/clips/RUN_INFO.md). CUDA 13 needs a driver ≥ 580.65.06. The default `cu128` pairing remains untested in this workflow. For a new environment, run one condition first (`--conditions rain`) and inspect an output before the rest.
 - `--dry-run` prepares the clips and specs and prints the Cosmos command without starting it.
 - The real run loads the model once for every pending variant.
 - Exit code 0 means every variant is done.
@@ -181,6 +180,6 @@ This brings back `data/clips/{rain,mud,dusk_glare}/` and `RUN_INFO.md`. The vide
 
 ## Notes
 
-- The Cosmos Transfer 2.5 repo now points to Cosmos 3 and receives only limited maintenance. SiteWork stays on 2.5 because it is documented and stable enough for a 40-hour build. `setup.sh` pins commit `2ff49d0`.
+- The Cosmos Transfer 2.5 repo now points to Cosmos 3 and receives only limited maintenance. SiteWork stays on 2.5 because it is documented and stable. `setup.sh` pins commit `2ff49d0`.
 - In the public `cosmos_transfer2/config.py`, the distilled edge checkpoint is registered only when `COSMOS_EXPERIMENTAL_CHECKPOINTS=1`. `run.py` sets this variable when `--distilled` is used; the Cosmos docs don't mention it.
 - A completed sample is detected from Cosmos's own outputs: `<name>.txt` is written after `<name>.mp4`. Wall time is the gap between that file and `<name>.json`, which Cosmos writes when the sample starts.

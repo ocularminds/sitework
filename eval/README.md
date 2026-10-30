@@ -1,113 +1,91 @@
 # Evaluation scope
 
-## Outdoor recordings received on 29 October 2026
+`scripts/eval.py` runs every row of [`labels.csv`](labels.csv) through the full pipeline and the real
+Decionis gate, then appends the run to [`results.json`](results.json) and re-renders
+[`results.md`](results.md). Read the results with the scope below.
 
-Ten raw files, `sw-rig01.mp4` through `sw-rig10.mp4`, were copied unchanged into
-`data/clips/outdoor/`. SHA-256 checks match the originals. The user confirmed:
-"No measurement. Just raw video recording". The [intake manifest](outdoor-intake.json)
-records each file's content, hash, duration, sampled frames and selection reason.
+## What the current labels cover
 
-The current [labels](labels.csv) cover **input-refusal checks only**. They do not
-establish construction compliance, dimensional accuracy, joint alignment accuracy
-or mechanical seating accuracy.
+The current labels are **input-refusal cases only**. They test that SiteWork refuses to release what it
+cannot measure. They do not measure construction compliance, dimensional accuracy, joint alignment or
+mechanical seating.
+
+**Outdoor recordings.** Ten raw phone videos, `sw-rig01.mp4` to `sw-rig10.mp4`, are kept unchanged in
+`data/clips/outdoor/`; their hashes match the originals. They have no independent measurements. The
+[intake manifest](outdoor-intake.json) records each file's content, hash, duration, sampled frames and
+why it was or wasn't selected. Three pipe and drainage clips are labelled:
 
 | Clip | Visible subject | Use |
 | --- | --- | --- |
-| sw-rig04.mp4 | Paired pipes and couplings against brickwork; camera pans away | Plumbing input with missing calibration |
-| sw-rig05.mp4 | Exterior vertical pipe/drainage component and building base | Plumbing input with missing calibration |
-| sw-rig08.mp4 | Exterior downpipe/elbow, wall panels and windows | Plumbing input with missing calibration |
+| `sw-rig04.mp4` | Paired pipes and couplings against brickwork; the camera pans away | Plumbing input with no calibration marker |
+| `sw-rig05.mp4` | Exterior vertical pipe and drainage at a building base | Plumbing input with no calibration marker |
+| `sw-rig08.mp4` | Exterior downpipe elbow, wall panels and windows | Plumbing input with no calibration marker |
 
-Each selected file is evaluated against US and SE, giving **six rows from three
-unique videos**. These are paired observations, not six independent recordings.
-The `outdoor` condition follows the user's description of the uploaded set.
-Neither product compatibility with a push-fit system nor a seating event has
-been established. The other seven files remain available as reference footage;
-the review did not establish supported decking or trench hold-point scenes in them.
+No push-fit product or seating event is established in them. The other seven clips show no supported
+decking or trench hold point and remain reference footage.
 
-Before any model/gateway run, each selected row was labeled **ESCALATE** because:
+**Cosmos variants.** The rain, mud and dusk-glare variants of `sw-rig05` and `sw-rig08` are also
+labelled (see [Cosmos stress inputs](../docs/cosmos.md)). The roof clip `sw-rig02` and its variants match
+no hold-point scene and are left out.
 
-- No ArUco marker was detected in its pipeline sample frames. Across all ten
-  clips, no marker was detected in the five review samples per file either.
-- Both current plumbing requirements are qualitative and lack the required
-  machine thresholds for seating and alignment.
+Each clip is evaluated against both US and SE, so there are **18 rows from nine unique videos**. These
+are paired observations: the report counts rows, not independent recordings.
 
-All dimensional and seating truth fields remain blank. The DSP can process the
-original audio, but its output cannot supply its own ground truth. The vision
-step is skipped when no frame has a calibration marker; the dossier must not
-claim that an unused vision model ran.
+**Expected outcome.** Every row was labelled **ESCALATE** before any run, because:
+- no frame shows the calibration marker;
+- the Cosmos variants have no audio track;
+- both plumbing requirements are qualitative, with no machine threshold for seating or alignment.
 
-`sw-rig04.mp4` reports an unreadable final frame (index 570). The review used the
-preceding readable frame for its contact sheet; the file-replay pipeline used in the
-completed run returned only its two readable samples (it now steps back to a frame
-that reads; see the every-frame check below). The originals were not trimmed, repaired
-or transcoded. The three selected clips yield eight readable pipeline samples
-per jurisdiction, all without a detected marker.
+All dimensional and seating truth fields are blank. The DSP can process the original audio, but its
+output cannot be its own ground truth. With no marker, the vision step is skipped, and the dossier
+doesn't claim that an unused model ran.
 
-Run the real gateway and retain offline proof verification:
+## Results
+
+The latest run, against the live dci gateway in SHADOW mode, gave:
+- **18/18 ESCALATE**, with **no false ALLOW** in any condition (rain, mud and dusk glare n=4 each;
+  outdoor n=6);
+- no gate failures;
+- **18/18 dossiers verified offline**;
+- **735.5 ms** gate p95 latency (nearest rank, n=18).
+
+An earlier run on the six outdoor rows alone also escalated all six. Both runs are kept in
+[`results.md`](results.md).
+
+A correct ESCALATE on an uncalibrated input shows that the hold stays closed. It doesn't measure
+Nemotron's physical accuracy or demonstrate a clean ALLOW or BLOCK inspection. Those need calibrated
+bench captures with independently measured truth; see the [capture plan](../docs/bench-rig.md).
 
 ```bash
-uv run python scripts/eval.py --gate-mode SHADOW --run-label "outdoor input refusal 2026-10-29 - 3 clips paired US-SE"
+uv run python scripts/eval.py --gate-mode SHADOW --run-label "<describe the run>"
 ```
 
-Read [results.md](results.md) with this scope. A correct ESCALATE on an
-uncalibrated input demonstrates that the hold remains closed. It does not measure
-Nemotron's physical accuracy or demonstrate a clean ALLOW/BLOCK inspection.
-Calibrated bench captures and independently measured truth are still needed for
-those claims. See [the capture plan](../docs/bench-rig.md).
+## Every-frame check of the outdoor files
 
-## Completed run
-
-`scripts/eval.py` completed the run above against the live dci gateway in SHADOW
-mode, using commit `9933047` and policy `decionis-starter-v2+sitework-1`.
-The generated report records **6/6 ESCALATE**, **0/6 false ALLOW**, no gate
-failures, **6/6 dossiers verified offline**, and **778.3 ms gate p95 latency**
-(nearest rank, six requests).
-
-Measurement errors and seating accuracy are unavailable because their ground
-truth fields are blank. The DSP processed audio; no Nemotron vision inference
-ran because no sampled frame had a calibration marker. These rates apply only
-to the six paired refusal cases and do not estimate accuracy on valid inspections.
-
-## Cosmos refusal run (30 October)
-
-The second run adds the Cosmos Transfer 2.5 rain, mud and dusk-glare variants of
-`sw-rig05` and `sw-rig08` (seconds 0–6 of each), paired across US and SE: twelve
-rows from six generated videos, plus the six outdoor rows again. The roof clip
-`sw-rig02` and its variants matched no hold-point scene and were left out.
-
-Every variant row was labelled **ESCALATE** before the run: no calibration
-marker in any generated frame (`data/clips/RUN_INFO.md`), no audio track, and a
-qualitative plumbing pack. Against the live dci gateway in SHADOW mode, commit
-`8339eb4`, the report records **18/18 ESCALATE**, **0 false ALLOW** in every
-condition, no gate failures, **18/18 dossiers verified offline** and **735.5 ms
-gate p95** (nearest rank, n=18).
-
-This shows that the weather variants are refused, not that SiteWork measures
-correctly through rain, mud or glare. The variants derive from two outdoor clips
-that are also in the file, so they are not independent recordings, and no
-measurement or seating accuracy was estimated.
-
-## Every-frame check (29 October)
-
-A second pass over all ten files, after the run above:
-
-- **Markers.** Every second decoded frame of each file, and every frame of
-  `sw-rig09.mp4`, was searched for `DICT_4X4_50` markers. None contains the printed
-  marker. In `sw-rig09.mp4`, asphalt texture decoded as **ID 17** twice: frame 35
-  (31 × 5 px) and frame 184 (about 15 px), with scale quality 0.05 and 0.17.
-  SiteWork used to accept any ID; it now accepts only the printed marker's
+- **Markers.** Every second decoded frame of each file, and every frame of `sw-rig09.mp4`, was searched
+  for `DICT_4X4_50` markers. None shows the printed marker. In `sw-rig09.mp4`, asphalt texture decoded
+  as marker ID 17 twice, at scale quality 0.05 and 0.17. SiteWork accepts only the printed marker's ID
   (`FIDUCIAL_ID`, 0), so these are ignored.
-- **Sampling.** Seeking to frames 569 and 570 of `sw-rig04.mp4` fails, although
-  playback decodes them. Replay now steps back to the nearest frame that reads
-  (568) and raises an error if none within five frames does. Frame 568 has no
-  marker either.
-- **Seat-click DSP.** On the first 10 s of each file's audio, the starting
-  thresholds (onset ratio 8, centroid 1500 Hz) read seated on three files:
-  `sw-rig02` (ratio 8.17, 1612 Hz, confidence 0.04), `sw-rig04` (8.82, 2457 Hz,
-  0.21) and `sw-rig07` (9.45, 2254 Hz, 0.36). They read not seated on the other
-  seven. No seating event is established in these files, so these readings cannot
-  be scored. They show that outdoor sounds can cross the starting thresholds.
-  Every such reading is below the policy floors, which start at 0.70.
+- **Sampling.** Seeking to the last frames of `sw-rig04.mp4` (569 and 570) fails, although playback
+  decodes them. Replay steps back to the nearest frame that reads, and raises an error if none within
+  five frames does. That nearest frame, 568, has no marker either. The originals were not trimmed,
+  repaired or transcoded.
+- **Seat-click DSP.** On the first 10 s of each file's audio, the starting thresholds (onset ratio 8,
+  centroid 1500 Hz) read "seated" on three files:
 
-These findings change no recorded result. The six labelled rows still have no
-marker, so their ESCALATE verdicts stand.
+  | File | Onset ratio | Centroid | Confidence |
+  |---|---|---|---|
+  | `sw-rig02` | 8.17 | 1612 Hz | 0.04 |
+  | `sw-rig04` | 8.82 | 2457 Hz | 0.21 |
+  | `sw-rig07` | 9.45 | 2254 Hz | 0.36 |
+
+  No seating event is established in these files, so these readings can't be scored. They do show that
+  outdoor sounds can cross the starting thresholds. Every such reading is below the policy's lowest
+  confidence floor, 0.70.
+
+## Adding bench clips
+
+For every bench clip, add one row per `(clip, jurisdiction)` with the truth measured independently and
+the verdict the approved requirement implies. The README's Evaluation section lists the columns.
+Establish the expected verdict before looking at model output, keep calibration takes separate from
+evaluation takes, and report every run, including one that follows a policy change.
