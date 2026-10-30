@@ -6,7 +6,7 @@ Physical AI that inspects construction work at the hold point, before it disappe
 
 > Models observe → code measures → policy decides → humans sign when the AI isn't sure → everything is provable.
 
-Status: **built; awaiting live data.** Decking, trench entry and plumbing close-in are gated by Decionis. Packs, offline proof, the amendment watch and the eval harness are in place. Model IDs and `eval/results.md` come from live runs on recorded clips (see `TODO_HUMAN.md`).
+Status: **built; calibrated bench validation pending.** Decking, trench entry and plumbing close-in are gated by Decionis. Packs, offline proof, the amendment watch and the eval harness are in place. Outdoor refusal results and nine generated Cosmos variants are recorded; measurement accuracy still needs independently measured bench clips (see `TODO_HUMAN.md`).
 
 ## Setup
 
@@ -21,6 +21,12 @@ make demo                # dashboard at http://127.0.0.1:8000, stack light at /l
 ```
 
 `make check` lists the Nemotron models Token Factory serves to your key, runs one Tavily search, and checks Decionis identity, routing, credential scopes for the configured gate mode, and the workspace's allowed mode. Anything it cannot verify is reported as a blocker; open items live in `TODO_HUMAN.md`.
+
+`make demo` runs the web app locally. Judges need configured credentials and a
+camera or input clips; a public demo URL needs a separate app host. The Cosmos
+GPU is used only for offline video generation. Replaying its saved videos or
+calling Nemotron through Token Factory does not require that GPU VM to remain
+running. Keep service credentials on the app server and out of the public repo.
 
 SiteWork uses the `https://dci.decionisedge.com` gateway, explicitly selected on 29 October 2026. Its credentials are in ignored `.env`. Enforced calls and grant claims use the dedicated `DECIONIS_ENFORCE_API_KEY`; dossier reads and SHADOW calls retain `DECIONIS_API_KEY`.
 
@@ -126,8 +132,13 @@ at Actual Size / 100%. The [bench checklist](docs/bench-rig.md) covers board
 angles, tabletop trench slopes, the unseated joint and outdoor captures.
 
 The [Cosmos handoff](scripts/cosmos_transfer/README.md) links the resumable GPU
-runner and records the AWS fallback quota requests. No SiteWork GPU run or
-physical capture has been completed by this setup work.
+runner and records the AWS fallback quota requests. **Nine rain, mud and
+dusk/glare variants** were generated on a US Nebius RTX PRO 6000 and collected
+locally; all 837 frames decode. [RUN_INFO.md](data/clips/RUN_INFO.md) records
+the real settings and timings. The temporary VM and disk were deleted after
+collection. The raw outdoor sources have no independent measurements, so these
+variants provide visual stress inputs; calibrated bench capture and evaluation
+remain pending.
 
 ## Environment
 
@@ -214,7 +225,7 @@ Nemotron VL answers on a 0–1000 grid whatever image size the prompt states, so
 |---|---|---|---|
 | Vision: points for boards, trench walls, pipe and fitting axes | NVIDIA Nemotron 3.5 Super VL (thinking off, schema-constrained JSON) | Nebius Token Factory, global endpoint | `nvidia/Nemotron-3.5-Super-VL` |
 | Audio: joint seating | No model: a deterministic DSP check (librosa onset strength and spectral centroid). Token Factory rejects `input_audio` for every model it lists (HTTP 422, 29 Oct 2026) | SiteWork process | — |
-| Weather and light variants for the stress test | NVIDIA Cosmos-Transfer2.5-2B (edge control) | ⟦Nebius AI Cloud GPU or AWS fallback⟧ | commit `2ff49d0` of `nvidia-cosmos/cosmos-transfer2.5` |
+| Weather and light variants for the stress test | NVIDIA Cosmos-Transfer2.5-2B (distilled edge control) | Nebius AI Cloud, US `us-central1`, offline generation | commit `2ff49d0` of `nvidia-cosmos/cosmos-transfer2.5` |
 
 Not built, so not claimed: Cosmos Reason 2 and a Nemotron 3 Super grounding agent. Requirement thresholds are approved by a named person instead.
 

@@ -7,23 +7,30 @@ results back. `run.py` in this directory forwards to that same implementation.
 
 ## Ready and pending
 
-- **All GPU creation must be in the US**, as the user requested. The user
-  selected the **AWS fallback**. The prepared plan uses `g7e.4xlarge` in
-  `us-east-1c`; the latest Spot price returned was $1.3719/hour. Keep the
-  $1.79/hour compute ceiling and $10 total usage budget, with cleanup after
-  output collection.
-- The US AWS quota requests below are `CASE_OPENED`; the applied quotas are
-  still zero. Approval and capacity are required before launch. No GPU instance
-  or Capacity Block was purchased. The Nebius VM form was not submitted.
+- **The US Nebius run is complete; the VM and disk are deleted.** Billing activation was verified on
+  30 October (Europe/Stockholm). `sitework-cosmos` used `gpu-rtx6000`
+  `1gpu-24vcpu-218gb` in `us-central1`, with a 200 GiB encrypted SSD.
+  CUDA 13.0, PyTorch `2.9.1+cu130`, GPU computation and SSH were verified.
+  The $1.79/hour compute ceiling, $10 total usage budget and three-hour guest
+  shutdown timer were applied. All outputs were collected before deletion;
+  the US project then showed zero standalone VMs and zero disks.
+- The US AWS quota requests below remain a fallback, last observed
+  `CASE_OPENED` with applied quotas zero. No AWS instance or Capacity Block was
+  purchased.
 - The [40 mm marker and worksheet](../../output/pdf/sitework-bench.pdf) and
   [bench checklist](../../docs/bench-rig.md) are ready. Printing, measuring the
   fixtures and recording measured clean clips remain physical tasks. Ten raw
   outdoor recordings are available, with no independent measurements.
-- The [outdoor batch](../../docs/cosmos-outdoor-batch.md) is prepared with nine
-  dry-run specs. Hugging Face gated-model access and its approved read token are
-  ready. No actual Cosmos output or new accuracy metric exists yet.
-- Cosmos inference has not run. [RUN_INFO.md](../../data/clips/RUN_INFO.md)
-  currently records that fact; the runner replaces it with its actual ledger.
+- The [outdoor batch](../../docs/cosmos-outdoor-batch.md) produced **nine variants**.
+  All 837 frames decode, local hashes match the VM, and every sample passed
+  prompt and video guardrails. Total per-sample processing time was 453.2 s,
+  excluding setup and model loading. Fine details also changed, so no measured
+  truth or accuracy metric is inherited from these unmeasured source videos.
+- [RUN_INFO.md](../../data/clips/RUN_INFO.md) contains the actual completion
+  ledger and media checks. The private archive is in
+  `.local/cosmos-20261029/collected/`; delivered videos are under `data/clips/`.
+- The GPU did not host the web app. Replaying generated videos requires the
+  separately running SiteWork app and its configured APIs, not this VM.
 
 ## US AWS quota requests
 
@@ -74,10 +81,11 @@ Quota approval does not reserve capacity.
 Follow the [setup and transfer instructions](../cosmos/README.md#run). Copy both
 script directories if using this forwarding entry point; never copy `.env`.
 
-For the prepared outdoor batch on the planned `g7e.4xlarge`, copy `scripts/cosmos`
-and `.local/cosmos-20261029` into `sitework/` on the VM, keeping that layout, and
-run the batch's wrapper from there. Its `--cloud aws --instance "us-east-1 g7e.4xlarge"`
-must match the instance actually launched:
+For the prepared outdoor batch, copy `scripts/cosmos` and
+`.local/cosmos-20261029` into `sitework/` on the VM, keeping that layout, and
+run the batch's wrapper from there. It now records `--cloud nebius` and
+`--instance "us-central1 gpu-rtx6000 1gpu-24vcpu-218gb"`, matching the actual VM.
+Add `~/.local/bin` to the batch shell's `PATH` so `uvx` is available:
 
 ```bash
 .local/cosmos-20261029/run-batch.sh --dry-run
