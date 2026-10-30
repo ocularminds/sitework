@@ -139,6 +139,22 @@ def test_a_refused_claim_keeps_the_light_off_green_and_finalizes_nothing():
     assert LightState.of(v).color == "red" and len(sent) == 2
 
 
+def test_allow_is_claimed_only_for_a_release_in_enforcement():
+    sent = []
+
+    def respond(request):
+        sent.append(request)
+        return httpx.Response(200, json=allow())
+
+    shadow = gate_with(respond, decionis_gate_mode="SHADOW").propose(bundle(errors=[])).result
+    assert len(sent) == 1 and not shadow.grant_claimed and "SHADOW" in shadow.grant_error
+    update = gate_with(respond).propose_intent(
+        action={"type": "policy.update", "resource": "sitework/policy/SE", "parameters": {"proposal_id": "p"}},
+        context={"sitework_jurisdiction": "SE"}, endpoint="jurisdiction-pack").result
+    assert len(sent) == 2 and not update.grant_claimed and "policy.update" in update.grant_error
+    assert LightState.of(update).color == "red"
+
+
 def test_allow_on_evidence_with_errors_is_never_claimed():
     sent = []
 

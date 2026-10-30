@@ -1,4 +1,4 @@
-import { $, api, conditionName, connectState, dateTime, esc, hydrateIcons, icon, inspectionMessage, jurisdictionName, matchesSelection, measurementName, measurementValue, presentation, proofMarkup, safeUrl, sceneName } from "./ui.mjs";
+import { $, api, conditionName, connectState, dateTime, esc, hydrateIcons, icon, inspectionMessage, jurisdictionName, limitText, matchesSelection, measurementName, measurementValue, presentation, proofMarkup, safeUrl, sceneName, sourceName } from "./ui.mjs";
 
 let state = null;
 let last = null;
@@ -69,7 +69,7 @@ function applyState(next, forceSource = false) {
   catch { $("gatewayAddress").textContent = "Gateway not configured"; }
   const jurisdictions = next.jurisdictions?.length ? next.jurisdictions : [next.jurisdiction].filter(Boolean);
   $("jurisdiction").innerHTML = jurisdictions.map((j) => `<option value="${esc(j)}" ${j === next.jurisdiction ? "selected" : ""}>${esc(jurisdictionName(j))}</option>`).join("");
-  $("source").textContent = next.source ? next.source.replace(/^(file|camera):/, "") : "No source connected";
+  $("source").textContent = next.source ? sourceName(next.source) : "No source connected";
   $("source").title = next.source || next.source_error || "No capture source";
   updateSourceDescription();
   if (restartFeed) {
@@ -81,6 +81,7 @@ function applyState(next, forceSource = false) {
   }
   if (next.last) render(next.last);
   else if (last) resetResult();
+  if (next.last && next.light_record !== next.last.record_id) previousSource = true;
   updateView();
   controls();
   renderStatus();
@@ -226,8 +227,8 @@ function renderMeasurements(record) {
     const value = measurementValue(m);
     const check = checks.get(`${m.kind}:${m.value}`);
     const confidence = Number.isFinite(m.confidence) && m.confidence >= 0 && m.confidence <= 1 ? m.confidence : null;
-    const bound = check ? `<span class="${check.within ? "ok" : "bad"}" title="${esc(check.min ?? "No minimum")} to ${esc(check.max ?? "No maximum")}">${check.within ? "Within range" : "Outside range"}</span><span class="measure-method">${esc(check.min ?? "—")} – ${esc(check.max ?? "—")}</span>` : '<span class="muted">No threshold</span>';
-    return `<tr><td><span class="measure-name">${esc(measurementName(m.kind))}</span><span class="measure-method">${esc(m.method)}</span></td><td class="num measure-value">${esc(value.value)} <small>${value.unit}</small></td><td class="num"><span class="confidence">${confidence === null ? "—" : `<span class="confidence-track" aria-hidden="true"><i style="width:${confidence * 100}%"></i></span>${(confidence * 100).toFixed(0)}%`}</span></td><td class="num">${bound}</td></tr>`;
+    const bound = check ? `<span class="${check.within ? "ok" : "bad"}">${check.within ? "Within limit" : "Outside limit"}</span><span class="measure-range">${esc(limitText(check, m.kind))}</span>` : '<span class="muted">No cited limit</span>';
+    return `<tr><td><span class="measure-name">${esc(measurementName(m.kind, record.scene))}</span><span class="measure-method">${esc(m.method)}</span></td><td class="num measure-value">${esc(value.value)} <small>${value.unit}</small></td><td class="num"><span class="confidence">${confidence === null ? "—" : `<span class="confidence-track" aria-hidden="true"><i style="width:${confidence * 100}%"></i></span>${(confidence * 100).toFixed(0)}%`}</span></td><td class="num">${bound}</td></tr>`;
   }).join("") : `<tr><td colspan="4"><div class="empty-measurements"><strong>${record ? "Measurements unavailable" : "Evidence starts with an inspection"}</strong><p>${record ? "Review the evidence issues below before proceeding." : "Measured values and their confidence will appear here."}</p></div></td></tr>`;
   $("errors").hidden = !record?.errors?.length;
   $("errors").innerHTML = (record?.errors || []).map((error) => `<li>${esc(error)}</li>`).join("");
@@ -239,7 +240,7 @@ function renderCitation(record) {
   $("citation").innerHTML = citations.length ? citations.map((c) => {
     const url = safeUrl(c.url);
     return `<div class="citation-text">${esc(c.requirement)}</div><div class="citation-source">${url ? `<a href="${esc(url)}" target="_blank" rel="noopener noreferrer">${esc(c.source_domain)} ${icon("external")}</a>` : esc(c.source_domain)}<span class="muted">· ${esc(dateTime(c.retrieved_at))}</span></div><div class="citation-hash">Source SHA-256 <code>${esc(c.content_sha256?.slice(0, 16) || "—")}…</code></div>`;
-  }).join('<hr style="border:0;border-top:1px solid var(--line);margin:17px 0">') : `<div class="empty-copy ${record ? "warning" : ""}">${record ? `No approved requirement in the ${esc(record.jurisdiction)} pack. The gate was told that the citation is missing.` : "The applicable requirement and its source will appear with the inspection result."}</div>`;
+  }).join('<hr style="border:0;border-top:1px solid var(--line);margin:17px 0">') : `<div class="empty-copy ${record ? "warning" : ""}">${record ? `The ${esc(jurisdictionName(record.jurisdiction))} pack has no approved requirement for this hold point. Decionis was told the citation is missing, so it cannot allow a release.` : "The requirement this work is checked against, and its source, will appear with the result."}</div>`;
 }
 
 function renderHold() {
@@ -266,7 +267,7 @@ async function holdDecision(release) {
   try {
     const outcome = await api(`/api/dossiers/${encodeURIComponent(recordId)}/resolve`, { approver, release, note: $("resolutionNote").value.trim() });
     if (last?.record_id === recordId) render({ ...last, resolution: outcome.resolution, light: outcome.light });
-    toast(release ? "Human release recorded in the dossier." : "Decision to keep the hold recorded.");
+    toast(release ? "Human release recorded alongside the dossier." : "Decision to keep the hold recorded.");
   } catch (error) { $("holdError").textContent = error.message; $("holdError").hidden = false; }
   finally { setOperation(""); }
 }
@@ -285,14 +286,16 @@ function updateView() {
   $("showInspected").setAttribute("aria-pressed", String(inspected));
   $("feedMode").textContent = inspected ? "Recorded evidence" : state?.source?.startsWith("file:") ? "Video replay" : "Camera feed";
   $("calibrationStatus").textContent = inspected ? (last.overlay.marker?.length ? "Calibration marker detected" : "No calibration marker") : "Calibration checked on inspection";
-  $("frameLabel").textContent = inspected ? `${sceneName(last.scene)} · ${last.jurisdiction} · ${dateTime(last.created_at, true)}` : state?.source || "";
+  $("frameLabel").textContent = inspected ? `${sceneName(last.scene)} · ${last.jurisdiction} · ${dateTime(last.created_at, true)}` : sourceName(state?.source);
   const width = inspected ? last.overlay.width : $("live").naturalWidth;
   const height = inspected ? last.overlay.height : $("live").naturalHeight;
   $("frameSize").hidden = !width;
   $("frameSize").textContent = `${width} × ${height}`;
   $("captureSubtitle").textContent = inspected ? `Evidence captured ${dateTime(last.created_at)}` : "The work, as it is.";
   $("feedEmptyTitle").textContent = sourceFailed ? "Preview unavailable" : "Bring the work into view";
-  $("feedEmptyMessage").textContent = sourceFailed ? "The source stopped returning frames. Reconnect it to continue." : state?.source_error || "Connect a camera or replay a recorded clip to begin an inspection.";
+  $("feedEmptyMessage").textContent = sourceFailed ? "The source stopped sending frames. Reconnect it to continue."
+    : state?.source_error ? `The last source couldn’t be opened (${state.source_error}). Connect a camera or replay a recorded clip.`
+      : "Connect a camera or replay a recorded clip to begin an inspection.";
 }
 $("live").onerror = () => { if (operation === "source" || !state?.source) return; sourceFailed = true; updateView(); controls(); };
 $("live").onload = () => { sourceFailed = false; updateView(); controls(); };
@@ -320,12 +323,27 @@ function drawOverlay(record) {
     }
     context.strokeStyle = "#f8d76a";
     (overlay.segments || []).forEach(([[x1, y1], [x2, y2]]) => { context.beginPath(); context.moveTo(x1, y1); context.lineTo(x2, y2); context.stroke(); });
-    context.font = `${Math.max(16, overlay.width / 40)}px system-ui`;
-    context.fillStyle = "#f8d76a";
-    (record.measurements || []).forEach((m, index) => {
+    // Readings sit on a dark plate above the frame label, clear of the HUD chips and the marker.
+    const lines = (record.measurements || []).map((m) => {
       const value = measurementValue(m);
-      context.fillText(`${measurementName(m.kind)} ${value.value} ${value.unit}`, 12, 30 + index * Math.max(20, overlay.width / 32));
+      return `${measurementName(m.kind, record.scene)} ${value.value}${value.unit === "°" ? "°" : value.unit ? ` ${value.unit}` : ""}`;
     });
+    if (lines.length) {
+      const stage = $("captureStage");
+      const scale = Math.min(stage.clientWidth / overlay.width, stage.clientHeight / overlay.height) || 1;
+      const top = Math.max(0, (stage.clientHeight - overlay.height * scale) / 2);
+      const size = Math.max(16, overlay.width / 40);
+      const pad = size * 0.5, lineHeight = size * 1.35;
+      const height = lines.length * lineHeight + pad;
+      const x = Math.max(12, 14 / scale);
+      const y = Math.max(12, overlay.height - height - Math.max(12, (Math.max($("frameContext").offsetHeight, 20) + 20 - top) / scale));
+      context.font = `600 ${size}px system-ui, sans-serif`;
+      context.textBaseline = "top";
+      context.fillStyle = "rgba(19, 25, 33, 0.78)";
+      context.fillRect(x, y, Math.max(...lines.map((line) => context.measureText(line).width)) + pad * 2, height);
+      context.fillStyle = "#f8d76a";
+      lines.forEach((line, index) => context.fillText(line, x + pad, y + pad * 0.75 + index * lineHeight));
+    }
     view = "inspected";
     updateView();
   };
@@ -430,13 +448,15 @@ async function loadProposals() {
     $("policyCount").textContent = pending;
     $("policyBadge").textContent = `${pending} pending`;
     $("policyBadge").className = `badge ${pending ? "badge-amber" : "badge-neutral"}`;
-    $("policySummary").textContent = pending ? `${pending} proposal${pending === 1 ? "" : "s"} awaiting a named reviewer.` : "Amendments and recalls. Every change needs a named reviewer.";
+    $("policySummary").textContent = pending ? `${pending} proposal${pending === 1 ? "" : "s"} awaiting a named reviewer.` : "Amendments and recalls found by research. Every change goes through Decionis and a named reviewer.";
     $("proposals").innerHTML = list.length ? list.map((p) => {
       const verdict = p.exchange?.result || {};
       const findings = (p.findings || []).map((f) => `<li>${esc(f.title)} <span class="muted">· ${esc(sceneName(f.scene))}</span>${f.allowlisted ? "" : ' <span class="bad">Source not on allowlist</span>'}</li>`).join("");
-      const action = p.status === "pending" ? `<div class="proposal-form"><div class="field"><label for="who-${esc(p.id)}">Reviewer’s full name</label><input id="who-${esc(p.id)}" placeholder="Enter your full name" autocomplete="name" aria-describedby="error-${esc(p.id)}"></div><div id="error-${esc(p.id)}" class="inline-error" role="alert" hidden></div><div class="button-row"><button class="btn btn-sm" data-proposal-action="approve" data-proposal-id="${esc(p.id)}">Approve proposal</button><button class="btn btn-sm btn-danger" data-proposal-action="reject" data-proposal-id="${esc(p.id)}">Reject proposal</button></div></div>`
-        : `<div class="proposal-resolution">${p.status === "approved" ? "Approved" : p.status === "rejected" ? "Rejected" : esc(p.status)} by ${esc(p.resolved_by || "—")}</div>`;
-      return `<article class="proposal"><div class="proposal-heading"><strong>${esc(jurisdictionName(p.jurisdiction))}</strong><span class="badge badge-neutral">Decionis ${esc(verdict.decision || "NO DECISION")}</span><code class="muted">${esc(p.id.slice(0, 8))}</code>${verdict.dossier_id ? `<a class="small" href="/dossier?id=${encodeURIComponent(verdict.dossier_id)}" target="_blank" rel="noopener">Dossier ${icon("external")}</a>` : ""}</div><ul>${findings}</ul>${action}</article>`;
+      // A proposal the gate never decided can be rejected, never approved.
+      const decided = !!verdict.decision;
+      const action = p.status === "pending" ? `<div class="proposal-form">${decided ? "" : '<p class="warning small">The gate call failed, so Decionis never decided this proposal. It can only be rejected; run the research again to send a new proposal through the gate.</p>'}<div class="field"><label for="who-${esc(p.id)}">Reviewer’s full name</label><input id="who-${esc(p.id)}" placeholder="Enter your full name" autocomplete="name" aria-describedby="error-${esc(p.id)}"></div><div id="error-${esc(p.id)}" class="inline-error" role="alert" hidden></div><div class="button-row">${decided ? `<button class="btn btn-sm" data-proposal-action="approve" data-proposal-id="${esc(p.id)}">Approve proposal</button>` : ""}<button class="btn btn-sm btn-danger" data-proposal-action="reject" data-proposal-id="${esc(p.id)}">Reject proposal</button></div></div>`
+        : `<div class="proposal-resolution">${p.status === "approved" ? "Approved" : p.status === "rejected" ? "Rejected" : esc(p.status)} by ${esc(p.resolved_by || "—")}${p.resolved_at ? ` · ${esc(dateTime(p.resolved_at))}` : ""}</div>${p.note ? `<details class="disclosure"><summary>${icon("chevron", "chevron")}Reviewer’s reason</summary><p>${esc(p.note)}</p></details>` : ""}`;
+      return `<article class="proposal"><div class="proposal-heading"><strong>${esc(jurisdictionName(p.jurisdiction))}</strong><span class="badge badge-neutral">${decided ? `Decionis ${esc(verdict.decision)}` : "No Decionis decision"}</span><code class="muted">${esc(p.id.slice(0, 8))}</code>${verdict.dossier_id ? `<a class="small" href="/dossier?id=${encodeURIComponent(verdict.dossier_id)}" target="_blank" rel="noopener">Dossier ${icon("external")}</a>` : ""}</div><ul>${findings}</ul>${action}</article>`;
     }).join("") : '<p class="empty-copy" style="padding:20px 0">No policy proposals to review.</p>';
     controls();
   } catch (error) {
@@ -475,6 +495,9 @@ api("/api/state", undefined, "GET").then((next) => { if (!state) applyState(next
 loadProposals();
 connectState((message) => {
   if (message.type === "state") applyState(message.state);
-  if (message.type === "result") render(message.result);
+  if (message.type === "result") {
+    render(message.result);
+    if (message.light_record !== undefined && message.light_record !== message.result.record_id) { previousSource = true; renderStatus(); }
+  }
   if (message.type === "resolution" && last?.record_id === message.record_id) render({ ...last, resolution: message.resolution, light: message.light });
 }, setConnection);

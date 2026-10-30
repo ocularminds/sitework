@@ -59,7 +59,7 @@ export function presentation(light, { connected = true, mock = false } = {}) {
   if (!connected) return { color: "off", title: "Status unavailable", label: "CONNECTION LOST", kicker: "Waiting to reconnect", icon: "refresh" };
   if (mock) return { color: "red", title: "Test environment", label: "MOCK GATE", kicker: "No live release", icon: "info" };
   const label = String(light?.label || "NO INSPECTION").replaceAll("_", " ");
-  if (light?.color === "green") return { color: "green", title: "Hold released", label, kicker: "Execution confirmed", icon: "check" };
+  if (light?.color === "green") return { color: "green", title: "Hold released", label, kicker: "Release finalized", icon: "check" };
   if (light?.color === "blue") return { color: "blue", title: "Human release recorded", label, kicker: "Released by a person", icon: "unlock" };
   if (light?.color === "amber") return { color: "amber", title: "Human review required", label, kicker: "Hold stays closed", icon: "pause" };
   if (light?.color === "red") return { color: "red", title: label === "NO DECISION" ? "No decision received" : label === "BLOCK" ? "Hold blocked" : "Hold stays closed", label, kicker: "Release not authorized", icon: "lock" };
@@ -70,28 +70,53 @@ export function matchesSelection(record, scene, condition, jurisdiction) {
   return !!record && record.scene === scene && record.condition === condition && record.jurisdiction === jurisdiction;
 }
 
+// A stored dossier has no light, so its verdict says whether the release went through.
+export function released(record) {
+  const v = record?.verdict;
+  return record?.light?.color === "green" || !!(v?.decision === "ALLOW" && v.should_execute && v.grant_claimed && v.grant_finalized);
+}
+
 export function inspectionMessage(record) {
-  if (!record) return "Run an inspection to assess this hold point against its cited requirements.";
-  if (record.failure) return "No decision was received from Decionis. Keep the hold in place and review the connection details.";
-  if (record.verdict?.grant_error) return "The policy allowed the action, but its release could not be confirmed. The hold stays closed.";
-  if ((record.errors || []).some((error) => /marker not found/i.test(error))) return "The calibration marker was not found. Include it clearly in the capture, then inspect again.";
-  if (!(record.citations || []).length) return "This inspection has no approved citation. Review the requirement pack before proceeding.";
-  if (record.errors?.length) return `${record.errors.length} evidence issue${record.errors.length === 1 ? " needs" : "s need"} review. Check the details with the measurements.`;
+  if (!record) return "Run an inspection to check this hold point against its cited requirement.";
+  if (record.failure) return "No decision came back from Decionis, so the hold stays closed. Check the connection details.";
+  if (record.verdict?.grant_error) return "Decionis allowed the action, but SiteWork did not complete the release, so the hold stays closed. The decision details say why.";
+  if ((record.errors || []).some((error) => /marker not found/i.test(error))) return "The calibration marker was not found. Bring it clearly into view, then inspect again.";
+  if (!(record.citations || []).length) return "No approved requirement covers this inspection, so it cannot be released automatically.";
+  if (record.errors?.length) return `${record.errors.length} evidence issue${record.errors.length === 1 ? " needs" : "s need"} review. They are listed under the measurements.`;
   const reason = record.verdict?.reason || "";
   if (reason && !/^[A-Z_0-9,\s]+$/.test(reason)) return reason;
-  if (["ESCALATE", "REVIEW_REQUIRED"].includes(record.verdict?.decision)) return "A named reviewer must assess the evidence before this hold can be released.";
-  if (record.verdict?.decision === "BLOCK") return "The action was blocked by the policy. Review the measurements and cited requirement.";
-  if (record.verdict?.decision === "ALLOW") return record.light?.color === "green" ? "The policy allowed this action and its release was confirmed." : "Decionis allowed the proposed action. Its execution status is recorded separately.";
+  if (["ESCALATE", "REVIEW_REQUIRED"].includes(record.verdict?.decision)) return "A named reviewer must check the evidence before this hold can be released.";
+  if (record.verdict?.decision === "BLOCK") return "The policy blocked this release. Compare the measurements with the cited requirement.";
+  if (record.verdict?.decision === "ALLOW") return released(record) ? "Decionis allowed this release. SiteWork claimed its single-use grant and finalized it." : "Decionis allowed the action without authorizing execution, so the hold stays closed.";
   return reason || "Review the recorded evidence and decision details.";
 }
 
-export function measurementName(kind) {
-  return ({ gap_mm: "Board gap", angle_deg: "Alignment", slope_deg: "Wall slope", depth_mm: "Trench depth", seat_audio: "Seating sound" })[kind] || kind.replaceAll("_", " ");
+export function measurementName(kind, scene) {
+  if (kind === "angle_deg") return { decking: "Board angle", plumbing: "Pipe alignment" }[scene] || "Angle";
+  return ({ gap_mm: "Board gap", slope_deg: "Wall slope", depth_mm: "Trench depth", seat_audio: "Seating sound" })[kind] || kind.replaceAll("_", " ");
+}
+
+const unitOf = (kind) => kind.endsWith("_mm") ? " mm" : kind.endsWith("_deg") ? "°" : "";
+
+export function limitText(check, kind) {
+  const n = (v) => new Intl.NumberFormat(undefined, { maximumFractionDigits: 3 }).format(v);
+  const has = (v) => v !== null && v !== undefined && v !== "";
+  const unit = unitOf(kind);
+  if (has(check?.min) && has(check?.max)) return `${n(check.min)}–${n(check.max)}${unit}`;
+  if (has(check?.max)) return `≤ ${n(check.max)}${unit}`;
+  if (has(check?.min)) return `≥ ${n(check.min)}${unit}`;
+  return "No numeric limit";
+}
+
+export function sourceName(spec) {
+  if (!spec) return "";
+  if (spec.startsWith("camera:")) return `Camera ${spec.slice(7)}`;
+  return spec.replace(/^file:/, "");
 }
 
 export function measurementValue(measurement) {
   if (typeof measurement.value === "boolean") return { value: measurement.value ? "Detected" : "Not detected", unit: "" };
-  const unit = measurement.kind.endsWith("_mm") ? "mm" : measurement.kind.endsWith("_deg") ? "°" : "";
+  const unit = unitOf(measurement.kind).trim();
   const value = Number.isFinite(measurement.value) ? new Intl.NumberFormat(undefined, { maximumFractionDigits: 2 }).format(measurement.value) : "—";
   return { value, unit };
 }

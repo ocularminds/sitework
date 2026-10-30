@@ -2,6 +2,7 @@ import { $, api, connectState, dateTime, hydrateIcons, icon, presentation } from
 
 hydrateIcons();
 let light = { color: "off", label: "NO INSPECTION" };
+let lit = null; // the record this light shows; a review of any other record must not change it
 let mode = "live";
 let connected = false;
 let loaded = false;
@@ -16,7 +17,7 @@ function render() {
   $("sub").textContent = !connected && loaded ? "The current hold status cannot be confirmed. Reconnect to the workspace."
     : mode === "mock" ? "Test environment. This signal does not authorize a live release."
       : p.color === "blue" ? "A named person recorded this release. It is not an automatic gate approval."
-        : p.color === "green" ? "Decionis allowed the action and the execution was finalized."
+        : p.color === "green" ? "Decionis allowed this release, and SiteWork claimed and finalized its grant."
           : p.color === "amber" ? "Keep the hold in place. A named person must review the evidence."
             : p.color === "red" ? "Keep the hold in place. Check the inspection workspace for details."
               : "Waiting for an inspection from the workspace.";
@@ -24,6 +25,7 @@ function render() {
 
 function applyState(state) {
   light = state.light;
+  lit = state.light_record ?? null;
   mode = state.gate_mode;
   loaded = true;
   $("updated").textContent = `Updated ${dateTime(new Date().toISOString(), true)}`;
@@ -32,6 +34,8 @@ function applyState(state) {
 
 connectState((message) => {
   if (message.type === "state") applyState(message.state);
+  if (message.type === "resolution" && message.record_id !== lit) return;
+  if (message.type === "result") lit = message.light_record ?? null;
   if (message.type === "result" || message.type === "resolution") {
     light = message.light || message.result?.light;
     $("updated").textContent = `Updated ${dateTime(new Date().toISOString(), true)}`;

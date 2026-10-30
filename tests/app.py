@@ -101,6 +101,25 @@ def test_switching_jurisdiction_regrounds_the_last_inspection(client):
     assert client.post("/api/jurisdiction", json={"jurisdiction": "XX"}).status_code == 404
 
 
+def test_a_refused_jurisdiction_switch_changes_nothing(client):
+    runtime = client.app.state.runtime
+    with runtime._busy:
+        assert client.post("/api/jurisdiction", json={"jurisdiction": "SE"}).status_code == 409
+    assert runtime.jurisdiction == "US"
+
+
+def test_the_light_shows_only_the_record_it_was_lit_for(client):
+    r = client.post("/api/inspect", json={"scene": "decking", "condition": "clean"}).json()
+    st = client.get("/api/state").json()
+    assert st["light_record"] == r["record_id"] and st["light"] == r["light"]
+    client.post("/api/source", json={"spec": "missing-ui-capture.mp4"})
+    st = client.get("/api/state").json()
+    assert st["light"]["color"] == "off" and st["light_record"] is None and st["last"]["record_id"] == r["record_id"]
+    # Releasing the old source's hold is recorded, but the work face now shows other work.
+    out = client.post(f"/api/dossiers/{r['record_id']}/resolve", json={"approver": "Ada Inspector", "release": True}).json()
+    assert out["light"]["color"] == "blue" and client.get("/api/state").json()["light"]["color"] == "off"
+
+
 def test_a_named_person_resolves_an_escalation_once_and_the_light_turns_blue(client):
     r = client.post("/api/inspect", json={"scene": "decking", "condition": "clean"}).json()
     assert r["verdict"]["decision"] == "ESCALATE"

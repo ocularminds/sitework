@@ -54,7 +54,7 @@ class Settings(BaseSettings):
     agentsafe_tenant_key: SecretStr | None = None
     decionis_org_id: str = ""
     decionis_api_base: str = "https://api.decionis.com"
-    decionis_gateway_url: str = "https://sitework.decionisedge.com"
+    decionis_gateway_url: str = "https://dci.decionisedge.com"
     # A different tenant needs its own ingress key; never switch automatically.
     decionis_gateway_fallback: str = ""
     decionis_mode: Literal["live", "mock"] = "live"
